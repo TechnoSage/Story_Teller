@@ -1,0 +1,13 @@
+{
+  "trigger": "minor",
+  "draft": [],
+  "entries": [
+    {
+      "version": "1.0.0",
+      "date": "2026-06-07",
+      "changes": [
+        "First version of Story Teller \u2014 the beginning of something great."
+      ]
+    }
+  ]
+}
