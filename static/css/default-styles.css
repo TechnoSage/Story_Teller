@@ -1,0 +1,1289 @@
+/* ============================================================
+   Web Page Design System — Default Styles
+   Dark Theme | Bootstrap 5 Compatible
+   ============================================================
+   Link this stylesheet AFTER Bootstrap's CSS in any new app.
+   Override individual tokens via :root {} without editing here.
+
+   WHAT IS IN THIS FILE
+   ---------------------
+   1.  Design Tokens (CSS variables)
+   2.  Base / Layout
+   3.  Sidebar — Expanded (3D raised nav-links, neon icons, yellow labels)
+   4.  Sidebar — Collapsed (icon-only 3D buttons + speech-bubble tooltips)
+   5.  Top Bar + Topbar Action Buttons
+   6.  Cards (3D raised rectangle)
+   7.  Metric Cards
+   8.  Tables inside Cards
+   9.  Score / Status Badges
+   10. Page Header
+   11. Form Controls
+   12. Hints System (.app-hint / body.hints-on)
+   13. Changelog Popup
+   14. Notification List
+   15. Toast System
+   16. Utility Classes
+   17. Scrollbars
+   18. Light Mode Overrides
+   19. Responsive
+   ============================================================ */
+
+
+/* ============================================================
+   1. DESIGN TOKENS
+   ============================================================ */
+:root {
+  /* Backgrounds */
+  --clr-bg-body:          #212529;
+  --clr-bg-card:          #1c1f24;
+  --clr-bg-sidebar:       #1a1d23;
+  --clr-bg-topbar:        #1a1d23;
+  --clr-bg-table-head:    #23272b;
+
+  /* Borders */
+  --clr-border-card:      rgba(255, 255, 255, .065);
+  --clr-border-table:     #373b3e;
+
+  /* Text */
+  --clr-text-body:        #e9ecef;
+  --clr-text-muted:       #6c757d;
+
+  /* Accents */
+  --clr-neon-green:       #39ff14;
+  --clr-baby-blue:        #89cff0;
+  --clr-score-blue:       #5bc0de;
+
+  /* Sidebar dimensions */
+  --sidebar-width:        230px;
+  --sidebar-collapsed:    68px;
+
+  /* Radii */
+  --radius-card:          0.9rem;
+  --radius-card-lg:       1.1rem;
+
+  /* Transitions */
+  --transition-card:      0.18s ease;
+}
+
+
+/* ============================================================
+   2. BASE / LAYOUT
+   ============================================================ */
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--clr-bg-body);
+  color: var(--clr-text-body);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Flex wrapper — sidebar left, content right */
+#wrapper { display: flex; height: 100vh; }
+
+/* Main scrollable content pane */
+#page-content {
+  height: 100vh;
+  overflow-y: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Kill sidebar transitions during load — prevents flash.
+   Add <style id="sb-no-trans">#sidebar,#sidebar *{transition:none!important;}</style>
+   to the <head> and remove it after window.load. */
+.sb-no-trans, .sb-no-trans * { transition: none !important; }
+
+
+/* ============================================================
+   3. SIDEBAR — EXPANDED
+   ============================================================ */
+#sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--clr-bg-sidebar);
+  flex-shrink: 0;
+  border-right: 1px solid rgba(255,255,255,.05);
+  box-shadow:
+    4px 0 18px rgba(0,0,0,.55),
+    2px 0  6px rgba(0,0,0,.35),
+    inset -1px 0 0 rgba(255,255,255,.04);
+  transition: width 0.22s ease, min-width 0.22s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+/* -- Brand block -- */
+.sidebar-brand-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 0.75rem 0.6rem;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  flex-shrink: 0;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #e9ecef;
+  flex: 1;
+  min-width: 0;
+}
+
+.brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px; height: 38px;
+  border-radius: 9px;
+  border: 1px solid rgba(59,130,246,.30);
+  background: #1c1f24;
+  color: #3b82f6;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  box-shadow:
+    0 4px 10px rgba(0,0,0,.50),
+    0 2px  4px rgba(0,0,0,.35),
+    inset 0  1px 0 rgba(255,255,255,.07),
+    inset 0 -2px 4px rgba(0,0,0,.28);
+  transition: box-shadow 0.12s ease, border-color 0.12s ease;
+}
+.brand-info    { display: flex; flex-direction: column; min-width: 0; }
+.brand-text    { font-size: 0.88rem; font-weight: 700; white-space: nowrap; }
+.brand-sub     { font-size: 0.65rem; color: var(--clr-text-muted); white-space: nowrap; }
+.brand-version {
+  font-size: 0.62rem;
+  color: var(--clr-neon-green);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* Collapse toggle button */
+.sb-toggle-btn {
+  background: none;
+  border: none;
+  color: #6c757d;
+  padding: 0.2rem 0.3rem;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.sb-toggle-btn:hover { color: #fff; background: rgba(255,255,255,.08); }
+
+/* Scrollable nav area */
+.sb-nav-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: visible;
+  padding: 0.5rem 0.6rem;
+}
+
+/* Section separator labels — YELLOW */
+.nav-section-label {
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #ffc107;
+  padding: 0.65rem 0.5rem 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.15s;
+}
+
+/* Expanded nav-link: 3D raised card */
+#sidebar:not(.collapsed) .nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.52rem 0.75rem;
+  border-radius: 0.7rem;
+  background: #1c1f24;
+  border: 1px solid rgba(255,255,255,.07);
+  box-shadow:
+    0 4px 12px rgba(0,0,0,.55),
+    0 1px  4px rgba(0,0,0,.35),
+    inset 0  1px 0 rgba(255,255,255,.055),
+    inset 0 -2px 4px rgba(0,0,0,.28);
+  color: #adb5bd;
+  margin-bottom: 0.2rem;
+  text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s, color 0.15s;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Neon green outlined icon */
+#sidebar:not(.collapsed) .nav-link i {
+  font-size: 1.05rem;
+  color: var(--clr-neon-green);
+  text-shadow:
+    0 0  6px rgba(57,255,20,.65),
+    0 0 14px rgba(57,255,20,.28);
+  flex-shrink: 0;
+  transition: text-shadow 0.15s;
+}
+
+#sidebar:not(.collapsed) .nav-link:hover {
+  transform: translateY(-1px);
+  background: #23272e;
+  color: #fff;
+  box-shadow:
+    0  7px 20px rgba(0,0,0,.65),
+    0  2px  6px rgba(0,0,0,.40),
+    inset 0  1px 0 rgba(255,255,255,.08),
+    inset 0 -2px 5px rgba(0,0,0,.32);
+}
+
+#sidebar:not(.collapsed) .nav-link.active {
+  background: #0d6efd;
+  border-color: rgba(13,110,253,.55);
+  color: #fff;
+  box-shadow:
+    0  4px 16px rgba(13,110,253,.45),
+    0  2px  6px rgba(0,0,0,.30),
+    inset 0  1px 0 rgba(255,255,255,.12),
+    inset 0 -2px 5px rgba(0,0,0,.20);
+}
+#sidebar:not(.collapsed) .nav-link.active i {
+  color: #fff !important;
+  text-shadow: none;
+}
+
+
+/* ============================================================
+   4. SIDEBAR — COLLAPSED (icon-only 3D buttons)
+   ============================================================ */
+#sidebar.collapsed {
+  width: var(--sidebar-collapsed);
+  min-width: var(--sidebar-collapsed);
+  overflow: visible;
+}
+
+#sidebar.collapsed .sb-nav-scroll {
+  overflow: visible;
+  padding: 0.4rem 0.35rem;
+}
+
+/* Hide text when collapsed */
+#sidebar.collapsed .nav-label,
+#sidebar.collapsed .nav-section-label,
+#sidebar.collapsed .brand-info {
+  display: none !important;
+}
+
+/* Brand icon only — centered */
+#sidebar.collapsed .sidebar-brand-wrapper {
+  justify-content: center;
+  padding: 0.85rem 0.35rem 0.6rem;
+}
+#sidebar.collapsed .sidebar-brand { justify-content: center; flex: none; }
+#sidebar.collapsed .brand-icon    { width: 38px; height: 38px; }
+#sidebar.collapsed .sb-toggle-btn { margin: 0 auto; }
+
+/* Collapsed nav-link: 3D square button */
+#sidebar.collapsed .nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 3px auto;
+  padding: 0;
+  border-radius: 10px;
+  background: #1c1f24;
+  border: 1px solid rgba(255,255,255,.07);
+  box-shadow:
+    0 5px 14px rgba(0,0,0,.60),
+    0 2px  5px rgba(0,0,0,.40),
+    inset 0  1px 0 rgba(255,255,255,.055),
+    inset 0 -2px 5px rgba(0,0,0,.30);
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+  overflow: visible;
+  text-decoration: none;
+}
+
+#sidebar.collapsed .nav-link i {
+  margin: 0 !important;
+  font-size: 1.2rem;
+  color: var(--clr-neon-green);
+  text-shadow:
+    0 0  6px rgba(57,255,20,.70),
+    0 0 14px rgba(57,255,20,.30);
+}
+
+#sidebar.collapsed .nav-link.active {
+  background: #0d6efd;
+  border-color: rgba(13,110,253,.6);
+  box-shadow:
+    0 5px 14px rgba(13,110,253,.45),
+    0 2px  5px rgba(0,0,0,.30),
+    inset 0  1px 0 rgba(255,255,255,.12),
+    inset 0 -2px 5px rgba(0,0,0,.20);
+}
+#sidebar.collapsed .nav-link.active i { color: #fff !important; text-shadow: none; }
+
+#sidebar.collapsed .nav-link:hover {
+  transform: translateY(-2px);
+  background: #23272e;
+  box-shadow:
+    0  8px 20px rgba(0,0,0,.65),
+    0  3px  8px rgba(0,0,0,.40),
+    inset 0  1px 0 rgba(255,255,255,.08),
+    inset 0 -2px 5px rgba(0,0,0,.30);
+}
+
+/* Speech-bubble tooltip (right side of collapsed button) */
+#sidebar.collapsed .nav-link[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 13px);
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  background: #1c1f24;
+  color: #f0f0f0;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid rgba(57,255,20,.45);
+  box-shadow: 0 4px 14px rgba(0,0,0,.55);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 9999;
+}
+#sidebar.collapsed .nav-link[data-tooltip]::before {
+  content: '';
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: rgba(57,255,20,.45);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 9999;
+}
+/* Only reveal when hints mode is active */
+body.hints-on #sidebar.collapsed .nav-link[data-tooltip]:hover::after,
+body.hints-on #sidebar.collapsed .nav-link[data-tooltip]:hover::before {
+  opacity: 1;
+}
+
+
+/* ============================================================
+   5. TOP BAR + TOPBAR ACTION BUTTONS
+   ============================================================
+   STICKY TOPBAR — DO NOT REMOVE:
+   The topbar is pinned via `position: sticky; top: 0` so it never scrolls
+   off-screen.  This relies on #page-content (section 2) being the scroll
+   container (`height: 100vh; overflow-y: auto`).  The topbar must be a
+   direct child of #page-content for sticky to work correctly.
+
+   DO NOT remove `position: sticky`, `top: 0`, or the `overflow-y: auto`
+   on #page-content — either change will cause the topbar to scroll away.
+   ============================================================ */
+.topbar {
+  background-color: var(--clr-bg-topbar);
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Topbar action buttons (bell, gear, moon, question, etc.) — 3D raised */
+.topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(173,181,189,.22);
+  background: var(--clr-bg-card);
+  color: #adb5bd;
+  font-size: 0.92rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow:
+    0 4px 10px rgba(0,0,0,.50),
+    0 2px  4px rgba(0,0,0,.35),
+    inset 0  1px 0 rgba(255,255,255,.07),
+    inset 0 -2px 4px rgba(0,0,0,.28);
+}
+.topbar-btn:hover {
+  color: #e9ecef;
+  border-color: rgba(173,181,189,.55);
+  transform: translateY(-2px);
+  box-shadow:
+    0 7px 18px rgba(0,0,0,.60),
+    0 3px  7px rgba(0,0,0,.40),
+    inset 0  1px 0 rgba(255,255,255,.10),
+    inset 0 -2px 5px rgba(0,0,0,.30);
+}
+.topbar-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,.50),
+    inset 0 2px 4px rgba(0,0,0,.35);
+}
+.topbar-btn.active {
+  background: rgba(13,110,253,.18);
+  border-color: rgba(13,110,253,.45);
+  color: #6ea8fe;
+  box-shadow:
+    0 4px 14px rgba(13,110,253,.30),
+    0 2px  5px rgba(0,0,0,.35),
+    inset 0  1px 0 rgba(255,255,255,.07),
+    inset 0 -2px 4px rgba(0,0,0,.25);
+}
+
+/* ── Colour variants ── */
+/* Light blue — Help button */
+.topbar-btn-info {
+  color: var(--clr-baby-blue);
+  border-color: rgba(137,207,240,.30);
+}
+.topbar-btn-info:hover {
+  color: #b3e0f7;
+  border-color: rgba(137,207,240,.65);
+  box-shadow:
+    0 7px 18px rgba(0,0,0,.55),
+    0 3px  7px rgba(0,0,0,.38),
+    0 0   12px rgba(137,207,240,.15),
+    inset 0  1px 0 rgba(255,255,255,.10),
+    inset 0 -2px 5px rgba(0,0,0,.28);
+}
+
+/* Amber — Support button */
+.topbar-btn-warning {
+  color: #fbbf24;
+  border-color: rgba(251,191,36,.28);
+}
+.topbar-btn-warning:hover {
+  color: #fcd34d;
+  border-color: rgba(251,191,36,.65);
+  box-shadow:
+    0 7px 18px rgba(0,0,0,.55),
+    0 3px  7px rgba(0,0,0,.38),
+    0 0   12px rgba(251,191,36,.15),
+    inset 0  1px 0 rgba(255,255,255,.10),
+    inset 0 -2px 5px rgba(0,0,0,.28);
+}
+
+/* Green — Sidebar toggle when sidebar is open */
+.topbar-btn-toggle {
+  color: var(--clr-neon-green);
+  border-color: rgba(57,255,20,.22);
+}
+.topbar-btn-toggle:hover {
+  color: #7fff50;
+  border-color: rgba(57,255,20,.55);
+  box-shadow:
+    0 7px 18px rgba(0,0,0,.55),
+    0 3px  7px rgba(0,0,0,.38),
+    0 0   12px rgba(57,255,20,.12),
+    inset 0  1px 0 rgba(255,255,255,.10),
+    inset 0 -2px 5px rgba(0,0,0,.28);
+}
+
+/* Light red/coral — Settings button */
+.topbar-btn-danger {
+  color: #f87171;
+  border-color: rgba(239,68,68,.28);
+}
+.topbar-btn-danger:hover {
+  color: #fca5a5;
+  border-color: rgba(239,68,68,.65);
+  box-shadow:
+    0 7px 18px rgba(0,0,0,.55),
+    0 3px  7px rgba(0,0,0,.38),
+    0 0   12px rgba(239,68,68,.15),
+    inset 0  1px 0 rgba(255,255,255,.10),
+    inset 0 -2px 5px rgba(0,0,0,.28);
+}
+
+/* Notification dot/badge on topbar-btn */
+.topbar-btn .notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  pointer-events: none;
+}
+
+/* Vertical separator between topbar button groups */
+.topbar-divider {
+  width: 1px;
+  height: 22px;
+  background: rgba(255,255,255,.10);
+  flex-shrink: 0;
+}
+
+
+/* ============================================================
+   5b. CONTENT BUTTONS — 3D Raised (applies to all .btn inside page content)
+   ============================================================ */
+.btn {
+  border-radius: 0.6rem;
+  box-shadow:
+    0 4px 10px rgba(0,0,0,.45),
+    0 2px  4px rgba(0,0,0,.30),
+    inset 0  1px 0 rgba(255,255,255,.10),
+    inset 0 -2px 4px rgba(0,0,0,.25);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.btn-sm { border-radius: 0.45rem; }
+.btn:hover:not(:disabled):not(.disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 7px 18px rgba(0,0,0,.55),
+    0 3px  7px rgba(0,0,0,.38),
+    inset 0  1px 0 rgba(255,255,255,.12),
+    inset 0 -2px 5px rgba(0,0,0,.28);
+}
+.btn:active:not(:disabled):not(.disabled) {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,.45),
+    inset 0 2px 5px rgba(0,0,0,.35);
+}
+/* Colored outer glow for outline button variants */
+.btn-outline-primary {
+  box-shadow: 0 4px 10px rgba(13,110,253,.25), 0 2px 4px rgba(0,0,0,.35),
+              inset 0 1px 0 rgba(255,255,255,.07), inset 0 -2px 4px rgba(0,0,0,.28);
+}
+.btn-outline-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(13,110,253,.42), 0 2px 6px rgba(0,0,0,.38),
+              inset 0 1px 0 rgba(255,255,255,.10), inset 0 -2px 5px rgba(0,0,0,.30);
+}
+.btn-outline-info {
+  box-shadow: 0 4px 10px rgba(13,202,240,.20), 0 2px 4px rgba(0,0,0,.35),
+              inset 0 1px 0 rgba(255,255,255,.07), inset 0 -2px 4px rgba(0,0,0,.28);
+}
+.btn-outline-info:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(13,202,240,.38), 0 2px 6px rgba(0,0,0,.38),
+              inset 0 1px 0 rgba(255,255,255,.10), inset 0 -2px 5px rgba(0,0,0,.30);
+}
+.btn-outline-danger {
+  box-shadow: 0 4px 10px rgba(220,53,69,.25), 0 2px 4px rgba(0,0,0,.35),
+              inset 0 1px 0 rgba(255,255,255,.07), inset 0 -2px 4px rgba(0,0,0,.28);
+}
+.btn-outline-danger:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(220,53,69,.44), 0 2px 6px rgba(0,0,0,.38),
+              inset 0 1px 0 rgba(255,255,255,.10), inset 0 -2px 5px rgba(0,0,0,.30);
+}
+.btn-outline-warning {
+  box-shadow: 0 4px 10px rgba(255,193,7,.20), 0 2px 4px rgba(0,0,0,.35),
+              inset 0 1px 0 rgba(255,255,255,.07), inset 0 -2px 4px rgba(0,0,0,.28);
+}
+.btn-outline-warning:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(255,193,7,.38), 0 2px 6px rgba(0,0,0,.38),
+              inset 0 1px 0 rgba(255,255,255,.10), inset 0 -2px 5px rgba(0,0,0,.30);
+}
+.btn-outline-success {
+  box-shadow: 0 4px 10px rgba(25,135,84,.22), 0 2px 4px rgba(0,0,0,.35),
+              inset 0 1px 0 rgba(255,255,255,.07), inset 0 -2px 4px rgba(0,0,0,.28);
+}
+.btn-outline-success:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(25,135,84,.40), 0 2px 6px rgba(0,0,0,.38),
+              inset 0 1px 0 rgba(255,255,255,.10), inset 0 -2px 5px rgba(0,0,0,.30);
+}
+.btn-outline-secondary {
+  box-shadow: 0 4px 10px rgba(0,0,0,.45), 0 2px 4px rgba(0,0,0,.32),
+              inset 0 1px 0 rgba(255,255,255,.07), inset 0 -2px 4px rgba(0,0,0,.28);
+}
+.btn-outline-secondary:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.38),
+              inset 0 1px 0 rgba(255,255,255,.10), inset 0 -2px 5px rgba(0,0,0,.30);
+}
+
+/* Light mode — softer 3D lift */
+[data-bs-theme="light"] .btn {
+  box-shadow:
+    0 3px 8px rgba(0,0,0,.12),
+    0 1px 3px rgba(0,0,0,.08),
+    inset 0  1px 0 rgba(255,255,255,.70),
+    inset 0 -1px 3px rgba(0,0,0,.07);
+}
+[data-bs-theme="light"] .btn:hover:not(:disabled):not(.disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 5px 14px rgba(0,0,0,.16),
+    0 2px  5px rgba(0,0,0,.10),
+    inset 0  1px 0 rgba(255,255,255,.80),
+    inset 0 -1px 3px rgba(0,0,0,.08);
+}
+[data-bs-theme="light"] .btn:active:not(:disabled):not(.disabled) {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 4px rgba(0,0,0,.12),
+    inset 0 2px 4px rgba(0,0,0,.10);
+}
+
+
+/* ============================================================
+   6. CARDS — 3D Raised Rectangle
+   Default format for ALL content sections.
+   ============================================================ */
+.card {
+  border-radius: var(--radius-card-lg);
+  background: var(--clr-bg-card);
+  box-shadow:
+    0 8px 22px  rgba(0,0,0,.60),
+    0 3px  8px  rgba(0,0,0,.40),
+    inset 0  1px 0   rgba(255,255,255,.055),
+    inset 0 -2px 5px rgba(0,0,0,.35);
+  border: 1px solid var(--clr-border-card);
+  transition: box-shadow var(--transition-card), transform var(--transition-card);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.card:hover {
+  box-shadow:
+    0 12px 30px rgba(0,0,0,.70),
+    0  4px 10px rgba(0,0,0,.45),
+    inset 0  1px 0   rgba(255,255,255,.07),
+    inset 0 -2px 5px rgba(0,0,0,.35);
+  transform: translateY(-1px);
+}
+
+/* Standard card-header reset */
+.card-header.bg-transparent { background: transparent !important; }
+/* Card header pattern:
+   <div class="card-header bg-transparent border-0 pb-0">
+     <h6 class="fw-bold mb-0">
+       <i class="bi bi-ICON me-2 text-secondary"></i>Title
+     </h6>
+   </div>
+*/
+
+
+/* ============================================================
+   7. METRIC CARDS (KPI tiles)
+   ============================================================ */
+.metric-card {
+  border-radius: var(--radius-card-lg);
+  background: var(--clr-bg-card);
+  box-shadow:
+    0 8px 22px  rgba(0,0,0,.60),
+    0 3px  8px  rgba(0,0,0,.40),
+    inset 0  1px 0   rgba(255,255,255,.055),
+    inset 0 -2px 5px rgba(0,0,0,.35);
+  border: 1px solid var(--clr-border-card);
+  padding: 1rem 1.25rem;
+  transition: transform var(--transition-card), box-shadow var(--transition-card);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.metric-card:hover { transform: translateY(-2px); }
+.metric-value { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+.metric-label { font-size: 0.75rem; color: var(--clr-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.metric-icon  { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; }
+
+
+/* ============================================================
+   8. TABLES INSIDE CARDS
+   ============================================================ */
+.card .table thead th {
+  --bs-table-bg: var(--clr-bg-table-head);
+  background-color: var(--clr-bg-table-head);
+  border-bottom: 1px solid var(--clr-border-table);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #adb5bd;
+}
+.card .table tbody td   { font-size: 0.83rem; vertical-align: middle; }
+.card .table tbody tr:hover { background: rgba(255,255,255,.03); }
+
+/* Scrollable table — do NOT wrap in table-responsive (breaks sticky headers) */
+.table-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--clr-bg-table-head);
+}
+
+
+/* ============================================================
+   9. SCORE / STATUS BADGES
+   ============================================================ */
+.score-badge  { min-width: 36px; font-size: 0.8rem; }
+.score-grey   { background-color: #6c757d; color: #fff; }
+.score-blue   { background-color: var(--clr-score-blue); color: #fff; }
+.score-neon   { background-color: var(--clr-neon-green); color: #111; box-shadow: 0 0 7px rgba(57,255,20,.60); }
+.score-circle { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
+.score-success   { background: rgba(25,135,84,.25);   color: #198754; border: 2px solid #198754; }
+.score-warning   { background: rgba(255,193,7,.25);   color: #ffc107; border: 2px solid #ffc107; }
+.score-secondary { background: rgba(108,117,125,.20); color: #adb5bd; border: 2px solid #495057; }
+
+
+/* ============================================================
+   10. PAGE HEADER
+   Usage: <div class="page-header">
+            <h4><i class="bi bi-ICON me-2 text-primary"></i>Section Title</h4>
+            <div class="page-desc">Subtitle text here.</div>
+          </div>
+   ============================================================ */
+.page-header          { margin-bottom: 1.25rem; }
+.page-header h4       { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.15rem; color: #f0f4f8; }
+.page-header .page-desc { font-size: 0.82rem; color: var(--clr-text-muted); }
+
+
+/* ============================================================
+   11. FORM CONTROLS
+   ============================================================ */
+.form-control, .form-select {
+  background-color: #252930;
+  border-color: rgba(255,255,255,.12);
+  color: var(--clr-text-body);
+  font-size: 0.85rem;
+}
+.form-control:focus, .form-select:focus {
+  background-color: #2a2f38;
+  border-color: #0d6efd;
+  color: var(--clr-text-body);
+  box-shadow: 0 0 0 0.2rem rgba(13,110,253,.2);
+}
+.form-control::placeholder { color: #5a6270; }
+.form-label      { font-size: 0.78rem; color: #adb5bd; margin-bottom: 0.25rem; }
+.input-group-text {
+  background-color: #1c2028;
+  border-color: rgba(255,255,255,.12);
+  color: #adb5bd;
+}
+
+
+/* ============================================================
+   12. HINTS SYSTEM
+   ============================================================
+   Body class "hints-on" is toggled by the hints button.
+   Persisted with: localStorage.setItem('app-hints', 'on'/'off')
+
+   Usage:
+     <span class="app-hint">Some contextual tip text.</span>
+     <div class="app-hint hint-box"><i class="bi bi-lightbulb-fill"></i> Tip text.</div>
+
+   The hints topbar button sets/clears body.hints-on.
+   See base.html for the canonical JS implementation.
+   ============================================================ */
+.app-hint           { display: none !important; }
+body.hints-on .app-hint { display: revert !important; }
+
+/* Styled hint callout box */
+.hint-box {
+  background: rgba(57,255,20,.07);
+  border: 1px solid rgba(57,255,20,.25);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: #b0f4a0;
+  margin-bottom: 0.75rem;
+}
+.hint-box i { color: var(--clr-neon-green); }
+
+/* When hints mode is active, raise the sidebar above page-content cards so
+   speech-bubble tooltips are never obscured by card stacking contexts. */
+body.hints-on #sidebar {
+  position: relative;
+  z-index: 1500;
+}
+
+/* Expanded sidebar nav-link tooltips: redirect direction from upward (which
+   gets clipped by #sidebar overflow:hidden) to RIGHT — matching collapsed mode.
+   Only fires when hints mode is active (via the base body.hints-on rule). */
+#sidebar:not(.collapsed) .nav-link[data-tooltip]::after {
+  bottom: auto;
+  top: 50%;
+  left: calc(100% + 13px);
+  transform: translateY(-50%);
+  background: #1c1f24;
+  border-color: rgba(57,255,20,.45);
+}
+#sidebar:not(.collapsed) .nav-link[data-tooltip]::before {
+  bottom: auto;
+  top: 50%;
+  left: calc(100% + 7px);
+  transform: translateY(-50%);
+  border-top-color: transparent;
+  border-right-color: rgba(57,255,20,.45);
+}
+
+/* Speech-bubble tooltips on arbitrary elements (separate from sidebar collapsed).
+   Add data-tooltip="Your text" to any element that should show a tooltip.
+   NOTE: For collapsed sidebar, the tooltip is already in Section 4.
+   This block applies to arbitrary elements outside the sidebar. */
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #3a3f47;
+  color: #e9ecef;
+  padding: 7px 13px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.45;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  box-shadow: 0 6px 22px rgba(0,0,0,.60), 0 2px 6px rgba(0,0,0,.40);
+  border: 1px solid rgba(255,255,255,.13);
+  z-index: 1050;
+  -webkit-font-smoothing: antialiased;
+}
+[data-tooltip]::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #3a3f47;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  z-index: 1051;
+}
+/* Only reveal when hints mode is active */
+body.hints-on [data-tooltip]:hover::after,
+body.hints-on [data-tooltip]:hover::before { opacity: 1; }
+
+
+/* ============================================================
+   13. CHANGELOG POPUP (draggable, top-right)
+   ============================================================ */
+#clPopup {
+  display: none;
+  position: fixed;
+  z-index: 8000;
+  width: 640px;
+  max-width: 94vw;
+  top: 64px;
+  right: 24px;
+  border-radius: 1.1rem;
+  overflow: hidden;
+  box-shadow: 0 20px 56px rgba(0,0,0,.75), 0 6px 20px rgba(0,0,0,.50);
+}
+#clPopupDrag {
+  padding: .65rem 1rem;
+  cursor: move;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #23272b;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+#clPopupBody {
+  max-height: 60vh;
+  overflow-y: auto;
+  background: #1c1f24;
+}
+#clPopupFooter {
+  padding: .5rem 1rem;
+  display: flex;
+  justify-content: flex-end;
+  background: #1c1f24;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+
+/* ============================================================
+   14. NOTIFICATION LIST
+   ============================================================ */
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  font-size: 0.82rem;
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-icon         { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
+.notif-icon.error   { color: #f87171; }
+.notif-icon.warning { color: #fbbf24; }
+.notif-icon.info    { color: #60a5fa; }
+.notif-title        { font-weight: 600; font-size: 0.83rem; margin-bottom: 0.15rem; }
+.notif-body         { color: #9ca3af; font-size: 0.78rem; }
+
+
+/* ============================================================
+   15. TOAST SYSTEM
+   ============================================================ */
+#toast-container {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.app-toast {
+  min-width: 240px;
+  max-width: 360px;
+  padding: 0.6rem 1rem;
+  border-radius: 0.6rem;
+  font-size: 0.83rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,.6);
+  animation: slideInToast 0.25s ease;
+}
+@keyframes slideInToast {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.toast-success { background: #14532d; border: 1px solid #166534; color: #bbf7d0; }
+.toast-danger  { background: #450a0a; border: 1px solid #7f1d1d; color: #fecaca; }
+.toast-warning { background: #422006; border: 1px solid #92400e; color: #fde68a; }
+.toast-info    { background: #1e3a5f; border: 1px solid #1d4ed8; color: #bfdbfe; }
+
+
+/* ============================================================
+   16. UTILITY CLASSES
+   ============================================================ */
+.btn-xs         { font-size: 0.72rem; padding: 0.15rem 0.45rem; line-height: 1.4; }
+.text-baby-blue { color: var(--clr-baby-blue); }
+.text-neon      { color: var(--clr-neon-green); }
+
+/* Section pane visibility (SPA pattern) */
+.section-pane        { display: none; }
+.section-pane.active { display: block; }
+
+/* Settings section title (yellow label inside settings card) */
+.settings-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #ffc107;
+  margin: 1.25rem 0 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.settings-section-title:first-child { margin-top: 0; }
+
+/* Most-recent row highlight in tables */
+.row-latest td:not(.status-col) { color: #ffc107; font-weight: 500; }
+
+
+/* ============================================================
+   17. SCROLLBARS
+   ============================================================ */
+::-webkit-scrollbar              { width: 6px; height: 6px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: #374151; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover  { background: #4b5563; }
+
+
+/* ============================================================
+   18. LIGHT MODE OVERRIDES  (data-bs-theme="light")
+   ============================================================
+   Bootstrap 5.3 activates this block when <html> carries
+   data-bs-theme="light". Apply theme via JS:
+     document.documentElement.setAttribute('data-bs-theme', 'light');
+   Persist with localStorage.setItem('app-theme', 'light');
+   ============================================================ */
+
+[data-bs-theme="light"] {
+  --clr-bg-body:       #f0f2f5;
+  --clr-bg-card:       #f9f8f5;
+  --clr-bg-table-head: #f0f2f5;
+  --clr-border-card:   rgba(0,0,0,.10);
+  --clr-border-table:  #ced4da;
+  --clr-text-body:     #1a202c;
+  --clr-text-muted:    #6c757d;
+  --clr-baby-blue:     #0369a1;
+}
+
+[data-bs-theme="light"] body   { background-color: #f0f2f5; color: #212529; }
+[data-bs-theme="light"] #sidebar { background-color: #e8eaef; border-right-color: rgba(0,0,0,.08); }
+[data-bs-theme="light"] .topbar  { background-color: #e8eaef; border-bottom-color: rgba(0,0,0,.08); }
+
+/* 3D bevel card — light mode */
+[data-bs-theme="light"] .card,
+[data-bs-theme="light"] .metric-card {
+  background: linear-gradient(170deg, #fdfcf9 0%, #f2f0eb 100%);
+  border-color: rgba(0,0,0,.13);
+  box-shadow:
+    0 8px 22px  rgba(0,0,0,.13),
+    0 3px  8px  rgba(0,0,0,.08),
+    inset 0  1px 0   rgba(255,255,255,.95),
+    inset 0 -3px 6px rgba(0,0,0,.09);
+}
+[data-bs-theme="light"] .card:hover,
+[data-bs-theme="light"] .metric-card:hover {
+  box-shadow:
+    0 14px 32px rgba(0,0,0,.16),
+    0  5px 12px rgba(0,0,0,.10),
+    inset 0  1px 0   rgba(255,255,255,1),
+    inset 0 -3px 6px rgba(0,0,0,.10);
+  transform: translateY(-3px);
+}
+
+[data-bs-theme="light"] .card-header { background: transparent !important; }
+
+[data-bs-theme="light"] .card .table thead th,
+[data-bs-theme="light"] .table-scroll thead th {
+  --bs-table-bg: #f0f2f5;
+  background-color: #f0f2f5 !important;
+  border-bottom-color: #ced4da;
+  color: #495057;
+}
+
+[data-bs-theme="light"] .form-control,
+[data-bs-theme="light"] .form-select { background-color: #fff; border-color: rgba(0,0,0,.18); color: #212529; }
+[data-bs-theme="light"] .form-label  { color: #495057; }
+[data-bs-theme="light"] .input-group-text { background-color: #f0f2f5; border-color: rgba(0,0,0,.18); color: #495057; }
+
+[data-bs-theme="light"] .nav-section-label { color: #c47a00; }
+
+[data-bs-theme="light"] #sidebar:not(.collapsed) .nav-link {
+  background: #fff;
+  border-color: rgba(0,0,0,.10);
+  color: #495057;
+  box-shadow:
+    0 2px 8px rgba(0,0,0,.12),
+    0 1px 3px rgba(0,0,0,.08),
+    inset 0  1px 0 rgba(255,255,255,.80),
+    inset 0 -1px 3px rgba(0,0,0,.06);
+}
+[data-bs-theme="light"] #sidebar:not(.collapsed) .nav-link i {
+  color: #16a34a;
+  text-shadow: 0 0 6px rgba(22,163,74,.35);
+}
+[data-bs-theme="light"] #sidebar.collapsed .nav-link {
+  background: #fff;
+  border-color: rgba(0,0,0,.10);
+  box-shadow: 0 2px 8px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.08);
+}
+[data-bs-theme="light"] #sidebar.collapsed .nav-link i {
+  color: #16a34a;
+  text-shadow: none;
+}
+
+[data-bs-theme="light"] .topbar-btn {
+  border-color: rgba(0,0,0,.15);
+  background: #ffffff;
+  color: #495057;
+  box-shadow:
+    0 3px 8px rgba(0,0,0,.12),
+    0 1px 3px rgba(0,0,0,.08),
+    inset 0  1px 0 rgba(255,255,255,.90),
+    inset 0 -1px 3px rgba(0,0,0,.06);
+}
+[data-bs-theme="light"] .topbar-btn:hover {
+  background: #f8f9fa;
+  color: #212529;
+  border-color: rgba(0,0,0,.28);
+  box-shadow:
+    0 5px 14px rgba(0,0,0,.16),
+    0 2px  5px rgba(0,0,0,.10),
+    inset 0  1px 0 rgba(255,255,255,.95),
+    inset 0 -1px 3px rgba(0,0,0,.07);
+}
+[data-bs-theme="light"] .topbar-btn-info    { color: #0ea5e9; border-color: rgba(14,165,233,.30); }
+[data-bs-theme="light"] .topbar-btn-warning { color: #d97706; border-color: rgba(217,119,6,.30); }
+[data-bs-theme="light"] .topbar-btn-toggle  { color: #16a34a; border-color: rgba(22,163,74,.25); }
+[data-bs-theme="light"] .topbar-btn-danger  { color: #dc2626; border-color: rgba(220,38,38,.30); }
+[data-bs-theme="light"] .topbar-divider { background: rgba(0,0,0,.12); }
+
+[data-bs-theme="light"] .score-secondary {
+  background: rgba(108,117,125,.12);
+  color: #495057;
+  border-color: #6c757d;
+}
+[data-bs-theme="light"] .text-baby-blue { color: #0369a1; }
+
+[data-bs-theme="light"] .card pre,
+[data-bs-theme="light"] code {
+  background: #f0f2f5;
+  color: #374151;
+  border: 1px solid #dee2e6;
+}
+
+[data-bs-theme="light"] ::-webkit-scrollbar-track { background: #e9ecef; }
+[data-bs-theme="light"] ::-webkit-scrollbar-thumb { background: #adb5bd; border-radius: 3px; }
+[data-bs-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #6c757d; }
+
+
+/* ============================================================
+   19. RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  #sidebar {
+    position: fixed;
+    z-index: 200;
+    height: 100%;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+  #sidebar.mobile-open { transform: translateX(0); }
+  #page-content { width: 100%; }
+}
+
+
+/* ============================================================
+   20. CUSTOMER SUPPORT PAGE
+   ============================================================ */
+
+/* Quick-action card icon circles */
+.action-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 4px 14px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.14);
+}
+/* Named color variants — use these instead of Bootstrap bg-opacity utilities */
+.action-icon-info    { background: rgba(13,202,240,.20);  color: #0dcaf0; }
+.action-icon-danger  { background: rgba(220,53,69,.22);   color: #dc3545; }
+.action-icon-warning { background: rgba(255,193,7,.20);   color: #ffc107; }
+.action-icon-success { background: rgba(25,135,84,.20);   color: #198754; }
+
+/* Active-mode ring on selected quick-action card */
+.qa-card { cursor: pointer; }
+.qa-card.mode-active {
+  outline: 2px solid rgba(255,255,255,.25);
+  outline-offset: 2px;
+}
+[data-bs-theme="light"] .qa-card.mode-active { outline-color: rgba(0,0,0,.20); }
+
+/* Gradient section divider */
+.sup-divider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.07), transparent);
+  margin: 2rem 0;
+  border: none;
+}
+[data-bs-theme="light"] .sup-divider {
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,.07), transparent);
+}
+
+/* Locked category badge sizing */
+#supCatLocked { font-size: 0.85rem; padding: 0.45rem 0.75rem; }
+
+/* System info pre */
+#supSysInfo { font-size: 0.72rem; line-height: 1.6; word-break: break-all; }
+[data-bs-theme="dark"]  #supSysInfo { background: #0d0f12; color: #8ab4f8; border: 1px solid #333; }
+[data-bs-theme="light"] #supSysInfo { background: #f0f2f5; color: #374151; border: 1px solid #dee2e6; }
+
+/* Right-panel column — hidden by default, shown per mode */
+#supRightCol { display: none; align-self: stretch; }
+
+
+/* ============================================================
+   21. RESPONSIVE TRACK / PIPELINE CONTAINERS
+   ============================================================
+   Use these two classes on any fixed-width pipeline, progress
+   tracker, or image-with-labels that must shrink to fit the
+   card width rather than scroll horizontally.
+
+   HTML pattern:
+     <div class="track-scale-wrap">
+       <div class="track-scale-content [your pipeline classes]">
+         <!-- tubes, arrows, labels, flags, etc. -->
+       </div>
+     </div>
+
+   The JS in base.html (Section: Responsive track scaling) auto-
+   scales every .track-scale-wrap on the page via ResizeObserver
+   (falls back to window.resize).  No extra JS required — just
+   add the two classes and the whole track shrinks as one unit.
+
+   If you dynamically inject a track after page load, call
+   window.scaleAllTracks() once after injecting the content.
+   ============================================================ */
+
+/* Wrapper: clips overflow so no scrollbar appears when narrow */
+.track-scale-wrap {
+  overflow: hidden;
+}
+
+/* Content: sizes to its natural content width so JS can measure it */
+.track-scale-content {
+  width: max-content;
+  overflow: visible;
+}
+
+
+/* ============================================================
+   OS-AWARE PATH VALIDATION
+   .path-os-invalid — applied when a path input contains a
+   format that doesn't match the current OS (e.g. Windows path
+   on Linux). Applied by _validatePathField() in base.html.
+   ============================================================ */
+@keyframes pathOsInvalidGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220,53,69,0);    border-color: rgba(220,53,69,.65); }
+  50%       { box-shadow: 0 0 8px 3px rgba(220,53,69,.45); border-color: rgba(220,53,69,1); }
+}
+.path-os-invalid {
+  border-color: rgba(220,53,69,.65) !important;
+  animation: pathOsInvalidGlow 2.2s ease-in-out infinite !important;
+  cursor: help;
+}
+.path-os-invalid:focus {
+  animation: none !important;
+  border-color: rgba(220,53,69,1) !important;
+  box-shadow: 0 0 0 3px rgba(220,53,69,.25) !important;
+}
+
+/* ============================================================
+   NOTIFICATION PULSE ANIMATIONS
+   Used on notification cards that have not yet been acknowledged.
+   .notif-pulse-error   — red glow (danger/error notifications)
+   .notif-pulse-warning — orange glow (warning notifications)
+   .notif-acknowledged-* — static border, no animation
+   ============================================================ */
+@keyframes notifPulseError {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(220,53,69,.20), 0 6px 18px rgba(0,0,0,.55); }
+  50%       { box-shadow: 0 0 22px 7px rgba(220,53,69,.55), 0 6px 18px rgba(0,0,0,.55); }
+}
+@keyframes notifPulseWarning {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(253,126,20,.20), 0 6px 18px rgba(0,0,0,.55); }
+  50%       { box-shadow: 0 0 22px 7px rgba(253,126,20,.55), 0 6px 18px rgba(0,0,0,.55); }
+}
+.notif-pulse-error   { border: 1px solid rgba(220,53,69,.65) !important; animation: notifPulseError 1.8s ease-in-out infinite; }
+.notif-pulse-warning { border: 1px solid rgba(253,126,20,.65) !important; animation: notifPulseWarning 1.8s ease-in-out infinite; }
+.notif-acknowledged-error   { border: 1px solid rgba(220,53,69,.65) !important; animation: none !important; }
+.notif-acknowledged-warning { border: 1px solid rgba(253,126,20,.65) !important; animation: none !important; }

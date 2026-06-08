@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{#
+  index.html — Main single-page template for Story Teller
+
+  This file inherits the full sidebar, topbar, settings, notifications,
+  help, support, and changelog from base.html.
+
+  HOW TO ADD A NEW SECTION
+  -------------------------
+  1. Add a nav item in {% block sidebar_nav %} below.
+  2. Add the section pane in {% block section_panes %} below.
+  3. Add the section name to the _allSections array in {% block scripts %}.
+  4. The topbar title map and showSection() handle everything else.
+#}
+
+{% block title %}Story Teller{% endblock %}
+
+{# ── Extra sidebar nav items (between Dashboard and Settings) ── #}
+{% block sidebar_nav %}
+  {# Example:
+  <li class="nav-item">
+    <a class="nav-link" href="#" id="nav-mySection"
+       data-tooltip="My Section — Brief description"
+       onclick="showSection('mySection');return false;">
+      <i class="bi bi-collection"></i><span class="nav-label">My Section</span>
+    </a>
+  </li>
+  #}
+{% endblock %}
+
+{# ── Dashboard content ──────────────────────────────────────── #}
+{% block dashboard_content %}
+<div class="row g-3 mb-4" id="metricTiles">
+  {# Metric tiles rendered by JS #}
+</div>
+<div class="card">
+  <div class="card-header bg-transparent border-0 pb-0">
+    <h6 class="fw-bold mb-0"><i class="bi bi-grid me-2 text-secondary"></i>Overview</h6>
+  </div>
+  <div class="card-body">
+    <p class="text-muted small mb-0">
+      Replace this with your app's dashboard content.
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{# ── App-specific section panes ─────────────────────────────── #}
+{% block section_panes %}
+  {# Example section pane:
+  <div class="section-pane" id="pane-mySection">
+    <div class="page-header">
+      <h4><i class="bi bi-collection me-2 text-primary"></i>My Section</h4>
+      <div class="page-desc">Description of what this section does.</div>
+    </div>
+    <div class="card">
+      <div class="card-header bg-transparent border-0 pb-0">
+        <h6 class="fw-bold mb-0"><i class="bi bi-list me-2 text-secondary"></i>Content</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-0">Your content here.</p>
+      </div>
+    </div>
+  </div>
+  #}
+{% endblock %}
+
+{# ── Help content ───────────────────────────────────────────── #}
+{% block help_content %}
+<p>Add documentation for your app here.</p>
+<p>Structure it with <code>&lt;h5&gt;</code> headings and <code>&lt;p&gt;</code>/<code>&lt;ul&gt;</code> body text.</p>
+{% endblock %}
+
+{# ── Extra settings ─────────────────────────────────────────── #}
+{% block settings_extra %}
+  {# Add additional settings cards in the right column here #}
+{% endblock %}
+
+{# ── App-specific JavaScript ────────────────────────────────── #}
+{% block scripts %}
+<script>
+// Register app-specific section IDs so showSection() can find them
+// _allSections.push('mySection');
+
+// Map section IDs to topbar display titles
+// Add entries for your custom sections:
+// titleMap['mySection'] = 'My Section';
+
+// ── Settings masonry layout ─────────────────────────────────────────────────
+// Cards are absolutely positioned into the shortest column so no row-height
+// gaps appear between cards of different heights.
+var _masonryResizeTimer = null;
+var _MASONRY_GAP     = 12;   // px — matches 0.75 rem
+var _MASONRY_MIN_COL = 320;  // px — minimum column width
+
+function _onSettingsPaneShow() { _layoutSettingsMasonry(); }
+
+function _layoutSettingsMasonry() {
+  var activePane = document.getElementById('settingsActivePane');
+  if (!activePane || activePane.style.display === 'none') return;
+  var container = activePane.querySelector('.settings-grid');
+  if (!container) return;
+  var cards = Array.from(container.querySelectorAll(':scope > .card'))
+    .filter(function(c) { return c.style.display !== 'none'; });
+  if (!cards.length) return;
+  var gap = _MASONRY_GAP, cw = container.offsetWidth;
+  if (!cw) return;
+  var numCols = Math.max(1, Math.floor((cw + gap) / (_MASONRY_MIN_COL + gap)));
+  if (numCols === 1) {
+    container.style.height = '';
+    cards.forEach(function(c) { c.style.position = c.style.width = c.style.left = c.style.top = ''; });
+    return;
+  }
+  var colW = Math.floor((cw - (numCols - 1) * gap) / numCols);
+  cards.forEach(function(c) { c.style.position = 'static'; c.style.width = colW + 'px'; c.style.left = c.style.top = ''; });
+  void container.offsetHeight;
+  var heights = cards.map(function(c) { return c.offsetHeight; });
+  var colTops = [];
+  for (var i = 0; i < numCols; i++) colTops.push(0);
+  container.style.position = 'relative';
+  cards.forEach(function(card, idx) {
+    var col = 0;
+    for (var j = 1; j < numCols; j++) { if (colTops[j] < colTops[col]) col = j; }
+    card.style.position = 'absolute';
+    card.style.left = (col * (colW + gap)) + 'px';
+    card.style.top  = colTops[col] + 'px';
+    colTops[col] += heights[idx] + gap;
+  });
+  var maxH = 0;
+  for (var k = 0; k < numCols; k++) { if (colTops[k] > maxH) maxH = colTops[k]; }
+  container.style.height = (maxH - gap) + 'px';
+}
+
+window.addEventListener('resize', function() {
+  clearTimeout(_masonryResizeTimer);
+  _masonryResizeTimer = setTimeout(function() {
+    var pane = document.getElementById('pane-settings');
+    if (pane && pane.classList.contains('active')) _layoutSettingsMasonry();
+  }, 150);
+});
+
+// ── Settings card visibility (hide / restore per card) ─────────────────────
+var _settingsHiddenCards = [];
+
+function switchSettingsTab(tab) {
+  var activePane = document.getElementById('settingsActivePane');
+  var hiddenPane = document.getElementById('settingsHiddenPane');
+  var activeTab  = document.getElementById('settingsTab-active');
+  var hiddenTab  = document.getElementById('settingsTab-hidden');
+  if (!activePane || !hiddenPane) return;
+  var showHidden = (tab === 'hidden');
+  activePane.style.display = showHidden ? 'none' : '';
+  hiddenPane.style.display = showHidden ? '' : 'none';
+  if (activeTab) activeTab.classList.toggle('active', !showHidden);
+  if (hiddenTab) hiddenTab.classList.toggle('active',  showHidden);
+}
+
+function _initSettingsVisibility() {
+  var grid = document.querySelector('#pane-settings .settings-grid');
+  if (!grid) return;
+  grid.querySelectorAll(':scope > .card').forEach(function(card) {
+    var cardHeader = card.querySelector('.card-header');
+    var h6 = cardHeader ? cardHeader.querySelector('h6') : null;
+    if (!cardHeader || !h6) return;
+    var text = (h6.textContent || '').trim().replace(/\s+/g, ' ');
+    var id   = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    card.setAttribute('data-settings-card-id', id);
+    cardHeader.style.display = 'flex'; cardHeader.style.alignItems = 'center';
+    h6.style.flex = '1';
+    var btn = document.createElement('button');
+    btn.className = 'settings-card-vis-btn'; btn.title = 'Hide this card';
+    btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+    btn.onclick = (function(cid, crd) {
+      return function(e) { e.preventDefault(); _hideSettingsCard(cid, crd); };
+    })(id, card);
+    cardHeader.appendChild(btn);
+  });
+}
+
+function _hideSettingsCard(id, card) {
+  if (!card) card = document.querySelector('[data-settings-card-id="' + id + '"]');
+  if (!card) return;
+  card.style.display = 'none';
+  if (_settingsHiddenCards.indexOf(id) === -1) _settingsHiddenCards.push(id);
+  _renderSettingsHiddenTab(); _saveSettingsHiddenCards();
+  requestAnimationFrame(_layoutSettingsMasonry);
+}
+
+function _showSettingsCard(id) {
+  var card = document.querySelector('[data-settings-card-id="' + id + '"]');
+  if (card) card.style.display = '';
+  _settingsHiddenCards = _settingsHiddenCards.filter(function(x) { return x !== id; });
+  _renderSettingsHiddenTab(); _saveSettingsHiddenCards();
+  if (!_settingsHiddenCards.length) switchSettingsTab('active');
+  requestAnimationFrame(_layoutSettingsMasonry);
+}
+
+function _renderSettingsHiddenTab() {
+  var list  = document.getElementById('settingsHiddenList');
+  var empty = document.getElementById('settingsHiddenEmpty');
+  var badge = document.getElementById('settingsHiddenBadge');
+  var count = _settingsHiddenCards.length;
+  if (badge) { badge.textContent = count; badge.classList.toggle('d-none', count === 0); }
+  if (!list) return;
+  if (!count) { list.innerHTML = ''; if (empty) empty.classList.remove('d-none'); return; }
+  if (empty) empty.classList.add('d-none');
+  list.innerHTML = _settingsHiddenCards.map(function(id) {
+    var card  = document.querySelector('[data-settings-card-id="' + id + '"]');
+    var h6    = card ? card.querySelector('.card-header h6') : null;
+    var label = h6 ? (h6.textContent || '').trim().replace(/\s+/g, ' ') : id;
+    return '<div class="d-flex align-items-center justify-content-between gap-3 py-2"'
+      + ' style="border-bottom:1px solid rgba(255,255,255,.06);">'
+      + '<span class="small">' + (label.replace(/&/g,'&amp;').replace(/</g,'&lt;')) + '</span>'
+      + '<button class="btn btn-xs" style="background:rgba(25,135,84,.15);color:#75b798;border:1px solid rgba(25,135,84,.3);"'
+      + ' onclick="_showSettingsCard(\'' + id.replace(/'/g,"\\'") + '\')">'
+      + '<i class="bi bi-eye me-1"></i>Restore</button></div>';
+  }).join('');
+}
+
+function _applySettingsHiddenCards() {
+  _settingsHiddenCards.forEach(function(id) {
+    var card = document.querySelector('[data-settings-card-id="' + id + '"]');
+    if (card) card.style.display = 'none';
+  });
+  _renderSettingsHiddenTab();
+}
+
+async function _saveSettingsHiddenCards() {
+  try {
+    await fetch('/api/app-settings', { method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ settings_hidden_cards: _settingsHiddenCards })
+    });
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  _initSettingsVisibility();
+  // App initialization goes here
+});
+</script>
+{% endblock %}

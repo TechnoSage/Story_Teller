@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Settings — {{ APP_NAME }}{% endblock %}
+
+{% block dashboard_content %}
+{# ── Settings page — extend or replace this block in your app ──────────────── #}
+
+<div class="page-header">
+  <h4><i class="bi bi-sliders me-2 text-secondary"></i>Settings</h4>
+  <p class="page-desc">Global defaults shared across the application.</p>
+</div>
+
+<div class="row g-3">
+
+  {# ── Publisher ─────────────────────────────────────────────────────────────── #}
+  <div class="col-xl-4 col-md-6">
+  <div class="card h-100">
+    <div class="card-header bg-transparent border-0 pb-0">
+      <h6 class="fw-bold mb-0"><i class="bi bi-building me-1 text-secondary"></i>Publisher</h6>
+    </div>
+    <div class="card-body">
+      <p class="text-secondary small mb-3">Your company or developer name shown in the app, installers, and metadata.</p>
+      <label class="form-label mb-1 text-muted small" for="APP_PUBLISHER">Publisher Name</label>
+      <input id="APP_PUBLISHER" class="form-control form-control-sm" placeholder="Your Name or Company">
+    </div>
+  </div>
+  </div>
+
+  {# ── Support Contact ───────────────────────────────────────────────────────── #}
+  <div class="col-xl-4 col-md-6">
+  <div class="card h-100">
+    <div class="card-header bg-transparent border-0 pb-0">
+      <h6 class="fw-bold mb-0"><i class="bi bi-envelope me-1 text-secondary"></i>Support Contact</h6>
+    </div>
+    <div class="card-body">
+      <p class="text-secondary small mb-3">Contact info embedded in the application and shown in help pages.</p>
+      <label class="form-label mb-1 text-muted small" for="SUPPORT_EMAIL">Support Email</label>
+      <input id="SUPPORT_EMAIL" class="form-control form-control-sm" type="email" placeholder="support@yourcompany.com">
+      <label class="form-label mb-1 text-muted small mt-2" for="APP_SUPPORT_URL">Support URL</label>
+      <input id="APP_SUPPORT_URL" class="form-control form-control-sm" placeholder="https://yourcompany.com/support">
+    </div>
+  </div>
+  </div>
+
+  {# ── AI Features (Claude API) ──────────────────────────────────────────────── #}
+  <div class="col-xl-4 col-md-12">
+  <div class="card h-100">
+    <div class="card-header bg-transparent border-0 pb-0">
+      <h6 class="fw-bold mb-0"><i class="bi bi-cpu me-1 text-secondary"></i>AI Features</h6>
+    </div>
+    <div class="card-body">
+      <p class="text-secondary small mb-3">
+        Optional Anthropic Claude API key for AI-powered features (research agents, summaries, etc.).
+        Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.
+        Stored locally — never committed to version control.
+      </p>
+      <label class="form-label mb-1 text-muted small" for="CLAUDE_API_KEY">Anthropic API Key</label>
+      <div class="input-group input-group-sm">
+        <input id="CLAUDE_API_KEY" class="form-control form-control-sm font-monospace" type="password"
+               placeholder="sk-ant-… (gitignored)" oninput="_claudeKeyReset()">
+        <span id="claudeKeyStatus" class="input-group-text" style="display:none;min-width:2.2rem;justify-content:center;"></span>
+      </div>
+      <div id="claudeKeyMsg" class="mt-1" style="font-size:.75rem;display:none;"></div>
+      <button id="btnTestClaudeKey" class="btn btn-sm btn-outline-secondary w-100 mt-2" onclick="testClaudeKey()">
+        <i class="bi bi-lightning me-1"></i>Test Key
+      </button>
+    </div>
+  </div>
+  </div>
+
+  {# ── Version Control System ────────────────────────────────────────────────── #}
+  <div class="col-12">
+  <div class="card">
+    <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <h6 class="fw-bold mb-0"><i class="bi bi-git me-1 text-secondary"></i>Version Control System</h6>
+      <small class="text-secondary">The navigation VCS tab updates to match your choice.</small>
+    </div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-4">
+
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="vcsType" id="vcs_git" value="git" onchange="onVcsTypeChange('git')">
+          <label class="form-check-label small fw-semibold" for="vcs_git">
+            <i class="bi bi-git me-1 text-warning"></i>Git
+            <button type="button" class="btn btn-link p-0 ms-1" style="font-size:.72rem;color:var(--bs-info);" onclick="openVcsInfoPopup('git')">ℹ</button>
+          </label>
+          <div class="text-secondary" style="font-size:.72rem;">GitHub, GitLab, Bitbucket</div>
+        </div>
+
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="vcsType" id="vcs_svn" value="svn" onchange="onVcsTypeChange('svn')">
+          <label class="form-check-label small fw-semibold" for="vcs_svn">
+            <i class="bi bi-diagram-3 me-1 text-info"></i>SVN
+            <button type="button" class="btn btn-link p-0 ms-1" style="font-size:.72rem;color:var(--bs-info);" onclick="openVcsInfoPopup('svn')">ℹ</button>
+          </label>
+          <div class="text-secondary" style="font-size:.72rem;">Apache Subversion</div>
+        </div>
+
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="vcsType" id="vcs_mercurial" value="mercurial" onchange="onVcsTypeChange('mercurial')">
+          <label class="form-check-label small fw-semibold" for="vcs_mercurial">
+            <i class="bi bi-diagram-2 me-1 text-success"></i>Mercurial
+            <button type="button" class="btn btn-link p-0 ms-1" style="font-size:.72rem;color:var(--bs-info);" onclick="openVcsInfoPopup('mercurial')">ℹ</button>
+          </label>
+          <div class="text-secondary" style="font-size:.72rem;">Hg</div>
+        </div>
+
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="vcsType" id="vcs_perforce" value="perforce" onchange="onVcsTypeChange('perforce')">
+          <label class="form-check-label small fw-semibold" for="vcs_perforce">
+            <i class="bi bi-server me-1 text-danger"></i>Perforce
+            <button type="button" class="btn btn-link p-0 ms-1" style="font-size:.72rem;color:var(--bs-info);" onclick="openVcsInfoPopup('perforce')">ℹ</button>
+          </label>
+          <div class="text-secondary" style="font-size:.72rem;">Helix Core — enterprise</div>
+        </div>
+
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="vcsType" id="vcs_flatfiles" value="flatfiles" onchange="onVcsTypeChange('flatfiles')">
+          <label class="form-check-label small fw-semibold" for="vcs_flatfiles">
+            <i class="bi bi-folder-symlink me-1 text-secondary"></i>File Backup
+            <button type="button" class="btn btn-link p-0 ms-1" style="font-size:.72rem;color:var(--bs-info);" onclick="openVcsInfoPopup('flatfiles')">ℹ</button>
+          </label>
+          <div class="text-secondary" style="font-size:.72rem;">Timestamped snapshots</div>
+        </div>
+
+      </div>
+      <div id="vcsTypeNote" class="alert alert-secondary py-2 px-3 mt-3 mb-0 small"></div>
+    </div>
+  </div>
+  </div>
+
+</div><!-- /row -->
+
+{# ── Save button ────────────────────────────────────────────────────────────── #}
+<div class="d-flex justify-content-end mt-3">
+  <button class="btn btn-primary px-4" onclick="saveGlobalSettings()">
+    <i class="bi bi-floppy me-2"></i>Save Settings
+  </button>
+</div>
+
+{% endblock %}
