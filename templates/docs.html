@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en" id="htmlRoot" data-bs-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ app_name }} — Documentation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+html { scroll-behavior: smooth; }
+
+/* ── Top navbar ─────────────────────────────────────────────────────────────── */
+#docsNav {
+  background: var(--bs-body-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+  z-index: 1030;
+  height: 57px;
+}
+
+/* ── TOC sidebar ─────────────────────────────────────────────────────────────── */
+#tocSidebar {
+  position: sticky;
+  top: 57px;
+  height: calc(100vh - 57px);
+  overflow-y: auto;
+  border-right: 1px solid var(--bs-border-color);
+  padding: 1.25rem 0.75rem;
+  scrollbar-width: thin;
+  width: 230px;
+  flex-shrink: 0;
+}
+#tocSidebar .toc-section {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--bs-secondary-color);
+  margin: 1rem 0 0.25rem 0;
+  display: flex; align-items: center; gap: .3rem;
+}
+#tocSidebar .nav-link {
+  font-size: 0.8rem; padding: 0.2rem 0.5rem; color: var(--bs-body-color);
+  border-radius: 4px; line-height: 1.4;
+}
+#tocSidebar .nav-link:hover  { background: rgba(255,255,255,.06); color: var(--bs-body-color); }
+#tocSidebar .nav-link.active { background: rgba(13,110,253,.18); color: #6ea8fe; font-weight: 600; }
+#tocSidebar .nav-link.sub   { padding-left: 1.1rem; }
+#tocSidebar .nav-link.sub2  { padding-left: 1.9rem; }
+#tocSidebar .nav-link.sub3  { padding-left: 2.7rem; }
+
+/* ── Main content ────────────────────────────────────────────────────────────── */
+#docsContent {
+  max-width: 860px;
+  padding: 2rem 2.5rem 4rem;
+  flex: 1;
+}
+#docsContent h2 {
+  font-size: 1.45rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 0.5rem;
+  padding-top: 0.5rem; border-bottom: 1px solid var(--bs-border-color); padding-bottom: 0.5rem;
+}
+#docsContent h3 { font-size: 1.05rem; font-weight: 600; margin-top: 1.75rem; margin-bottom: 0.4rem; }
+#docsContent h4 {
+  font-size: 0.875rem; font-weight: 600; margin-top: 1.25rem; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--bs-secondary-color);
+}
+#docsContent p   { line-height: 1.7; }
+#docsContent ul li { line-height: 1.7; margin-bottom: 0.2rem; }
+#docsContent code {
+  font-size: .85em; padding: .15em .35em;
+  background: rgba(255,255,255,.07); border-radius: 3px;
+}
+[data-bs-theme="light"] #docsContent code { background: rgba(0,0,0,.06); }
+
+/* ── Mockup / screenshot containers ─────────────────────────────────────────── */
+.mockup {
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin: 0.75rem 0 1.25rem;
+  font-size: 0.82rem;
+}
+[data-bs-theme="light"] .mockup { background: rgba(0,0,0,.03); }
+.mockup-label {
+  font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--bs-secondary-color); margin-bottom: 0.6rem;
+}
+.mockup img { max-width: 100%; border-radius: .5rem; border: 1px solid var(--bs-border-color); }
+
+/* ── Callout / key-term box ──────────────────────────────────────────────────── */
+.key-term {
+  background: rgba(13,110,253,.08);
+  border-left: 3px solid #0d6efd;
+  border-radius: 0 .5rem .5rem 0;
+  padding: .75rem 1rem;
+  font-size: .875rem;
+  line-height: 1.6;
+  margin: 1rem 0 1.25rem;
+}
+.key-term.warning {
+  background: rgba(255,193,7,.08);
+  border-left-color: #ffc107;
+}
+.key-term.danger {
+  background: rgba(220,53,69,.08);
+  border-left-color: #dc3545;
+}
+.key-term.success {
+  background: rgba(25,135,84,.08);
+  border-left-color: #198754;
+}
+
+/* ── Feature badge for new/updated items ────────────────────────────────────── */
+.badge-new     { background: #0d6efd; color: #fff; font-size: .6rem; vertical-align: middle; }
+.badge-updated { background: #198754; color: #fff; font-size: .6rem; vertical-align: middle; }
+
+/* ── Light mode overrides ────────────────────────────────────────────────────── */
+[data-bs-theme="light"] #tocSidebar .nav-link.active { background: rgba(13,110,253,.12); }
+</style>
+</head>
+<body>
+
+<!-- ── Top navbar ──────────────────────────────────────────────────────────── -->
+<nav class="navbar navbar-expand-sm navbar-dark sticky-top" id="docsNav">
+  <div class="container-fluid px-3">
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
+      <i class="bi bi-book text-primary"></i>
+      <span>{{ app_name }}</span>
+      <span class="badge bg-secondary fw-normal" style="font-size:.7rem;">Docs</span>
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <span class="text-secondary small d-none d-sm-block">v{{ app_version }}</span>
+      <a href="/" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to App
+      </a>
+      <button class="btn btn-sm btn-outline-secondary" onclick="toggleDocsTheme()" title="Toggle theme">
+        <i class="bi bi-circle-half" id="docsThemeIcon"></i>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Layout: sidebar + main ──────────────────────────────────────────────── -->
+<div class="d-flex">
+
+  <!-- TOC sidebar -->
+  <nav id="tocSidebar">
+
+    <!--
+      Standard TOC structure (copy this pattern for all app docs):
+
+      <div class="toc-section"><i class="bi bi-ICON me-1"></i>Section Name</div>
+      <a class="nav-link" href="#anchor">Page/Feature Title</a>
+      <a class="nav-link sub"  href="#sub-anchor">Sub-section</a>
+      <a class="nav-link sub2" href="#sub2-anchor">Nested sub-section</a>
+
+      Rules:
+      - Use .toc-section for top-level chapter headings (no href)
+      - Use .nav-link (no sub) for primary h2 sections
+      - Use .nav-link.sub for h3 subsections
+      - Use .nav-link.sub2 for h4 sub-subsections
+      - Use .nav-link.sub3 sparingly (deep nesting)
+      - Add <span class="badge badge-new ms-1">New</span> for new sections
+      - Mirror the section id= anchors exactly
+    -->
+
+    <div class="toc-section"><i class="bi bi-play-circle me-1"></i>Getting Started</div>
+    <a class="nav-link" href="#overview">Overview</a>
+    <a class="nav-link" href="#install">Installation</a>
+    <a class="nav-link sub" href="#install-requirements">Requirements</a>
+    <a class="nav-link sub" href="#install-steps">Setup Steps</a>
+    <a class="nav-link" href="#quickstart">Quick Start</a>
+
+    <div class="toc-section"><i class="bi bi-layout-sidebar me-1"></i>Navigation</div>
+    <!--
+      Add one nav-link per sidebar tab / page in the app.
+      Example:
+      <a class="nav-link" href="#page-dashboard">Dashboard</a>
+      <a class="nav-link" href="#page-settings">Settings</a>
+    -->
+
+    <div class="toc-section"><i class="bi bi-gear me-1"></i>Settings</div>
+    <a class="nav-link" href="#settings">All Settings</a>
+
+    <div class="toc-section">Other</div>
+    <a class="nav-link" href="#faq">FAQ</a>
+    <a class="nav-link" href="#changelog">Changelog</a>
+
+  </nav><!-- /tocSidebar -->
+
+  <!-- Main documentation content -->
+  <main id="docsContent">
+
+    <!-- ══════════════════════════════════════════════════ OVERVIEW -->
+    <section id="overview">
+      <h2><i class="bi bi-info-circle me-2 text-primary"></i>Overview</h2>
+      <p>
+        <!-- App description goes here -->
+        {{ app_description }}
+      </p>
+      <div class="key-term">
+        <i class="bi bi-lightbulb me-2"></i>
+        <!-- Key concept or quick-start tip -->
+      </div>
+      <div style="height:2rem"></div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════ INSTALLATION -->
+    <section id="install">
+      <h2><i class="bi bi-box-seam me-2 text-secondary"></i>Installation</h2>
+
+      <h3 id="install-requirements">Requirements</h3>
+      <ul>
+        <!-- List requirements: Python version, OS, etc. -->
+        <li>Python 3.11 or later</li>
+        <li>Windows 10/11, macOS 12+, or Linux (Ubuntu 22.04+)</li>
+      </ul>
+
+      <h3 id="install-steps">Setup Steps</h3>
+      <ol>
+        <!-- Step-by-step install instructions -->
+        <li>Clone or download the repository.</li>
+        <li>Create a virtual environment: <code>python -m venv .venv</code></li>
+        <li>Install dependencies: <code>pip install -r requirements.txt</code></li>
+        <li>Run the application: <code>python run.py</code></li>
+      </ol>
+      <div style="height:2rem"></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════ QUICK START -->
+    <section id="quickstart">
+      <h2><i class="bi bi-lightning me-2 text-warning"></i>Quick Start</h2>
+      <p>
+        <!-- 60-second guide to the most common workflow -->
+      </p>
+      <div class="mockup">
+        <div class="mockup-label">Main application screen</div>
+        <!-- <img src="/docs/screenshots/main.png" alt="Main screen" class="img-fluid"> -->
+        <p class="text-secondary small mb-0">Screenshot: main application view</p>
+      </div>
+      <div style="height:2rem"></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ SETTINGS -->
+    <section id="settings">
+      <h2><i class="bi bi-sliders me-2 text-secondary"></i>Settings</h2>
+      <p>
+        <!-- Describe the settings page -->
+      </p>
+      <div style="height:2rem"></div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════ FAQ -->
+    <section id="faq">
+      <h2><i class="bi bi-question-circle me-2 text-info"></i>FAQ</h2>
+      <h3>Where is my data stored?</h3>
+      <p><!-- Answer --></p>
+      <h3>How do I reset settings?</h3>
+      <p><!-- Answer --></p>
+      <div style="height:2rem"></div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════ CHANGELOG -->
+    <section id="changelog">
+      <h2><i class="bi bi-journal-text me-2 text-secondary"></i>Changelog</h2>
+      <p>See <a href="/changelog" target="_blank">the in-app changelog</a> for version history.</p>
+      <div style="height:3rem"></div>
+    </section>
+
+  </main><!-- /docsContent -->
+</div><!-- /d-flex -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ── Theme toggle ─────────────────────────────────────────────────────────── */
+(function () {
+  var saved = localStorage.getItem('app-docs-theme') || 'dark';
+  document.getElementById('htmlRoot').setAttribute('data-bs-theme', saved);
+  updateThemeIcon(saved);
+})();
+function toggleDocsTheme() {
+  var next = document.getElementById('htmlRoot').getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+  document.getElementById('htmlRoot').setAttribute('data-bs-theme', next);
+  localStorage.setItem('app-docs-theme', next);
+  updateThemeIcon(next);
+}
+function updateThemeIcon(theme) {
+  var el = document.getElementById('docsThemeIcon');
+  if (el) el.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+}
+
+/* ── TOC scroll tracking (IntersectionObserver) ──────────────────────────── */
+(function () {
+  var tocLinks = document.querySelectorAll('#tocSidebar .nav-link[href^="#"]');
+  if (!tocLinks.length) return;
+
+  var _activeId = null;
+
+  function _activate(id) {
+    if (_activeId === id) return;
+    _activeId = id;
+    tocLinks.forEach(function (a) { a.classList.remove('active'); });
+    if (!id) return;
+    var link = document.querySelector('#tocSidebar .nav-link[href="#' + id + '"]');
+    if (link) {
+      link.classList.add('active');
+      link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+
+  // Only observe elements that have a matching TOC link (document order = reading order)
+  var _targets = Array.from(
+    document.querySelectorAll('section[id], h2[id], h3[id]')
+  ).filter(function (el) {
+    return !!document.querySelector('#tocSidebar .nav-link[href="#' + el.id + '"]');
+  });
+
+  var _visible = new Set();
+
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) _visible.add(e.target.id);
+      else                   _visible.delete(e.target.id);
+    });
+    // Highlight the topmost visible target (document order)
+    for (var i = 0; i < _targets.length; i++) {
+      if (_visible.has(_targets[i].id)) { _activate(_targets[i].id); return; }
+    }
+  }, { rootMargin: '-8% 0px -72% 0px' });
+
+  _targets.forEach(function (el) { observer.observe(el); });
+  if (_targets.length) _activate(_targets[0].id);
+}());
+</script>
+</body>
+</html>

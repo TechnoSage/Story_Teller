@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Story Teller{% endblock %}</title>
+
+<!-- Apply saved theme BEFORE first paint — no flash -->
+<script>(function(){var t=localStorage.getItem('app-theme')||'dark';document.documentElement.setAttribute('data-bs-theme',t);})();</script>
+<!-- Kill sidebar transitions on load — prevents collapsed-state flash -->
+<style id="sb-no-trans">#sidebar,#sidebar *{transition:none!important;}</style>
+<!-- Hints class applied immediately so hints show/hide on first paint -->
+<style>.app-hint{display:none!important;}body.hints-on .app-hint{display:revert!important;}</style>
+
+<!-- Bootstrap 5.3 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<!-- Bootstrap Icons 1.11 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<!-- Design system (copy of web_page_designs/css/default-styles.css) -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/default-styles.css') }}">
+<!-- App-specific overrides -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+
+{% block head %}{% endblock %}
+</head>
+<body>
+<div id="wrapper">
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<nav id="sidebar">
+  <!-- Apply saved collapsed state before first paint — no flash -->
+  <script>if(localStorage.getItem('sidebar-collapsed')==='1'&&window.innerWidth>768){document.currentScript.parentElement.classList.add('collapsed');}</script>
+
+  <!-- Brand -->
+  <div class="sidebar-brand-wrapper">
+    <a class="sidebar-brand" href="#" onclick="showSection('dashboard');return false;">
+      <i class="bi bi-app-indicator brand-icon"></i>
+      <div class="brand-info">
+        <div class="brand-text">Story Teller</div>
+        <div class="d-flex align-items-center gap-2">
+          <div class="brand-sub">Web Based application that will lead the user through steps to automatically create stories, which can then be uploaded to sites like YouTube</div>
+          <span class="brand-version">v{{ app_version }}</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Scrollable nav -->
+  <div class="sb-nav-scroll">
+
+    <div class="nav-section-label">Navigation</div>
+    <ul class="nav flex-column gap-1 mb-1">
+      <li class="nav-item">
+        <a class="nav-link active" href="#" id="nav-dashboard"
+           data-tooltip="Dashboard — Overview &amp; metrics"
+           onclick="showSection('dashboard');return false;">
+          <i class="bi bi-speedometer2"></i><span class="nav-label">Dashboard</span>
+        </a>
+      </li>
+      {# ── Add your app-specific nav items here ──────────────── #}
+      {% block sidebar_nav %}{% endblock %}
+    </ul>
+
+  </div>
+</nav>
+
+<!-- ============================================================
+     MAIN CONTENT
+     ============================================================ -->
+<div id="page-content">
+
+  <!-- Top bar -->
+  <div class="topbar px-3 py-2 d-flex align-items-center gap-2">
+    <!-- Sidebar collapse/expand toggle — always visible, left of title -->
+    <button class="topbar-btn topbar-btn-toggle me-1" id="sidebarToggleBtn"
+            onclick="toggleSidebar()" title="Collapse / Expand Sidebar">
+      <i class="bi bi-layout-sidebar-reverse" id="sidebarToggleIcon"></i>
+    </button>
+    <div class="topbar-divider me-1"></div>
+
+    <span class="fw-semibold text-light" id="topbarTitle">Dashboard</span>
+    {% block topbar_badges %}{% endblock %}
+
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <span class="text-muted" id="saveIndicator" style="font-size:.72rem;"></span>
+      {% block topbar_extra %}{% endblock %}
+
+      <!-- OS badge — auto-populated by _initOSDetect() on startup -->
+      <span id="osBadge" class="badge rounded-pill"
+            style="font-size:.7rem;background:rgba(255,255,255,.1);color:var(--bs-body-color);cursor:default;"
+            title="Current operating system">
+        <i class="bi bi-display me-1" id="osBadgeIcon"></i><span id="osBadgeLabel">…</span>
+      </span>
+
+      <div class="topbar-divider"></div>
+
+      <button class="topbar-btn topbar-btn-toggle position-relative"
+              onclick="showSection('notifications')" title="Notifications">
+        <i class="bi bi-bell"></i>
+        <span id="notifBadge" class="notif-badge d-none"></span>
+      </button>
+      <button class="topbar-btn topbar-btn-danger" onclick="showSection('settings')" title="App Settings">
+        <i class="bi bi-gear"></i>
+      </button>
+      <button class="topbar-btn" id="darkModeBtn" title="Toggle dark / light mode">
+        <i id="darkModeIcon" class="bi bi-moon-fill"></i>
+      </button>
+
+      <div class="topbar-divider"></div>
+
+      <button class="topbar-btn" id="hintsToggleBtn" title="Hints off — click to turn on">
+        <i class="bi bi-lightbulb"></i>
+      </button>
+      <button class="topbar-btn topbar-btn-info"
+              onclick="showSection('help')" title="Help &amp; Documentation">
+        <i class="bi bi-question-circle"></i>
+      </button>
+      <button class="topbar-btn" onclick="toggleChangelogPopup()" title="Change Log">
+        <i class="bi bi-clock-history"></i>
+      </button>
+
+      <div class="topbar-divider"></div>
+
+      <button class="topbar-btn topbar-btn-warning"
+              onclick="showSection('support')" title="Customer Support">
+        <i class="bi bi-headset"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="p-3 p-lg-4">
+
+    <!-- ── DASHBOARD ────────────────────────────────────────────────────────── -->
+    <div class="section-pane active" id="pane-dashboard">
+      <div class="page-header d-flex align-items-start justify-content-between">
+        <div>
+          <h4><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard</h4>
+          <div class="page-desc">Welcome to Story Teller.</div>
+        </div>
+        {% block dashboard_actions %}{% endblock %}
+      </div>
+      {% block dashboard_content %}
+      <div class="card">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h6 class="fw-bold mb-0"><i class="bi bi-grid me-2 text-secondary"></i>Getting Started</h6>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-0">
+            Replace this block in your child template using <code>{% raw %}{% block dashboard_content %}{% endblock %}{% endraw %}</code>.
+          </p>
+        </div>
+      </div>
+      {% endblock %}
+    </div>
+
+    {# ── Add your app-specific section panes here ────────────── #}
+    {% block section_panes %}{% endblock %}
+
+    <!-- ── APP SETTINGS ─────────────────────────────────────────────────────── -->
+    <div class="section-pane" id="pane-settings">
+      <div class="page-header">
+        <h4><i class="bi bi-gear me-2 text-secondary"></i>App Settings</h4>
+        <div class="page-desc">Configure preferences for Story Teller.</div>
+      </div>
+
+      <!-- Settings tabs: Settings | Hidden -->
+      <ul class="nav nav-tabs mb-3" id="settingsTabNav" style="border-bottom-color:rgba(255,255,255,.12);">
+        <li class="nav-item">
+          <a class="nav-link active" id="settingsTab-active" href="#"
+             onclick="switchSettingsTab('active');return false;">
+            <i class="bi bi-gear me-1"></i>Settings
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="settingsTab-hidden" href="#"
+             onclick="switchSettingsTab('hidden');return false;">
+            <i class="bi bi-eye-slash me-1"></i>Hidden
+            <span class="badge rounded-pill ms-1 d-none" id="settingsHiddenBadge"
+                  style="background:rgba(255,193,7,.2);color:#ffc107;border:1px solid rgba(255,193,7,.35);font-size:.65rem;">0</span>
+          </a>
+        </li>
+      </ul>
+
+      <!-- Active settings pane -->
+      <div id="settingsActivePane">
+        <div class="settings-grid">
+          <div class="card">
+            <div class="card-header bg-transparent border-0 pb-0">
+              <h6 class="fw-bold mb-0"><i class="bi bi-palette me-2 text-secondary"></i>Interface</h6>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label">Theme</label>
+                <select class="form-select" id="cfg_theme" onchange="applyThemeFromSettings()">
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                </select>
+              </div>
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="cfg_hints_on" onchange="applyHintsFromSettings()">
+                <label class="form-check-label" for="cfg_hints_on">Show contextual hints</label>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header bg-transparent border-0 pb-0">
+              <h6 class="fw-bold mb-0"><i class="bi bi-info-circle me-2 text-secondary"></i>About</h6>
+            </div>
+            <div class="card-body">
+              <div class="d-flex justify-content-between mb-1 small">
+                <span class="text-muted">Version</span>
+                <span style="color:var(--clr-neon-green)">v{{ app_version }}</span>
+              </div>
+              <div class="d-flex justify-content-between small">
+                <span class="text-muted">Framework</span><span>Flask / Bootstrap 5</span>
+              </div>
+            </div>
+          </div>
+          {% block settings_extra %}{% endblock %}
+        </div>
+      </div>
+
+      <!-- Hidden cards pane -->
+      <div id="settingsHiddenPane" style="display:none;">
+        <p class="text-muted small mb-3">Cards you've hidden from the Settings page. Click Restore to bring one back.</p>
+        <div id="settingsHiddenList"></div>
+        <div id="settingsHiddenEmpty" class="text-muted small fst-italic d-none">No hidden cards.</div>
+      </div>
+    </div>
+
+    <!-- ── NOTIFICATIONS ────────────────────────────────────────────────────── -->
+    <div class="section-pane" id="pane-notifications">
+      <div class="page-header d-flex align-items-start justify-content-between">
+        <div>
+          <h4><i class="bi bi-bell me-2 text-secondary"></i>Notifications</h4>
+          <div class="page-desc">Alerts and reminders.</div>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" onclick="loadNotifications()">
+          <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
+      </div>
+      <div class="card">
+        <div class="card-body" id="notifList">
+          <div class="text-center text-muted py-4 small">
+            <i class="bi bi-arrow-repeat me-1"></i>Loading notifications…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HELP ─────────────────────────────────────────────────────────────── -->
+    <div class="section-pane" id="pane-help">
+      <div class="page-header">
+        <h4><i class="bi bi-journal-text me-2 text-info"></i>Help &amp; Documentation</h4>
+        <div class="page-desc">Documentation and guides for Story Teller.</div>
+      </div>
+      <div class="row g-3">
+        <div class="col-lg-8">
+          <div class="card help-section">
+            <div class="card-header bg-transparent border-0 pb-0">
+              <h6 class="fw-bold mb-0"><i class="bi bi-play-circle me-2 text-secondary"></i>Getting Started</h6>
+            </div>
+            <div class="card-body">
+              {% block help_content %}
+              <p class="text-muted small">Add your app's help content here using <code>{% raw %}{% block help_content %}{% endblock %}{% endraw %}</code>.</p>
+              {% endblock %}
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-header bg-transparent border-0 pb-0">
+              <h6 class="fw-bold mb-0"><i class="bi bi-headset me-2 text-secondary"></i>Need Help?</h6>
+            </div>
+            <div class="card-body text-center">
+              <p class="small text-muted mb-3">Can't find the answer here?</p>
+              <button class="btn btn-sm btn-outline-warning w-100" onclick="showSection('support')">
+                <i class="bi bi-headset me-1"></i>Contact Support
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CUSTOMER SUPPORT ──────────────────────────────────────────────────── -->
+    <div class="section-pane" id="pane-support">
+      <div class="mb-4">
+        <h2 class="fw-bold mb-1"><i class="bi bi-headset me-2 text-warning"></i>Customer Support</h2>
+        <p class="text-muted mb-0">Get help, report bugs, request features, or contact us directly.</p>
+      </div>
+
+      <!-- Quick action cards -->
+      <div class="row g-3 mb-2">
+        <div class="col-sm-6 col-xl-4">
+          <div class="card h-100 qa-card" id="supQaContact" onclick="supActivateMode('contact')">
+            <div class="card-body d-flex flex-column align-items-center text-center py-4 gap-2">
+              <div class="action-icon action-icon-info">
+                <i class="bi bi-envelope-fill"></i>
+              </div>
+              <h6 class="fw-bold mb-0">Email Support</h6>
+              <p class="text-muted small mb-0">Send us a message and we'll get back to you.</p>
+              <button class="btn btn-sm btn-outline-info mt-auto"
+                      onclick="event.stopPropagation();supActivateMode('contact')">Contact Us</button>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-xl-4">
+          <div class="card h-100 qa-card" id="supQaBug" onclick="supActivateMode('bug')">
+            <div class="card-body d-flex flex-column align-items-center text-center py-4 gap-2">
+              <div class="action-icon action-icon-danger">
+                <i class="bi bi-bug-fill"></i>
+              </div>
+              <h6 class="fw-bold mb-0">Report a Bug</h6>
+              <p class="text-muted small mb-0">Found something broken? Let us know with details.</p>
+              <button class="btn btn-sm btn-outline-danger mt-auto"
+                      onclick="event.stopPropagation();supActivateMode('bug')">Report Bug</button>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-xl-4">
+          <div class="card h-100 qa-card" id="supQaFeature" onclick="supActivateMode('feature')">
+            <div class="card-body d-flex flex-column align-items-center text-center py-4 gap-2">
+              <div class="action-icon action-icon-warning">
+                <i class="bi bi-stars"></i>
+              </div>
+              <h6 class="fw-bold mb-0">Request a Feature</h6>
+              <p class="text-muted small mb-0">Have an idea to improve the app? We'd love to hear it.</p>
+              <button class="btn btn-sm btn-outline-warning mt-auto"
+                      onclick="event.stopPropagation();supActivateMode('feature')">Request Feature</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dynamic section (fades in on card click) -->
+      <div id="supDynamic" style="display:none;opacity:0;transition:opacity 0.35s ease;">
+        <hr class="sup-divider">
+        <div class="row g-4" id="supFormRow">
+
+          <!-- Send a Message -->
+          <div id="supMsgCol" class="col-lg-7">
+            <div class="card h-100">
+              <div class="card-header bg-transparent border-0 pb-0">
+                <h6 class="fw-bold mb-0"><i class="bi bi-envelope me-1 text-secondary"></i>Send a Message</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-2 mb-2">
+                  <div class="col-sm-6">
+                    <label class="form-label form-label-sm">Your Name</label>
+                    <input type="text" class="form-control form-control-sm" id="supName" placeholder="Your name">
+                  </div>
+                  <div class="col-sm-6">
+                    <label class="form-label form-label-sm">Email Address</label>
+                    <input type="email" class="form-control form-control-sm" id="supEmail" placeholder="your@email.com">
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label form-label-sm">Category</label>
+                  <select class="form-select form-select-sm" id="sup_category">
+                    <option value="general">General Enquiry</option>
+                    <option value="account">Account / Settings</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <span id="supCatLocked" class="badge w-100 text-start mt-1" style="display:none;"></span>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label form-label-sm">Subject</label>
+                  <input type="text" class="form-control form-control-sm" id="sup_subject" placeholder="Brief description">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label form-label-sm">Message</label>
+                  <textarea class="form-control form-control-sm" id="sup_message" rows="5"
+                            placeholder="Describe your issue in detail…"></textarea>
+                </div>
+                <div class="form-check mb-3" id="supSysChkRow" style="display:none;">
+                  <input class="form-check-input" type="checkbox" id="supIncludeSys" checked>
+                  <label class="form-check-label small" for="supIncludeSys">
+                    Attach system information (helps with debugging)
+                  </label>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="sendSupportEmail()">
+                  <i class="bi bi-send me-1"></i>Send via Email Client
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right panel (bug / feature) -->
+          <div id="supRightCol" class="col-lg-5 d-flex flex-column gap-3">
+
+            <!-- Bug panel -->
+            <div id="supBugPanel" class="d-flex flex-column gap-3" style="display:none !important;">
+              <div class="card">
+                <div class="card-header bg-transparent border-0 pb-0">
+                  <h6 class="fw-bold mb-0"><i class="bi bi-bug-fill me-1 text-danger"></i>Reporting a Bug</h6>
+                </div>
+                <div class="card-body">
+                  <p class="text-muted small mb-2">A good bug report includes:</p>
+                  <ul class="small mb-0" style="line-height:1.9;">
+                    <li>Exact steps to reproduce the issue</li>
+                    <li>What you expected vs what happened</li>
+                    <li>Any error messages or screenshots</li>
+                    <li>Browser, OS, and app version</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header bg-transparent border-0 pb-0">
+                  <h6 class="fw-bold mb-0"><i class="bi bi-wrench me-1 text-secondary"></i>Common Issues</h6>
+                </div>
+                <div class="card-body p-0">
+                  <div class="accordion accordion-flush" id="supCommonIssues">
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2 small fw-semibold" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#sci1">
+                          App not loading or very slow to start
+                        </button>
+                      </h2>
+                      <div id="sci1" class="accordion-collapse collapse">
+                        <div class="accordion-body small py-2">
+                          Try a hard refresh (<kbd>Ctrl+Shift+R</kbd>). Check that the server process is running and no other app is using the same port. Restart the app if needed.
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2 small fw-semibold" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#sci2">
+                          Data not saving or changes lost on refresh
+                        </button>
+                      </h2>
+                      <div id="sci2" class="accordion-collapse collapse">
+                        <div class="accordion-body small py-2">
+                          Check that auto-save is working — look for the "Saved" indicator in the topbar. If it shows an error, the database file may be locked or the <code>instance/</code> folder may lack write permissions.
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2 small fw-semibold" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#sci3">
+                          Settings changes not sticking
+                        </button>
+                      </h2>
+                      <div id="sci3" class="accordion-collapse collapse">
+                        <div class="accordion-body small py-2">
+                          Settings are saved to <code>localStorage</code>. Make sure you're using the same browser profile and that private/incognito mode is not active (it clears storage on close).
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2 small fw-semibold" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#sci4">
+                          UI looks wrong or layout broken
+                        </button>
+                      </h2>
+                      <div id="sci4" class="accordion-collapse collapse">
+                        <div class="accordion-body small py-2">
+                          Clear the browser cache (<kbd>Ctrl+Shift+Del</kbd>) and reload. If the issue persists, try a different browser to determine if it's browser-specific.
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2 small fw-semibold" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#sci5">
+                          How do I reset / clear app data?
+                        </button>
+                      </h2>
+                      <div id="sci5" class="accordion-collapse collapse">
+                        <div class="accordion-body small py-2">
+                          Stop the app, delete <code>instance/app.db</code>, then restart. Settings and configuration files are unaffected unless you delete them separately.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div><!-- /supBugPanel -->
+
+            <!-- Feature panel -->
+            <div id="supFeaturePanel" style="display:none !important;">
+              <div class="card">
+                <div class="card-header bg-transparent border-0 pb-0">
+                  <h6 class="fw-bold mb-0"><i class="bi bi-lightbulb-fill me-1 text-warning"></i>Requesting a Feature</h6>
+                </div>
+                <div class="card-body">
+                  <p class="text-muted small mb-2">A great feature request explains:</p>
+                  <ul class="small mb-0" style="line-height:1.9;">
+                    <li>The problem or workflow it solves</li>
+                    <li>How you imagine it working</li>
+                    <li>Examples from other tools you've seen</li>
+                    <li>How often you'd use it</li>
+                  </ul>
+                </div>
+              </div>
+            </div><!-- /supFeaturePanel -->
+
+          </div><!-- /supRightCol -->
+        </div><!-- /supFormRow -->
+
+        <!-- System info row (bug mode only) -->
+        <div id="supSysInfoRow" style="display:none;">
+          <hr class="sup-divider">
+          <div class="card">
+            <div class="card-header bg-transparent border-0 pb-0 d-flex justify-content-between align-items-center">
+              <h6 class="fw-bold mb-0"><i class="bi bi-info-circle me-1 text-secondary"></i>System Information</h6>
+              <button class="btn btn-xs btn-outline-secondary" onclick="supCopySysInfo()" id="supCopyBtn">
+                <i class="bi bi-clipboard me-1"></i>Copy
+              </button>
+            </div>
+            <div class="card-body">
+              <p class="text-muted small mb-2">Include this when filing a bug report.</p>
+              <pre id="supSysInfo" class="rounded p-3 mb-0"></pre>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /supDynamic -->
+
+      <!-- FAQ (always visible) -->
+      <hr class="sup-divider">
+      <div class="card mb-4">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h6 class="fw-bold mb-0"><i class="bi bi-question-circle me-1 text-secondary"></i>Frequently Asked Questions</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="accordion accordion-flush" id="supFaqAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed small fw-semibold" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#sfaq1">
+                  Is my data stored in the cloud?
+                </button>
+              </h2>
+              <div id="sfaq1" class="accordion-collapse collapse" data-bs-parent="#supFaqAccordion">
+                <div class="accordion-body small">
+                  No. Story Teller stores all data locally on your machine. Nothing is sent to external servers — your data remains entirely private.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed small fw-semibold" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#sfaq2">
+                  How do I back up my data?
+                </button>
+              </h2>
+              <div id="sfaq2" class="accordion-collapse collapse" data-bs-parent="#supFaqAccordion">
+                <div class="accordion-body small">
+                  Copy the <code>instance/</code> folder to an external drive or cloud storage. This folder contains the database file with all your app data.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed small fw-semibold" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#sfaq3">
+                  What browsers are supported?
+                </button>
+              </h2>
+              <div id="sfaq3" class="accordion-collapse collapse" data-bs-parent="#supFaqAccordion">
+                <div class="accordion-body small">
+                  Any modern browser — Chrome, Edge, Firefox, or Safari. The app is optimised for desktop use at 1280px or wider.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed small fw-semibold" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#sfaq4">
+                  How do I update the app?
+                </button>
+              </h2>
+              <div id="sfaq4" class="accordion-collapse collapse" data-bs-parent="#supFaqAccordion">
+                <div class="accordion-body small">
+                  Pull the latest changes: <code>git pull origin main</code>, then restart the server. Check the Change Log (clock icon in topbar) for what's new in each version.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed small fw-semibold" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#sfaq5">
+                  Where can I report issues or suggest features?
+                </button>
+              </h2>
+              <div id="sfaq5" class="accordion-collapse collapse" data-bs-parent="#supFaqAccordion">
+                <div class="accordion-body small">
+                  Use the <strong>Report a Bug</strong> or <strong>Request a Feature</strong> cards above, or file an issue directly on the project's GitHub repository.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /p-3 p-lg-4 -->
+</div><!-- /page-content -->
+</div><!-- /wrapper -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Changelog popup -->
+<div id="clPopup">
+  <div id="clPopupDrag">
+    <span class="fw-bold text-white" style="font-size:.9rem;pointer-events:none;">
+      <i class="bi bi-clock-history me-2 text-secondary"></i>Change Log
+    </span>
+    <button class="btn-close btn-close-white btn-sm" onclick="toggleChangelogPopup()" title="Close"></button>
+  </div>
+  <div id="clPopupBody">
+    <div class="text-center py-5 text-muted small"><i class="bi bi-arrow-repeat me-1"></i>Loading…</div>
+  </div>
+  <div id="clPopupFooter">
+    <button class="btn btn-sm btn-secondary" onclick="toggleChangelogPopup()">
+      <i class="bi bi-x-lg me-1"></i>Close
+    </button>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* ============================================================
+   Story Teller — Core UI JavaScript
+   All functions here are available across every section pane.
+   ============================================================ */
+
+// ── Remove no-transition guard after first paint ──────────────────────────────
+window.addEventListener('load', function () {
+  var s = document.getElementById('sb-no-trans');
+  if (s) s.remove();
+});
+
+// ── HTML escape ───────────────────────────────────────────────────────────────
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type, ms) {
+  type = type || 'info'; ms = ms || 3000;
+  var c = document.getElementById('toast-container'); if (!c) return;
+  var el = document.createElement('div');
+  el.className = 'app-toast toast-' + type;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(function () { el.remove(); }, ms);
+}
+
+// ── Section pane navigation ───────────────────────────────────────────────────
+var _allSections = ['dashboard', 'settings', 'notifications', 'help', 'support'];
+// Add your app-specific section IDs to this array in index.html:
+// _allSections.push('mySection');
+
+function showSection(name) {
+  _allSections.forEach(function (s) {
+    var pane = document.getElementById('pane-' + s);
+    var link = document.getElementById('nav-' + s);
+    if (pane) pane.classList.toggle('active', s === name);
+    if (link) link.classList.toggle('active', s === name);
+  });
+  var titleMap = {
+    dashboard: 'Dashboard', settings: 'App Settings',
+    notifications: 'Notifications', help: 'Help', support: 'Customer Support',
+  };
+  var tt = document.getElementById('topbarTitle');
+  if (tt) tt.textContent = titleMap[name] || name;
+  if (name === 'notifications') loadNotifications();
+  if (name === 'settings' && typeof _onSettingsPaneShow === 'function') {
+    requestAnimationFrame(function() { requestAnimationFrame(_onSettingsPaneShow); });
+  }
+}
+
+// ── Sidebar collapse/expand ───────────────────────────────────────────────────
+function toggleSidebar() {
+  var sb = document.getElementById('sidebar');
+  var collapsed = sb.classList.toggle('collapsed');
+  localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0');
+  _updateSidebarToggleIcon(collapsed);
+}
+function _updateSidebarToggleIcon(collapsed) {
+  var icon = document.getElementById('sidebarToggleIcon');
+  if (!icon) return;
+  // Flip icon direction to reflect current sidebar state
+  icon.className = collapsed ? 'bi bi-layout-sidebar' : 'bi bi-layout-sidebar-reverse';
+}
+
+// ── Dark / Light mode ─────────────────────────────────────────────────────────
+(function () {
+  var btn  = document.getElementById('darkModeBtn');
+  var icon = document.getElementById('darkModeIcon');
+  if (!btn) return;
+  function currentTheme() { return document.documentElement.getAttribute('data-bs-theme') || 'dark'; }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-bs-theme', t);
+    localStorage.setItem('app-theme', t);
+    icon.className = t === 'dark' ? 'bi bi-moon-fill' : 'bi bi-sun-fill';
+    btn.title = t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+    var sel = document.getElementById('cfg_theme'); if (sel) sel.value = t;
+  }
+  applyTheme(currentTheme());
+  btn.addEventListener('click', function () { applyTheme(currentTheme() === 'dark' ? 'light' : 'dark'); });
+  window.applyThemeFromSettings = function () {
+    var sel = document.getElementById('cfg_theme'); if (sel) applyTheme(sel.value); saveCfg();
+  };
+}());
+
+// ── Hints toggle ──────────────────────────────────────────────────────────────
+(function () {
+  var btn = document.getElementById('hintsToggleBtn'); if (!btn) return;
+  var isOn = function () { return localStorage.getItem('app-hints') === 'on'; };
+  // Show/hide title-attribute tooltips on all topbar buttons (except hints btn itself)
+  function _syncTitles(on) {
+    document.querySelectorAll('.topbar-btn:not(#hintsToggleBtn)').forEach(function (el) {
+      if (on) {
+        var saved = el.getAttribute('data-hint-title');
+        if (saved) { el.title = saved; el.removeAttribute('data-hint-title'); }
+      } else {
+        if (el.title) { el.setAttribute('data-hint-title', el.title); el.removeAttribute('title'); }
+      }
+    });
+  }
+  function applyState(on) {
+    document.body.classList.toggle('hints-on', on);
+    btn.classList.toggle('active', on);
+    btn.title     = on ? 'Hints on — click to turn off' : 'Hints off — click to turn on';
+    btn.innerHTML = on ? '<i class="bi bi-lightbulb-fill"></i>' : '<i class="bi bi-lightbulb"></i>';
+    _syncTitles(on);
+    var c = document.getElementById('cfg_hints_on'); if (c) c.checked = on;
+  }
+  applyState(isOn());
+  btn.addEventListener('click', function () {
+    var nowOn = !isOn(); localStorage.setItem('app-hints', nowOn ? 'on' : 'off'); applyState(nowOn);
+  });
+  window.applyHintsFromSettings = function () {
+    var c = document.getElementById('cfg_hints_on'); if (!c) return;
+    localStorage.setItem('app-hints', c.checked ? 'on' : 'off'); applyState(c.checked); saveCfg();
+  };
+}());
+
+// ── Changelog popup ───────────────────────────────────────────────────────────
+(function () {
+  var popup = null, drag = null, _loaded = false;
+  document.addEventListener('DOMContentLoaded', function () {
+    popup = document.getElementById('clPopup');
+    drag  = document.getElementById('clPopupDrag');
+    if (!popup || !drag) return;
+    var dragging = false, sx, sy, sl, st;
+    drag.addEventListener('mousedown', function (e) {
+      if (e.target.closest('.btn-close')) return;
+      dragging = true; sx = e.clientX; sy = e.clientY;
+      var r = popup.getBoundingClientRect(); sl = r.left; st = r.top;
+      popup.style.right = 'auto'; popup.style.left = sl + 'px'; popup.style.top = st + 'px';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', function (e) {
+      if (!dragging) return;
+      popup.style.left = (sl + e.clientX - sx) + 'px';
+      popup.style.top  = (st + e.clientY - sy) + 'px';
+    });
+    document.addEventListener('mouseup', function () { dragging = false; });
+  });
+  window.toggleChangelogPopup = function () {
+    if (!popup) popup = document.getElementById('clPopup');
+    if (!popup) return;
+    var hidden = popup.style.display === 'none' || !popup.style.display;
+    popup.style.display = hidden ? 'block' : 'none';
+    if (hidden && !_loaded) _fetchChangelog();
+  };
+  function _esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function _fetchChangelog() {
+    var body = document.getElementById('clPopupBody');
+    fetch('/api/changelog/data').then(function (r) { return r.json(); }).then(function (entries) {
+      _loaded = true;
+      if (!entries || !entries.length) { body.innerHTML = '<div class="text-center py-4 text-muted small">No entries yet.</div>'; return; }
+      var html = '<div class="accordion accordion-flush">';
+      entries.forEach(function (e, i) {
+        var latest = i === 0;
+        var cnt = e.changes ? e.changes.length : 0;
+        var vb = latest
+          ? '<span class="badge fw-bold" style="min-width:5rem;background:#39ff14;color:#000;font-size:.78rem;">v' + _esc(e.version) + '</span>'
+            + '<span class="badge bg-info text-dark ms-1" style="font-size:.72rem;">Latest</span>'
+          : '<span class="badge bg-dark border border-secondary text-secondary fw-bold" style="min-width:5rem;font-size:.78rem;">v' + _esc(e.version) + '</span>';
+        var cb = '<span class="badge ' + (latest ? 'text-bg-success' : 'text-bg-secondary') + ' opacity-75" style="font-size:.7rem;">' + cnt + ' change' + (cnt !== 1 ? 's' : '') + '</span>';
+        var ch = cnt ? '<ul class="mb-0 text-light" style="line-height:2;">' + e.changes.map(function (c) { return '<li class="small">' + _esc(c) + '</li>'; }).join('') + '</ul>'
+                     : '<p class="text-muted small mb-0 fst-italic">No changes recorded.</p>';
+        html += '<div class="accordion-item" style="background:transparent;border-color:rgba(255,255,255,.08);">'
+          + '<h2 class="accordion-header"><button class="accordion-button ' + (latest ? '' : 'collapsed') + '" type="button"'
+          + ' data-bs-toggle="collapse" data-bs-target="#clpa' + i + '" aria-expanded="' + (latest ? 'true' : 'false') + '"'
+          + ' style="background:transparent;color:#fff;border-radius:0;box-shadow:none;">'
+          + '<div class="d-flex align-items-center gap-2 w-100 me-2 flex-wrap">' + vb + '<span class="small fw-semibold">' + _esc(e.date) + '</span>' + cb + '</div>'
+          + '</button></h2>'
+          + '<div id="clpa' + i + '" class="accordion-collapse collapse ' + (latest ? 'show' : '') + '">'
+          + '<div class="accordion-body py-3 px-4" style="background:#161920;">' + ch + '</div></div></div>';
+      });
+      body.innerHTML = html + '</div>';
+    }).catch(function () { body.innerHTML = '<div class="text-center py-4 text-danger small">Failed to load.</div>'; });
+  }
+}());
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+async function loadNotifications() {
+  try {
+    var r = await fetch('/api/notifications');
+    var d = await r.json();
+    var notes = d.notifications || [];
+    var count = notes.length;
+    var badge   = document.getElementById('notifBadge');
+    var badgeSb = document.getElementById('notifBadgeSb');
+    if (badge)   { badge.textContent = count;   badge.classList.toggle('d-none', !count); }
+    if (badgeSb) { badgeSb.textContent = count; badgeSb.classList.toggle('d-none', !count); }
+    var el = document.getElementById('notifList'); if (!el) return;
+    if (!notes.length) {
+      el.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-check-circle me-1 text-success"></i><small>All clear — no notifications.</small></div>';
+      return;
+    }
+    el.innerHTML = notes.map(function (n) {
+      var iconClass = n.level === 'error' ? 'bi-x-circle error' : n.level === 'warning' ? 'bi-exclamation-triangle warning' : 'bi-info-circle info';
+      var action = '';
+      if (n.action === 'goto' && n.section) {
+        action = '<button class="btn btn-xs btn-outline-secondary mt-1" onclick="showSection(\'' + n.section + '\')">Go There</button>';
+      }
+      return '<div class="notif-item"><i class="bi ' + iconClass + ' notif-icon"></i>'
+        + '<div><div class="notif-title">' + esc(n.title) + '</div>'
+        + '<div class="notif-body">' + esc(n.body) + '</div>' + action + '</div></div>';
+    }).join('');
+  } catch (e) { console.error('loadNotifications', e); }
+}
+
+// ── App settings (cfg) ────────────────────────────────────────────────────────
+var _cfgTimer = null;
+function saveCfg() {
+  clearTimeout(_cfgTimer);
+  _cfgTimer = setTimeout(function () {
+    var payload = {
+      theme:    (document.getElementById('cfg_theme') || {}).value || 'dark',
+      hints_on: (document.getElementById('cfg_hints_on') || {}).checked || false,
+    };
+    fetch('/api/app-settings', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload) });
+  }, 600);
+}
+
+async function loadCfg() {
+  try {
+    var r = await fetch('/api/app-settings');
+    var d = await r.json();
+    var s = d.settings || {};
+    var thSel = document.getElementById('cfg_theme');
+    if (thSel) thSel.value = s.theme || localStorage.getItem('app-theme') || 'dark';
+    var hintsChk = document.getElementById('cfg_hints_on');
+    if (hintsChk) hintsChk.checked = s.hints_on || localStorage.getItem('app-hints') === 'on';
+  } catch (e) {}
+}
+
+// ── Support quick-action cards ────────────────────────────────────────────────
+var _supCurrentMode = null;
+
+function supActivateMode(mode) {
+  // Clicking same card again → toggle off
+  if (_supCurrentMode === mode) {
+    _supResetActiveCard();
+    _supHideDynamic();
+    _supCurrentMode = null;
+    return;
+  }
+
+  _supCurrentMode = mode;
+  _supResetForm();
+  _supConfigureMode(mode);
+  _supSetActiveCard(mode);
+
+  var el = document.getElementById('supDynamic');
+  el.style.display = 'block';
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      el.style.opacity = '1';
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+}
+
+function _supConfigureMode(mode) {
+  var select    = document.getElementById('sup_category');
+  var locked    = document.getElementById('supCatLocked');
+  var rightCol  = document.getElementById('supRightCol');
+  var bugPanel  = document.getElementById('supBugPanel');
+  var featPanel = document.getElementById('supFeaturePanel');
+  var sysRow    = document.getElementById('supSysInfoRow');
+  var sysChkRow = document.getElementById('supSysChkRow');
+
+  // Reset all panels
+  bugPanel.style.setProperty('display', 'none', 'important');
+  featPanel.style.setProperty('display', 'none', 'important');
+  rightCol.style.display   = 'none';
+  sysRow.style.display     = 'none';
+  sysChkRow.style.display  = 'none';
+  select.style.display     = '';
+  locked.style.display     = 'none';
+  locked.className         = 'badge w-100 text-start mt-1';
+
+  if (mode === 'contact') {
+    select.innerHTML =
+      '<option value="general">General Enquiry</option>' +
+      '<option value="account">Account / Settings</option>' +
+      '<option value="other">Other</option>';
+    select.value = 'general';
+
+  } else if (mode === 'bug') {
+    select.style.display    = 'none';
+    locked.style.display    = 'block';
+    locked.textContent      = 'Bug Report';
+    locked.className        = 'badge bg-danger w-100 text-start mt-1';
+    bugPanel.style.setProperty('display', 'flex', 'important');
+    bugPanel.style.flexDirection = 'column';
+    rightCol.style.display  = 'flex';
+    sysRow.style.display    = 'block';
+    sysChkRow.style.display = 'block';
+    var sysChk = document.getElementById('supIncludeSys');
+    if (sysChk) sysChk.checked = true;
+
+  } else if (mode === 'feature') {
+    select.style.display = 'none';
+    locked.style.display = 'block';
+    locked.textContent   = 'Feature Request';
+    locked.className     = 'badge bg-warning text-dark w-100 text-start mt-1';
+    featPanel.style.setProperty('display', 'block', 'important');
+    rightCol.style.display = 'flex';
+  }
+}
+
+function _supResetForm() {
+  var sub = document.getElementById('sup_subject');
+  var msg = document.getElementById('sup_message');
+  if (sub) sub.value = '';
+  if (msg) msg.value = '';
+}
+
+function _supHideDynamic() {
+  var el = document.getElementById('supDynamic');
+  el.style.opacity = '0';
+  setTimeout(function () { el.style.display = 'none'; }, 380);
+}
+
+function _supSetActiveCard(mode) {
+  _supResetActiveCard();
+  var map = { contact: 'supQaContact', bug: 'supQaBug', feature: 'supQaFeature' };
+  var card = document.getElementById(map[mode]);
+  if (card) card.classList.add('mode-active');
+}
+
+function _supResetActiveCard() {
+  document.querySelectorAll('.qa-card').forEach(function (c) {
+    c.classList.remove('mode-active');
+  });
+}
+
+// ── Support form ──────────────────────────────────────────────────────────────
+function sendSupportEmail() {
+  var name    = (document.getElementById('supName')     || {value:''}).value.trim();
+  var email   = (document.getElementById('supEmail')    || {value:''}).value.trim();
+  var subject = (document.getElementById('sup_subject') || {value:''}).value.trim();
+  var message = (document.getElementById('sup_message') || {value:''}).value.trim();
+  var catEl   = document.getElementById('sup_category');
+  var locked  = document.getElementById('supCatLocked');
+  var catVal  = (locked && locked.style.display !== 'none') ? locked.textContent : (catEl ? catEl.value : 'general');
+  var sysChk  = document.getElementById('supIncludeSys');
+  var attach  = sysChk && sysChk.offsetParent !== null && sysChk.checked;
+
+  if (!subject) { alert('Please enter a subject.'); return; }
+  if (!message) { alert('Please enter a message.'); return; }
+
+  var fullSubject = '[Story Teller \u2014 ' + catVal + '] ' + subject;
+  var body = (name ? 'From: ' + name + (email ? ' <' + email + '>' : '') + '\n' : '')
+           + 'Category: ' + catVal + '\n\n'
+           + message;
+  if (attach) {
+    var info = document.getElementById('supSysInfo');
+    if (info) body += '\n\n---\nSystem Information:\n' + info.textContent;
+  }
+
+  window.location.href = 'mailto:{{ support_contact_email }}'
+    + '?subject=' + encodeURIComponent(fullSubject)
+    + '&body='    + encodeURIComponent(body);
+}
+
+// ── Copy system info ──────────────────────────────────────────────────────────
+function supCopySysInfo() {
+  var btn  = document.getElementById('supCopyBtn');
+  var info = document.getElementById('supSysInfo');
+  if (!info || !btn) return;
+  navigator.clipboard.writeText(info.textContent).then(function () {
+    btn.innerHTML = '<i class="bi bi-clipboard-check me-1"></i>Copied!';
+    setTimeout(function () { btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy'; }, 2000);
+  });
+}
+
+// ── DOMContentLoaded boot ─────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  // System info on support page
+  var si = document.getElementById('supSysInfo');
+  if (si) si.textContent = [
+    'App:      Story Teller v{{ app_version }}',
+    'App URL:  ' + window.location.origin,
+    'Browser:  ' + navigator.userAgent,
+    'Platform: ' + navigator.platform,
+    'Theme:    ' + (localStorage.getItem('app-theme') || 'dark'),
+    'Date:     ' + new Date().toISOString()
+  ].join('\n');
+  // Sync sidebar toggle icon to initial collapsed state
+  _updateSidebarToggleIcon(document.getElementById('sidebar').classList.contains('collapsed'));
+  // Load settings and initial notifications
+  loadCfg();
+  loadNotifications();
+});
+</script>
+
+{% block scripts %}{% endblock %}
+
+<script>
+/* ── OS detection & path field validation ─────────────────────────────────────
+   Called once on DOMContentLoaded.  Fetches /api/platform, shows the OS badge
+   in the topbar, and wires validation on every input in _OS_PATH_FIELD_IDS.
+
+   Path fields with a format that doesn't match the current OS get a slowly
+   glowing red outline + tooltip: "OS is Linux — this looks like a Windows path".
+
+   To add OS-sensitive path inputs to your app:
+     1. Add the element id to _OS_PATH_FIELD_IDS below.
+     2. The field will be validated automatically on load and on blur.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+// List every input id whose value is an OS file-system path.
+// Override this in a {% block scripts %} if your app has different fields.
+var _OS_PATH_FIELD_IDS = [];   // e.g. ['outputDir', 'dataRoot', 'iconFile']
+var _currentOS         = 'win';
+
+function _isWindowsPath(p) { return /^[A-Za-z]:[\\/]/.test(p) || /^\\\\/.test(p); }
+function _isUnixPath(p)    { return p.startsWith('/') || p.startsWith('~'); }
+
+function _validatePathField(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var val = el.value.trim();
+  if (!val) { el.classList.remove('path-os-invalid'); el.removeAttribute('title'); return; }
+  var wrong = false, hint = '';
+  if (_currentOS === 'win' && _isUnixPath(val)) {
+    wrong = true; hint = 'OS is Windows — this path format is for Linux/macOS';
+  } else if (_currentOS !== 'win' && _isWindowsPath(val)) {
+    var osName = _currentOS === 'mac' ? 'macOS' : 'Linux';
+    wrong = true; hint = 'OS is ' + osName + ' — this looks like a Windows path (e.g. D:\\\\...)';
+  }
+  if (wrong) { el.classList.add('path-os-invalid'); el.title = hint; }
+  else        { el.classList.remove('path-os-invalid'); el.removeAttribute('title'); }
+}
+
+function _validateAllPaths() {
+  _OS_PATH_FIELD_IDS.forEach(function(id) { _validatePathField(id); });
+}
+
+function _initOSDetect() {
+  fetch('/api/platform')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      _currentOS = d.os || 'win';
+      var iconCls = {win:'bi-windows',linux:'bi-ubuntu',mac:'bi-apple'}[_currentOS]||'bi-display';
+      var color   = {win:'#0078d4', linux:'#39ff14', mac:'#a2aaad'}[_currentOS]||'inherit';
+      var icon    = document.getElementById('osBadgeIcon');
+      var lbl     = document.getElementById('osBadgeLabel');
+      var badge   = document.getElementById('osBadge');
+      if (icon)  icon.className  = 'bi ' + iconCls + ' me-1';
+      if (lbl)   lbl.textContent = d.os_display || _currentOS;
+      if (badge) badge.style.color = color;
+      _validateAllPaths();
+    })
+    .catch(function(){});   // non-fatal — badge stays at default
+
+  // Re-validate path fields whenever the user finishes editing one
+  document.addEventListener('focusout', function(e) {
+    if (e.target && e.target.tagName === 'INPUT' &&
+        _OS_PATH_FIELD_IDS.indexOf(e.target.id) !== -1) {
+      _validatePathField(e.target.id);
+    }
+  }, true);
+}
+
+document.addEventListener('DOMContentLoaded', _initOSDetect);
+</script>
+
+<script>
+// ── Responsive track / pipeline scaling ───────────────────────────────────────
+// Scales any .track-scale-wrap > .track-scale-content pair to fit the available
+// card width instead of overflowing or scrolling.  Triggered automatically by
+// ResizeObserver on the nearest .card parent; falls back to window.resize.
+// Call window.scaleAllTracks() after dynamically injecting new track content.
+(function () {
+  function _scaleTrack(wrapEl) {
+    var trackEl = wrapEl.querySelector(':scope > .track-scale-content');
+    if (!trackEl) return;
+    trackEl.style.transform = '';
+    wrapEl.style.height     = '';
+    var available = wrapEl.offsetWidth;
+    var natural   = trackEl.offsetWidth;   // width:max-content → equals content width
+    if (!available || !natural || available >= natural) return;
+    var scale = available / natural;
+    trackEl.style.transform       = 'scale(' + scale + ')';
+    trackEl.style.transformOrigin = 'left top';
+    wrapEl.style.height = Math.ceil(trackEl.offsetHeight * scale) + 'px';
+  }
+  function scaleAllTracks() {
+    document.querySelectorAll('.track-scale-wrap').forEach(_scaleTrack);
+  }
+  window.scaleAllTracks = scaleAllTracks;
+  if (typeof ResizeObserver !== 'undefined') {
+    var _ro = new ResizeObserver(scaleAllTracks);
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.track-scale-wrap').forEach(function (el) {
+        var card = el.closest('.card') || el.parentElement;
+        if (card) _ro.observe(card);
+      });
+      scaleAllTracks();
+    });
+  } else {
+    var _rTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(_rTimer); _rTimer = setTimeout(scaleAllTracks, 60);
+    });
+    document.addEventListener('DOMContentLoaded', scaleAllTracks);
+  }
+}());
+</script>
+
+<script>
+/* ── Heartbeat watchdog — server exits when all tabs close ─────────────────── */
+(function () {
+  var tabId = sessionStorage.getItem('app-tab-id');
+  if (!tabId) {
+    tabId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    sessionStorage.setItem('app-tab-id', tabId);
+  }
+  var beatUrl  = '/api/heartbeat?tab=' + tabId;
+  var closeUrl = '/api/tab-close?tab='  + tabId;
+  function beat() { fetch(beatUrl, { method: 'POST', keepalive: true }).catch(function () {}); }
+  beat();
+  setInterval(beat, 5000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) beat(); });
+  window.addEventListener('beforeunload', function () { navigator.sendBeacon(closeUrl); });
+}());
+</script>
+</body>
+</html>

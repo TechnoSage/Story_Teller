@@ -1,0 +1,59 @@
+/* ============================================================
+   Story Teller — Application Styles
+   ============================================================
+   This file inherits ALL styles from the web_page_designs
+   default-styles.css (already linked in base.html).
+
+   Add ONLY app-specific overrides and custom components here.
+   Do NOT duplicate rules that exist in default-styles.css.
+   ============================================================ */
+
+
+/* ── App-specific design token overrides (optional) ────────── */
+/*
+:root {
+  --clr-neon-green: #39ff14;   -- keep default, or change accent
+  --radius-card-lg: 1.1rem;    -- keep default, or change radius
+}
+*/
+
+
+/* ── App-specific components go below ──────────────────────── */
+
+/* ── Settings page — JS masonry layout ───────────────────────────────────── */
+/* Cards are absolutely positioned by _layoutSettingsMasonry() (see index.html)*/
+/* which packs each card into the shortest column — no row-height gaps.       */
+.settings-grid {
+  position: relative;
+  min-height: 4rem;
+}
+.settings-grid > .card {
+  box-sizing: border-box;
+}
+
+/* Hide button on each settings card header */
+.settings-card-vis-btn {
+  border: none; background: transparent; padding: 0 0 0 .4rem;
+  color: rgba(255,255,255,.3); cursor: pointer; transition: color .15s;
+  line-height: 1; flex-shrink: 0; font-size: .9rem;
+}
+.settings-card-vis-btn:hover { color: #e9ecef; }
+
+/* ── OS-invalid path field indicator ─────────────────────────────────────────
+   Applied by _validatePathField() in base.html when a path field's format
+   doesn't match the current OS (e.g. D:\... on Linux, /home/... on Windows).
+   Remove or override if your app doesn't use OS-sensitive path fields.       */
+@keyframes pathOsInvalidGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220,53,69,0);    border-color: rgba(220,53,69,.65); }
+  50%       { box-shadow: 0 0 8px 3px rgba(220,53,69,.45); border-color: rgba(220,53,69,1); }
+}
+.path-os-invalid {
+  border-color: rgba(220,53,69,.65) !important;
+  animation: pathOsInvalidGlow 2.2s ease-in-out infinite !important;
+  cursor: help;
+}
+.path-os-invalid:focus {
+  animation: none !important;
+  border-color: rgba(220,53,69,1) !important;
+  box-shadow: 0 0 0 3px rgba(220,53,69,.25) !important;
+}
