@@ -1,37 +1,11 @@
 /* ============================================================
    Story Teller — Application Styles
-   ============================================================
-   This file inherits ALL styles from the web_page_designs
-   default-styles.css (already linked in base.html).
-
-   Add ONLY app-specific overrides and custom components here.
-   Do NOT duplicate rules that exist in default-styles.css.
    ============================================================ */
 
+/* ── Settings page — JS masonry layout ────────────────────────────────────── */
+.settings-grid { position: relative; min-height: 4rem; }
+.settings-grid > .card { box-sizing: border-box; }
 
-/* ── App-specific design token overrides (optional) ────────── */
-/*
-:root {
-  --clr-neon-green: #39ff14;   -- keep default, or change accent
-  --radius-card-lg: 1.1rem;    -- keep default, or change radius
-}
-*/
-
-
-/* ── App-specific components go below ──────────────────────── */
-
-/* ── Settings page — JS masonry layout ───────────────────────────────────── */
-/* Cards are absolutely positioned by _layoutSettingsMasonry() (see index.html)*/
-/* which packs each card into the shortest column — no row-height gaps.       */
-.settings-grid {
-  position: relative;
-  min-height: 4rem;
-}
-.settings-grid > .card {
-  box-sizing: border-box;
-}
-
-/* Hide button on each settings card header */
 .settings-card-vis-btn {
   border: none; background: transparent; padding: 0 0 0 .4rem;
   color: rgba(255,255,255,.3); cursor: pointer; transition: color .15s;
@@ -39,10 +13,7 @@
 }
 .settings-card-vis-btn:hover { color: #e9ecef; }
 
-/* ── OS-invalid path field indicator ─────────────────────────────────────────
-   Applied by _validatePathField() in base.html when a path field's format
-   doesn't match the current OS (e.g. D:\... on Linux, /home/... on Windows).
-   Remove or override if your app doesn't use OS-sensitive path fields.       */
+/* ── OS-invalid path field ─────────────────────────────────────────────────── */
 @keyframes pathOsInvalidGlow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(220,53,69,0);    border-color: rgba(220,53,69,.65); }
   50%       { box-shadow: 0 0 8px 3px rgba(220,53,69,.45); border-color: rgba(220,53,69,1); }
@@ -56,4 +27,255 @@
   animation: none !important;
   border-color: rgba(220,53,69,1) !important;
   box-shadow: 0 0 0 3px rgba(220,53,69,.25) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   GENRE GRID
+══════════════════════════════════════════════════════════════════════════════ */
+.genre-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: .75rem;
+}
+
+.genre-card {
+  position: relative;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: .85rem;
+  padding: 1rem .85rem;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+  text-align: center;
+  overflow: hidden;
+  user-select: none;
+}
+.genre-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--genre-color, #6ea8fe) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+.genre-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--genre-color, rgba(110,168,254,.5));
+  box-shadow: 0 0 18px -4px var(--genre-color, rgba(110,168,254,.3)),
+              0 8px 20px rgba(0,0,0,.4);
+}
+.genre-card:hover::before { opacity: .08; }
+.genre-card.selected {
+  border-color: var(--genre-color, #6ea8fe);
+  background: rgba(255,255,255,.05);
+  box-shadow: 0 0 22px -4px var(--genre-color, rgba(110,168,254,.5)),
+              0 8px 22px rgba(0,0,0,.5),
+              inset 0 1px 0 rgba(255,255,255,.1);
+  transform: translateY(-2px);
+}
+.genre-card.selected::before { opacity: .12; }
+
+.genre-card-icon {
+  font-size: 1.75rem;
+  color: var(--genre-color, #6ea8fe);
+  display: block;
+  margin-bottom: .4rem;
+  position: relative;
+}
+.genre-card-name {
+  font-weight: 600;
+  font-size: .88rem;
+  color: #e9ecef;
+  margin-bottom: .25rem;
+  position: relative;
+}
+.genre-card-desc {
+  font-size: .7rem;
+  color: rgba(255,255,255,.45);
+  line-height: 1.3;
+  position: relative;
+  margin-bottom: .35rem;
+}
+.genre-card-rating {
+  font-size: .65rem;
+  font-weight: 600;
+  color: var(--genre-color, #6ea8fe);
+  opacity: .7;
+  position: relative;
+  letter-spacing: .04em;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PROVIDER GRID
+══════════════════════════════════════════════════════════════════════════════ */
+.provider-grid {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+.provider-card {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .6rem 1.1rem;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: .75rem;
+  cursor: pointer;
+  transition: all .18s ease;
+  user-select: none;
+}
+.provider-card:hover {
+  border-color: rgba(110,168,254,.5);
+  background: rgba(110,168,254,.06);
+  transform: translateY(-1px);
+}
+.provider-card.selected {
+  border-color: #6ea8fe;
+  background: rgba(110,168,254,.1);
+  box-shadow: 0 0 14px -3px rgba(110,168,254,.4);
+}
+.provider-icon {
+  font-size: 1.2rem;
+  color: #6ea8fe;
+}
+.provider-name {
+  font-weight: 600;
+  font-size: .88rem;
+  color: #e9ecef;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MODEL SELECTOR
+══════════════════════════════════════════════════════════════════════════════ */
+.model-option {
+  padding: .55rem .9rem;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: .65rem;
+  cursor: pointer;
+  transition: all .15s ease;
+  min-width: 180px;
+  user-select: none;
+}
+.model-option:hover {
+  border-color: rgba(110,168,254,.4);
+  background: rgba(110,168,254,.05);
+}
+.model-option.selected {
+  border-color: #6ea8fe;
+  background: rgba(110,168,254,.1);
+}
+.model-name {
+  font-size: .82rem;
+  font-weight: 600;
+  color: #e9ecef;
+  margin-bottom: .1rem;
+}
+.model-label {
+  font-size: .7rem;
+  color: rgba(255,255,255,.4);
+  margin-bottom: .2rem;
+}
+.model-cost {
+  font-size: .72rem;
+  color: #ffc107;
+  font-weight: 500;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   STORY OUTPUT AREA
+══════════════════════════════════════════════════════════════════════════════ */
+.story-output {
+  width: 100%;
+  min-height: 400px;
+  max-height: 600px;
+  overflow-y: auto;
+  background: rgba(0,0,0,.25);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: .75rem;
+  padding: 1.25rem 1.5rem;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: .93rem;
+  line-height: 1.85;
+  color: #dee2e6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  outline: none;
+}
+.story-output:empty::before {
+  content: attr(placeholder);
+  color: rgba(255,255,255,.2);
+  font-style: italic;
+  font-family: inherit;
+}
+.story-output:focus {
+  border-color: rgba(110,168,254,.35);
+  box-shadow: 0 0 0 3px rgba(110,168,254,.1);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PHASE PLACEHOLDER CARDS
+══════════════════════════════════════════════════════════════════════════════ */
+.phase-coming-soon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.phase-card {
+  transition: transform .18s ease;
+}
+.phase-card:hover {
+  transform: translateY(-2px);
+}
+
+.phase-cost-list {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  margin-top: .75rem;
+  text-align: left;
+}
+.phase-cost-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .25rem .5rem;
+  background: rgba(255,255,255,.03);
+  border-radius: .4rem;
+  font-size: .78rem;
+  color: rgba(255,255,255,.65);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   FEATURE PILLS (channels / schedule placeholders)
+══════════════════════════════════════════════════════════════════════════════ */
+.phase-feature-pill {
+  display: flex;
+  align-items: center;
+  padding: .55rem 1rem;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 2rem;
+  font-size: .82rem;
+  color: rgba(255,255,255,.7);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   COST BANNER
+══════════════════════════════════════════════════════════════════════════════ */
+#costBanner {
+  transition: background .3s ease;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   EXTRA BADGE SIZES
+══════════════════════════════════════════════════════════════════════════════ */
+.btn-xs {
+  padding: .15rem .4rem;
+  font-size: .72rem;
+  border-radius: .3rem;
 }

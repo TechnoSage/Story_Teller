@@ -1,100 +1,1195 @@
 {% extends "base.html" %}
-{#
-  index.html — Main single-page template for Story Teller
-
-  This file inherits the full sidebar, topbar, settings, notifications,
-  help, support, and changelog from base.html.
-
-  HOW TO ADD A NEW SECTION
-  -------------------------
-  1. Add a nav item in {% block sidebar_nav %} below.
-  2. Add the section pane in {% block section_panes %} below.
-  3. Add the section name to the _allSections array in {% block scripts %}.
-  4. The topbar title map and showSection() handle everything else.
-#}
-
 {% block title %}Story Teller{% endblock %}
 
-{# ── Extra sidebar nav items (between Dashboard and Settings) ── #}
+{# ── Sidebar nav ────────────────────────────────────────────────────────────── #}
 {% block sidebar_nav %}
-  {# Example:
-  <li class="nav-item">
-    <a class="nav-link" href="#" id="nav-mySection"
-       data-tooltip="My Section — Brief description"
-       onclick="showSection('mySection');return false;">
-      <i class="bi bi-collection"></i><span class="nav-label">My Section</span>
-    </a>
-  </li>
-  #}
+<li class="nav-item">
+  <a class="nav-link" href="#" id="nav-studio"
+     data-tooltip="Story Studio — Generate new AI stories"
+     onclick="showSection('studio');return false;">
+    <i class="bi bi-magic"></i><span class="nav-label">Story Studio</span>
+  </a>
+</li>
+<li class="nav-item">
+  <a class="nav-link" href="#" id="nav-archive"
+     data-tooltip="Archive — Browse and manage saved stories"
+     onclick="showSection('archive');return false;">
+    <i class="bi bi-archive-fill"></i><span class="nav-label">Archive</span>
+  </a>
+</li>
+<li class="nav-item">
+  <a class="nav-link" href="#" id="nav-production"
+     data-tooltip="Production — Voice, video &amp; caption pipeline (Phase 2)"
+     onclick="showSection('production');return false;">
+    <i class="bi bi-film"></i><span class="nav-label">Production</span>
+  </a>
+</li>
+<li class="nav-item">
+  <a class="nav-link" href="#" id="nav-channels"
+     data-tooltip="Channels — YouTube channel management (Phase 5)"
+     onclick="showSection('channels');return false;">
+    <i class="bi bi-youtube"></i><span class="nav-label">Channels</span>
+  </a>
+</li>
+<li class="nav-item">
+  <a class="nav-link" href="#" id="nav-schedule"
+     data-tooltip="Schedule — Automated story publishing (Phase 6)"
+     onclick="showSection('schedule');return false;">
+    <i class="bi bi-calendar-check-fill"></i><span class="nav-label">Schedule</span>
+  </a>
+</li>
 {% endblock %}
 
-{# ── Dashboard content ──────────────────────────────────────── #}
+{# ── Dashboard ──────────────────────────────────────────────────────────────── #}
 {% block dashboard_content %}
-<div class="row g-3 mb-4" id="metricTiles">
-  {# Metric tiles rendered by JS #}
-</div>
-<div class="card">
-  <div class="card-header bg-transparent border-0 pb-0">
-    <h6 class="fw-bold mb-0"><i class="bi bi-grid me-2 text-secondary"></i>Overview</h6>
-  </div>
-  <div class="card-body">
-    <p class="text-muted small mb-0">
-      Replace this with your app's dashboard content.
-    </p>
-  </div>
-</div>
-{% endblock %}
-
-{# ── App-specific section panes ─────────────────────────────── #}
-{% block section_panes %}
-  {# Example section pane:
-  <div class="section-pane" id="pane-mySection">
-    <div class="page-header">
-      <h4><i class="bi bi-collection me-2 text-primary"></i>My Section</h4>
-      <div class="page-desc">Description of what this section does.</div>
-    </div>
+<div class="row g-3 mb-4" id="metricTiles"></div>
+<div class="row g-3">
+  <div class="col-lg-8">
     <div class="card">
       <div class="card-header bg-transparent border-0 pb-0">
-        <h6 class="fw-bold mb-0"><i class="bi bi-list me-2 text-secondary"></i>Content</h6>
+        <h6 class="fw-bold mb-0"><i class="bi bi-clock-history me-1 text-secondary"></i>Recent Stories</h6>
       </div>
-      <div class="card-body">
-        <p class="text-muted small mb-0">Your content here.</p>
+      <div class="card-body p-0">
+        <div id="dashRecentStories" class="p-3 text-muted small">Loading…</div>
       </div>
     </div>
   </div>
-  #}
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header bg-transparent border-0 pb-0">
+        <h6 class="fw-bold mb-0"><i class="bi bi-pie-chart-fill me-1 text-secondary"></i>By Genre</h6>
+      </div>
+      <div class="card-body">
+        <div id="dashGenreBreakdown" class="text-muted small">Loading…</div>
+      </div>
+    </div>
+    <div class="card mt-3">
+      <div class="card-header bg-transparent border-0 pb-0">
+        <h6 class="fw-bold mb-0"><i class="bi bi-rocket-fill me-1 text-secondary"></i>Quick Start</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Generate a new story in seconds.</p>
+        <button class="btn btn-primary w-100" onclick="showSection('studio')">
+          <i class="bi bi-magic me-1"></i>Open Story Studio
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
-{# ── Help content ───────────────────────────────────────────── #}
-{% block help_content %}
-<p>Add documentation for your app here.</p>
-<p>Structure it with <code>&lt;h5&gt;</code> headings and <code>&lt;p&gt;</code>/<code>&lt;ul&gt;</code> body text.</p>
+{# ── Section panes ───────────────────────────────────────────────────────────── #}
+{% block section_panes %}
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   STORY STUDIO
+══════════════════════════════════════════════════════════════════════════════ #}
+<div class="section-pane" id="pane-studio">
+  <div class="page-header">
+    <h4><i class="bi bi-magic me-2 text-primary"></i>Story Studio</h4>
+    <div class="page-desc">Choose a genre, set your parameters, pick an AI model, and generate a ready-to-narrate story.</div>
+  </div>
+
+  {# Cost estimator banner #}
+  <div id="costBanner" class="alert alert-dark border-0 mb-4 d-flex align-items-center gap-3"
+       style="background:rgba(255,255,255,.04);border-radius:1rem!important;">
+    <i class="bi bi-calculator text-warning fs-5"></i>
+    <div class="flex-grow-1">
+      <span class="text-muted small">Estimated story cost:</span>
+      <span id="costEstimate" class="fw-bold ms-2 text-white">—</span>
+      <span class="text-muted small ms-2" id="costBreakdown"></span>
+    </div>
+    <div class="text-end">
+      <div class="text-muted" style="font-size:.7rem;">per generation</div>
+    </div>
+  </div>
+
+  {# ── Step 1: Genre selection ── #}
+  <div class="card mb-3">
+    <div class="card-header bg-transparent border-0 pb-0">
+      <h6 class="fw-bold mb-0"><i class="bi bi-grid-fill me-1 text-secondary"></i>Step 1 — Choose Genre</h6>
+    </div>
+    <div class="card-body">
+      <div id="genreGrid" class="genre-grid"></div>
+    </div>
+  </div>
+
+  {# ── Step 2: Story parameters ── #}
+  <div class="card mb-3">
+    <div class="card-header bg-transparent border-0 pb-0">
+      <h6 class="fw-bold mb-0"><i class="bi bi-sliders me-1 text-secondary"></i>Step 2 — Story Parameters</h6>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+
+        <div class="col-md-12">
+          <label class="form-label small text-muted">Story Title <span class="text-muted">(optional — auto-generated if blank)</span></label>
+          <input type="text" id="storyTitle" class="form-control form-control-sm"
+                 placeholder="Leave blank to auto-generate a title">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small text-muted d-flex justify-content-between">
+            <span>Target Length</span>
+            <span id="wordCountLabel" class="text-white fw-semibold">6,000 words (~43 min)</span>
+          </label>
+          <input type="range" class="form-range" id="wordCountSlider"
+                 min="1500" max="9000" step="500" value="6000"
+                 oninput="onWordCountChange(this.value)">
+          <div class="d-flex justify-content-between" style="font-size:.7rem;color:rgba(255,255,255,.35)">
+            <span>1,500 (~11 min)</span><span>9,000 (~64 min)</span>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Main Characters</label>
+          <select class="form-select form-select-sm" id="paramCharacters">
+            <option value="1">1 character</option>
+            <option value="2" selected>2 characters</option>
+            <option value="3">3 characters</option>
+            <option value="4">4 characters</option>
+            <option value="5">5+ characters</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Age Rating</label>
+          <select class="form-select form-select-sm" id="paramAgeRating">
+            <option value="All Ages">All Ages</option>
+            <option value="PG">PG</option>
+            <option value="PG-13" selected>PG-13</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Narrative Style</label>
+          <div class="btn-group w-100" role="group">
+            <input type="radio" class="btn-check" name="narrative" id="narr1" value="third" checked>
+            <label class="btn btn-outline-secondary btn-sm" for="narr1">Third Person</label>
+            <input type="radio" class="btn-check" name="narrative" id="narr2" value="first">
+            <label class="btn btn-outline-secondary btn-sm" for="narr2">First Person</label>
+            <input type="radio" class="btn-check" name="narrative" id="narr3" value="omniscient">
+            <label class="btn btn-outline-secondary btn-sm" for="narr3">Omniscient</label>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Tone</label>
+          <div class="btn-group w-100" role="group">
+            <input type="radio" class="btn-check" name="tone" id="tone1" value="dark">
+            <label class="btn btn-outline-secondary btn-sm" for="tone1">🌑 Dark</label>
+            <input type="radio" class="btn-check" name="tone" id="tone2" value="neutral" checked>
+            <label class="btn btn-outline-secondary btn-sm" for="tone2">⚖️ Neutral</label>
+            <input type="radio" class="btn-check" name="tone" id="tone3" value="uplifting">
+            <label class="btn btn-outline-secondary btn-sm" for="tone3">☀️ Uplifting</label>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Setting <span class="text-muted">(optional)</span></label>
+          <input type="text" id="paramSetting" class="form-control form-control-sm"
+                 placeholder="e.g. 'A space station orbiting Jupiter, year 2387'">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Plot Hook / Opening Premise <span class="text-muted">(optional)</span></label>
+          <input type="text" id="paramHook" class="form-control form-control-sm"
+                 placeholder="e.g. 'A lone human ambassador must negotiate peace with 12 alien species'">
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  {# ── Step 3: AI Provider ── #}
+  <div class="card mb-3">
+    <div class="card-header bg-transparent border-0 pb-0">
+      <h6 class="fw-bold mb-0"><i class="bi bi-cpu me-1 text-secondary"></i>Step 3 — AI Model
+        <span class="badge bg-dark ms-2 fw-normal" style="font-size:.7rem;">costs shown per generation</span>
+      </h6>
+    </div>
+    <div class="card-body">
+      <div id="providerGrid" class="provider-grid mb-3"></div>
+      <div id="modelSelector" class="model-selector"></div>
+    </div>
+  </div>
+
+  {# ── Generate button ── #}
+  <div class="d-flex gap-3 align-items-center mb-4">
+    <button id="btnGenerate" class="btn btn-primary btn-lg px-5" onclick="startGeneration()">
+      <i class="bi bi-magic me-2"></i>Generate Story
+    </button>
+    <button id="btnCancel" class="btn btn-outline-danger btn-lg px-4 d-none" onclick="cancelGeneration()">
+      <i class="bi bi-stop-circle me-2"></i>Cancel
+    </button>
+    <div id="genStatus" class="text-muted small"></div>
+  </div>
+
+  {# ── Generation output ── #}
+  <div id="genOutputArea" class="d-none">
+    <div class="card mb-3">
+      <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+        <h6 class="fw-bold mb-0 flex-grow-1">
+          <i class="bi bi-file-text-fill me-1 text-success"></i>Generated Story
+        </h6>
+        <span id="wordCountBadge" class="badge" style="background:rgba(25,135,84,.2);color:#75b798;">0 words</span>
+        <span id="costActualBadge" class="badge" style="background:rgba(255,193,7,.15);color:#ffc107;"></span>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label small text-muted">Story Title</label>
+          <input type="text" id="outputTitle" class="form-control form-control-sm"
+                 placeholder="Auto-generated title will appear here — you can edit it">
+        </div>
+        <div id="storyOutput" class="story-output" contenteditable="true"
+             placeholder="Your story will stream in here…"></div>
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+          <button class="btn btn-success" onclick="saveStory()">
+            <i class="bi bi-save me-1"></i>Save to Archive
+          </button>
+          <button class="btn btn-outline-secondary" onclick="regenerateStory()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Regenerate
+          </button>
+          <button class="btn btn-outline-secondary" onclick="downloadStory('txt')">
+            <i class="bi bi-download me-1"></i>Download .txt
+          </button>
+          <button class="btn btn-outline-secondary" onclick="downloadStory('json')">
+            <i class="bi bi-download me-1"></i>Download .json
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   ARCHIVE
+══════════════════════════════════════════════════════════════════════════════ #}
+<div class="section-pane" id="pane-archive">
+  <div class="page-header">
+    <h4><i class="bi bi-archive-fill me-2 text-primary"></i>Story Archive</h4>
+    <div class="page-desc">All your saved stories. Filter by genre, search, view, download, or delete.</div>
+  </div>
+  <div class="card">
+    <div class="card-header bg-transparent border-0 pb-0">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h6 class="fw-bold mb-0 flex-grow-1"><i class="bi bi-list-ul me-1 text-secondary"></i>Stories</h6>
+        <input type="text" id="archiveSearch" class="form-control form-control-sm"
+               style="max-width:200px" placeholder="Search…" oninput="filterArchive()">
+        <select id="archiveGenreFilter" class="form-select form-select-sm"
+                style="max-width:160px" onchange="loadArchive()">
+          <option value="">All genres</option>
+        </select>
+        <button class="btn btn-sm btn-outline-secondary" onclick="loadArchive()">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div id="archiveTable" class="p-3 text-muted small">Loading…</div>
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   PRODUCTION (Phase 2 placeholder)
+══════════════════════════════════════════════════════════════════════════════ #}
+<div class="section-pane" id="pane-production">
+  <div class="page-header">
+    <h4><i class="bi bi-film me-2 text-primary"></i>Production Pipeline</h4>
+    <div class="page-desc">Voice narration, background images, intro video, closed captions, and final video assembly.</div>
+  </div>
+
+  <div class="phase-coming-soon-grid">
+
+    <div class="card phase-card">
+      <div class="card-body text-center py-4">
+        <i class="bi bi-soundwave fs-2 mb-2" style="color:#6ea8fe"></i>
+        <h6 class="fw-bold">Voice Narration</h6>
+        <p class="text-muted small mb-3">AI voice reads your story aloud. Choose provider and voice style per genre.</p>
+        <div class="phase-cost-list">
+          <div class="phase-cost-item">
+            <span>OpenAI TTS</span>
+            <span class="badge bg-success-subtle text-success">~$0.09 / story</span>
+          </div>
+          <div class="phase-cost-item">
+            <span>ElevenLabs</span>
+            <span class="badge bg-warning-subtle text-warning">~$0.20 / story + plan</span>
+          </div>
+          <div class="phase-cost-item">
+            <span>Google TTS</span>
+            <span class="badge bg-success-subtle text-success">Free up to 1M chars/mo</span>
+          </div>
+        </div>
+        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 2</span>
+      </div>
+    </div>
+
+    <div class="card phase-card">
+      <div class="card-body text-center py-4">
+        <i class="bi bi-image fs-2 mb-2" style="color:#6f42c1"></i>
+        <h6 class="fw-bold">Scene Image Generation</h6>
+        <p class="text-muted small mb-3">AI generates the atmospheric background image displayed throughout your story video.</p>
+        <div class="phase-cost-list">
+          <div class="phase-cost-item">
+            <span>DALL-E 3</span>
+            <span class="badge bg-warning-subtle text-warning">$0.040 / image</span>
+          </div>
+          <div class="phase-cost-item">
+            <span>Stability AI</span>
+            <span class="badge bg-success-subtle text-success">$0.020 / image</span>
+          </div>
+          <div class="phase-cost-item">
+            <span>Ideogram</span>
+            <span class="badge bg-warning-subtle text-warning">$0.080 / image</span>
+          </div>
+        </div>
+        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 2</span>
+      </div>
+    </div>
+
+    <div class="card phase-card">
+      <div class="card-body text-center py-4">
+        <i class="bi bi-camera-video-fill fs-2 mb-2" style="color:#0dcaf0"></i>
+        <h6 class="fw-bold">5-Second Intro Video</h6>
+        <p class="text-muted small mb-3">Animated opening clip from the scene image. Plays then freezes as story narration begins.</p>
+        <div class="phase-cost-list">
+          <div class="phase-cost-item">
+            <span>LTX-2 API</span>
+            <span class="badge bg-success-subtle text-success">~$0.30 / clip</span>
+          </div>
+          <div class="phase-cost-item">
+            <span>RunwayML Gen-3</span>
+            <span class="badge bg-warning-subtle text-warning">~$0.50 / clip</span>
+          </div>
+          <div class="phase-cost-item">
+            <span>Title Card (ffmpeg)</span>
+            <span class="badge bg-success-subtle text-success">Free</span>
+          </div>
+        </div>
+        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 3</span>
+      </div>
+    </div>
+
+    <div class="card phase-card">
+      <div class="card-body text-center py-4">
+        <i class="bi bi-closed-caption-fill fs-2 mb-2" style="color:#20c997"></i>
+        <h6 class="fw-bold">Closed Captions</h6>
+        <p class="text-muted small mb-3">Auto-generated SRT captions synced to narration. Burned in or attached as separate file.</p>
+        <div class="phase-cost-list">
+          <div class="phase-cost-item">
+            <span>OpenAI Whisper</span>
+            <span class="badge bg-success-subtle text-success">~$0.006 / story</span>
+          </div>
+          <div class="phase-cost-item">
+            <span>TTS timestamps</span>
+            <span class="badge bg-success-subtle text-success">Free (from TTS output)</span>
+          </div>
+        </div>
+        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 4</span>
+      </div>
+    </div>
+
+    <div class="card phase-card">
+      <div class="card-body text-center py-4">
+        <i class="bi bi-music-note-beamed fs-2 mb-2" style="color:#ffc107"></i>
+        <h6 class="fw-bold">Background Music</h6>
+        <p class="text-muted small mb-3">Genre-matched royalty-free music plays softly under the narration throughout the video.</p>
+        <div class="phase-cost-list">
+          <div class="phase-cost-item">
+            <span>Included library</span>
+            <span class="badge bg-success-subtle text-success">Free (bundled)</span>
+          </div>
+          <div class="phase-cost-item">
+            <span>Epidemic Sound</span>
+            <span class="badge bg-warning-subtle text-warning">$15/mo subscription</span>
+          </div>
+        </div>
+        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 4</span>
+      </div>
+    </div>
+
+    <div class="card phase-card">
+      <div class="card-body text-center py-4">
+        <i class="bi bi-film fs-2 mb-2" style="color:#dc3545"></i>
+        <h6 class="fw-bold">Video Assembly</h6>
+        <p class="text-muted small mb-3">ffmpeg combines intro clip + frozen frame + voice + music + captions into final MP4 for YouTube.</p>
+        <div class="phase-cost-list">
+          <div class="phase-cost-item">
+            <span>ffmpeg (local)</span>
+            <span class="badge bg-success-subtle text-success">Free — runs on your machine</span>
+          </div>
+        </div>
+        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 4</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="alert mt-4" style="background:rgba(13,202,240,.08);border:1px solid rgba(13,202,240,.2);border-radius:1rem;">
+    <i class="bi bi-info-circle me-2 text-info"></i>
+    <strong>Total estimated cost per story</strong> (all phases, mid-range options):
+    <span class="fw-bold text-white">~$0.50 – $0.90 per complete video</span>
+    <span class="text-muted small d-block mt-1">Story generation ($0.046) + voice ($0.09) + scene image ($0.04) + intro clip ($0.30) + captions ($0.006) + music (free) + assembly (free) = ~$0.48 using recommended options.</span>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   CHANNELS (Phase 5 placeholder)
+══════════════════════════════════════════════════════════════════════════════ #}
+<div class="section-pane" id="pane-channels">
+  <div class="page-header">
+    <h4><i class="bi bi-youtube me-2" style="color:#ff0000"></i>YouTube Channels</h4>
+    <div class="page-desc">Connect your YouTube account, select or create channels, and configure upload settings per genre.</div>
+  </div>
+  <div class="card">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-youtube fs-1 mb-3 d-block" style="color:rgba(255,0,0,.4)"></i>
+      <h5 class="fw-bold mb-2">YouTube Integration</h5>
+      <p class="text-muted mb-4" style="max-width:500px;margin:0 auto;">
+        Phase 5 will add Google OAuth2 login, channel selection, new channel creation
+        (with AI-generated icon and banner), video upload with title/description/tags,
+        thumbnail auto-generation, and upload scheduling.
+      </p>
+      <div class="row g-3 justify-content-center mb-4" style="max-width:700px;margin:0 auto">
+        <div class="col-sm-6">
+          <div class="phase-feature-pill"><i class="bi bi-google me-2"></i>Google OAuth2 login</div>
+        </div>
+        <div class="col-sm-6">
+          <div class="phase-feature-pill"><i class="bi bi-collection-play me-2"></i>Channel selector</div>
+        </div>
+        <div class="col-sm-6">
+          <div class="phase-feature-pill"><i class="bi bi-plus-circle me-2"></i>New channel wizard</div>
+        </div>
+        <div class="col-sm-6">
+          <div class="phase-feature-pill"><i class="bi bi-upload me-2"></i>Scheduled video upload</div>
+        </div>
+        <div class="col-sm-6">
+          <div class="phase-feature-pill"><i class="bi bi-card-image me-2"></i>AI thumbnail generation</div>
+        </div>
+        <div class="col-sm-6">
+          <div class="phase-feature-pill"><i class="bi bi-badge-cc me-2"></i>Caption file upload</div>
+        </div>
+      </div>
+      <span class="badge" style="background:rgba(108,117,125,.2);color:#adb5bd;font-size:.85rem;padding:.4rem .8rem;">Coming in Phase 5</span>
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   SCHEDULE (Phase 6 placeholder)
+══════════════════════════════════════════════════════════════════════════════ #}
+<div class="section-pane" id="pane-schedule">
+  <div class="page-header">
+    <h4><i class="bi bi-calendar-check-fill me-2 text-primary"></i>Publishing Schedule</h4>
+    <div class="page-desc">Set a schedule per genre and channel. The daemon runs automatically: generate → produce → upload.</div>
+  </div>
+  <div class="card">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-calendar-check-fill fs-1 mb-3 d-block" style="color:rgba(13,110,253,.4)"></i>
+      <h5 class="fw-bold mb-2">Automated Publishing</h5>
+      <p class="text-muted mb-4" style="max-width:500px;margin:0 auto;">
+        Phase 6 will add a full scheduling system: set how often each genre runs,
+        view the upcoming queue, monitor in-progress jobs, and get notified when
+        a new story is live on YouTube.
+      </p>
+      <div class="row g-3 justify-content-center mb-4" style="max-width:700px;margin:0 auto">
+        <div class="col-sm-6">
+          <div class="phase-feature-pill"><i class="bi bi-calendar-week me-2"></i>Per-genre publish schedule</div>
+        </div>
+        <div class="col-sm-6">
+          <div class="phase-feature-pill"><i class="bi bi-list-check me-2"></i>Job queue with retry</div>
+        </div>
+        <div class="col-sm-6">
+          <div class="phase-feature-pill"><i class="bi bi-bell-fill me-2"></i>Publish notifications</div>
+        </div>
+        <div class="col-sm-6">
+          <div class="phase-feature-pill"><i class="bi bi-activity me-2"></i>Live cost tracking per run</div>
+        </div>
+      </div>
+      <span class="badge" style="background:rgba(108,117,125,.2);color:#adb5bd;font-size:.85rem;padding:.4rem .8rem;">Coming in Phase 6</span>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
-{# ── Extra settings ─────────────────────────────────────────── #}
+{# ── Story viewer modal ───────────────────────────────────────────────────────── #}
+{% block modals %}
+<div class="modal fade" id="storyViewModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content" style="background:#1c1f24;border:1px solid rgba(255,255,255,.08);">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="storyViewTitle">Story</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex gap-2 mb-3 flex-wrap" id="storyViewMeta"></div>
+        <div id="storyViewContent" class="story-output" style="height:auto;max-height:65vh;overflow-y:auto;cursor:default;" contenteditable="false"></div>
+      </div>
+      <div class="modal-footer border-0">
+        <button class="btn btn-outline-secondary btn-sm" id="storyViewDlTxt">
+          <i class="bi bi-download me-1"></i>Download .txt
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" id="storyViewDlJson">
+          <i class="bi bi-download me-1"></i>Download .json
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{# ── Extra settings ───────────────────────────────────────────────────────────── #}
 {% block settings_extra %}
-  {# Add additional settings cards in the right column here #}
+<div class="card">
+  <div class="card-header bg-transparent border-0 pb-0">
+    <h6 class="fw-bold mb-0"><i class="bi bi-key-fill me-1 text-secondary"></i>API Keys</h6>
+  </div>
+  <div class="card-body">
+    <p class="text-muted small mb-3">Keys are stored locally in <code>instance/app_settings.json</code> — never committed to git.</p>
+    <div class="mb-3">
+      <label class="form-label small text-muted">Anthropic (Claude) API Key</label>
+      <input type="password" id="cfg_anthropic_api_key" class="form-control form-control-sm"
+             placeholder="sk-ant-…" autocomplete="off">
+    </div>
+    <div class="mb-3">
+      <label class="form-label small text-muted">OpenAI API Key</label>
+      <input type="password" id="cfg_openai_api_key" class="form-control form-control-sm"
+             placeholder="sk-…" autocomplete="off">
+    </div>
+    <div class="mb-3">
+      <label class="form-label small text-muted">Google Gemini API Key</label>
+      <input type="password" id="cfg_gemini_api_key" class="form-control form-control-sm"
+             placeholder="AIza…" autocomplete="off">
+    </div>
+    <div class="mb-3">
+      <label class="form-label small text-muted">ElevenLabs API Key <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Phase 2</span></label>
+      <input type="password" id="cfg_elevenlabs_api_key" class="form-control form-control-sm"
+             placeholder="xi-api-key-…" autocomplete="off">
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="saveApiKeys()">
+      <i class="bi bi-save me-1"></i>Save Keys
+    </button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header bg-transparent border-0 pb-0">
+    <h6 class="fw-bold mb-0"><i class="bi bi-folder-fill me-1 text-secondary"></i>Story Backup Directory</h6>
+  </div>
+  <div class="card-body">
+    <p class="text-muted small mb-2">JSON backup of every story is saved here automatically.</p>
+    <div class="input-group input-group-sm">
+      <input type="text" id="cfg_stories_dir" class="form-control form-control-sm"
+             placeholder="stories/ (relative to app)" readonly>
+      <button class="btn btn-outline-secondary" onclick="browseStoriesDir()">Browse</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
-{# ── App-specific JavaScript ────────────────────────────────── #}
+{# ── Scripts ─────────────────────────────────────────────────────────────────── #}
 {% block scripts %}
 <script>
-// Register app-specific section IDs so showSection() can find them
-// _allSections.push('mySection');
+// ── Section registration ────────────────────────────────────────────────────
+_allSections = _allSections || [];
+['studio','archive','production','channels','schedule'].forEach(function(s) {
+  _allSections.push(s);
+});
 
-// Map section IDs to topbar display titles
-// Add entries for your custom sections:
-// titleMap['mySection'] = 'My Section';
+// ── Title map ───────────────────────────────────────────────────────────────
+var _stTitleMap = {
+  studio:     'Story Studio',
+  archive:    'Archive',
+  production: 'Production Pipeline',
+  channels:   'YouTube Channels',
+  schedule:   'Publishing Schedule',
+};
+document.addEventListener('sectionChanged', function(e) {
+  var t = _stTitleMap[e.detail && e.detail.section];
+  if (t) {
+    var el = document.getElementById('topbarTitle');
+    if (el) el.textContent = t;
+  }
+});
+
+// ── App state ───────────────────────────────────────────────────────────────
+var _genres      = [];
+var _providers   = [];
+var _voiceProvs  = [];
+var _introProvs  = [];
+var _imageProvs  = [];
+var _selGenre    = null;
+var _selProvider = null;
+var _selModel    = null;
+var _genreColors = {};
+var _currentStoryId = null;
+var _genAbortCtrl   = null;
+var _generatedContent = '';
+var _archiveData = [];
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  loadDashboard();
+  loadStudioData();
+  loadArchive();
+
+  // Populate archive genre filter on section switch
+  document.addEventListener('sectionChanged', function(e) {
+    if (e.detail && e.detail.section === 'archive') loadArchive();
+  });
+});
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+function loadDashboard() {
+  fetch('/api/stats').then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) return;
+    var s = d.stats;
+    renderMetricTiles([
+      { icon:'archive-fill',      color:'#6ea8fe', label:'Total Stories', value: s.total },
+      { icon:'calendar-week',     color:'#75b798', label:'This Week',     value: s.this_week },
+      { icon:'file-word',         color:'#ffc107', label:'Total Words',   value: fmtNum(s.total_words) },
+      { icon:'youtube',           color:'#ff0000', label:'Channels',      value: 0, sub:'Phase 5' },
+    ]);
+    // By-genre breakdown
+    var bg = document.getElementById('dashGenreBreakdown');
+    if (bg) {
+      if (!s.by_genre.length) {
+        bg.innerHTML = '<span class="text-muted">No stories yet.</span>';
+      } else {
+        bg.innerHTML = s.by_genre.map(function(g) {
+          var color = _genreColors[g.genre_slug] || '#6ea8fe';
+          return '<div class="d-flex align-items-center gap-2 mb-2">'
+            + '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';flex-shrink:0;display:inline-block"></span>'
+            + '<span class="flex-grow-1">' + escHtml(g.genre_slug) + '</span>'
+            + '<span class="fw-bold">' + g.n + '</span>'
+            + '</div>';
+        }).join('');
+      }
+    }
+  }).catch(function(){});
+
+  // Recent stories
+  fetch('/api/stories?limit=5').then(function(r){ return r.json(); }).then(function(d) {
+    var el = document.getElementById('dashRecentStories');
+    if (!el || !d.ok) return;
+    if (!d.stories.length) {
+      el.innerHTML = '<span class="text-muted">No stories yet — go to Story Studio to generate your first!</span>';
+      return;
+    }
+    el.innerHTML = '<table class="table table-dark table-sm table-hover mb-0" style="font-size:.82rem">'
+      + '<thead><tr><th>Title</th><th>Genre</th><th>Words</th><th>Date</th><th></th></tr></thead><tbody>'
+      + d.stories.slice(0,5).map(function(s) {
+          return '<tr><td class="text-truncate" style="max-width:200px">' + escHtml(s.title||'Untitled') + '</td>'
+            + '<td>' + genreBadge(s.genre_slug) + '</td>'
+            + '<td>' + fmtNum(s.word_count) + '</td>'
+            + '<td>' + fmtDate(s.created_at) + '</td>'
+            + '<td><button class="btn btn-xs btn-outline-secondary" onclick="viewStory(' + s.id + ')">'
+            + '<i class="bi bi-eye"></i></button></td></tr>';
+        }).join('')
+      + '</tbody></table>';
+  }).catch(function(){});
+}
+
+function renderMetricTiles(tiles) {
+  var el = document.getElementById('metricTiles');
+  if (!el) return;
+  el.innerHTML = tiles.map(function(t) {
+    return '<div class="col-6 col-lg-3">'
+      + '<div class="metric-card">'
+      + '<div class="metric-icon" style="color:' + t.color + '"><i class="bi bi-' + t.icon + '"></i></div>'
+      + '<div class="metric-value">' + t.value + (t.sub ? '<span class="ms-1" style="font-size:.65rem;opacity:.5">' + t.sub + '</span>' : '') + '</div>'
+      + '<div class="metric-label">' + t.label + '</div>'
+      + '</div></div>';
+  }).join('');
+}
+
+// ── Studio: load genres + providers ──────────────────────────────────────────
+function loadStudioData() {
+  Promise.all([
+    fetch('/api/genres').then(function(r){ return r.json(); }),
+    fetch('/api/providers').then(function(r){ return r.json(); }),
+  ]).then(function(results) {
+    var gd = results[0], pd = results[1];
+    if (gd.ok) {
+      _genres = gd.genres;
+      _genres.forEach(function(g) { _genreColors[g.slug] = g.color; });
+      renderGenreGrid();
+      populateArchiveFilter();
+    }
+    if (pd.ok) {
+      _providers  = pd.providers;
+      _voiceProvs = pd.voice_providers;
+      _introProvs = pd.intro_providers;
+      _imageProvs = pd.image_providers;
+      renderProviderGrid();
+    }
+    // Select defaults
+    if (_genres.length)   selectGenre(_genres[2].slug);   // scifi default
+    if (_providers.length) selectProvider(_providers[0].id); // anthropic default
+  }).catch(function(e) { console.error('Studio load error', e); });
+}
+
+// ── Genre grid ───────────────────────────────────────────────────────────────
+function renderGenreGrid() {
+  var el = document.getElementById('genreGrid');
+  if (!el) return;
+  el.innerHTML = _genres.map(function(g) {
+    return '<div class="genre-card" id="genre-' + g.slug + '" onclick="selectGenre(\'' + g.slug + '\')"'
+      + ' style="--genre-color:' + g.color + '">'
+      + '<i class="bi bi-' + g.icon + ' genre-card-icon"></i>'
+      + '<div class="genre-card-name">' + escHtml(g.name) + '</div>'
+      + '<div class="genre-card-desc">' + escHtml(g.description) + '</div>'
+      + '<div class="genre-card-rating">' + escHtml(g.age_rating) + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function selectGenre(slug) {
+  _selGenre = slug;
+  document.querySelectorAll('.genre-card').forEach(function(c) {
+    c.classList.remove('selected');
+  });
+  var card = document.getElementById('genre-' + slug);
+  if (card) card.classList.add('selected');
+
+  // Apply genre defaults to parameters
+  var g = _genres.find(function(x){ return x.slug === slug; });
+  if (g) {
+    document.getElementById('wordCountSlider').value = g.default_words;
+    onWordCountChange(g.default_words);
+    var narr = document.querySelector('input[name="narrative"][value="' + g.default_narrative + '"]');
+    if (narr) narr.checked = true;
+    var tone = document.querySelector('input[name="tone"][value="' + g.default_tone + '"]');
+    if (tone) tone.checked = true;
+    var age = document.getElementById('paramAgeRating');
+    if (age) age.value = g.age_rating;
+  }
+  updateCostEstimate();
+}
+
+// ── Provider grid ─────────────────────────────────────────────────────────────
+function renderProviderGrid() {
+  var el = document.getElementById('providerGrid');
+  if (!el) return;
+  el.innerHTML = _providers.map(function(p) {
+    return '<div class="provider-card" id="prov-' + p.id + '" onclick="selectProvider(\'' + p.id + '\')">'
+      + '<i class="bi bi-' + p.icon + ' provider-icon"></i>'
+      + '<div class="provider-name">' + escHtml(p.name) + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function selectProvider(id) {
+  _selProvider = id;
+  document.querySelectorAll('.provider-card').forEach(function(c) { c.classList.remove('selected'); });
+  var card = document.getElementById('prov-' + id);
+  if (card) card.classList.add('selected');
+
+  var prov = _providers.find(function(p){ return p.id === id; });
+  if (!prov) return;
+  _selModel = prov.default_model;
+  renderModelSelector(prov);
+  updateCostEstimate();
+}
+
+function renderModelSelector(prov) {
+  var el = document.getElementById('modelSelector');
+  if (!el) return;
+  el.innerHTML = '<div class="mb-1 small text-muted">'
+    + escHtml(prov.name) + ' — choose model:</div>'
+    + '<div class="d-flex flex-wrap gap-2">'
+    + prov.models.map(function(m) {
+        return '<div class="model-option' + (m.id === _selModel ? ' selected' : '') + '"'
+          + ' id="model-' + m.id + '" onclick="selectModel(\'' + escAttr(m.id) + '\',\'' + escAttr(prov.id) + '\')">'
+          + '<div class="model-name">' + escHtml(m.name) + '</div>'
+          + '<div class="model-label">' + escHtml(m.label) + '</div>'
+          + '<div class="model-cost">' + escHtml(m.cost_note) + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div>';
+}
+
+function selectModel(modelId, providerId) {
+  _selModel    = modelId;
+  _selProvider = providerId;
+  document.querySelectorAll('.model-option').forEach(function(m) { m.classList.remove('selected'); });
+  var el = document.getElementById('model-' + modelId);
+  if (el) el.classList.add('selected');
+  updateCostEstimate();
+}
+
+// ── Cost estimator ────────────────────────────────────────────────────────────
+function updateCostEstimate() {
+  var words    = parseInt(document.getElementById('wordCountSlider').value) || 6000;
+  var prov     = _providers.find(function(p){ return p.id === _selProvider; });
+  var model    = prov && prov.models.find(function(m){ return m.id === _selModel; });
+  var costPer  = model ? model.cost_per_1k_words : 0;
+  var storyCost = (words / 1000) * costPer;
+
+  var el = document.getElementById('costEstimate');
+  var br = document.getElementById('costBreakdown');
+  if (el) el.textContent = storyCost > 0 ? '$' + storyCost.toFixed(4) : '—';
+  if (br && model) {
+    br.textContent = '(' + model.cost_note + ' · ' + fmtNum(words) + ' words)';
+  }
+}
+
+function onWordCountChange(val) {
+  var words = parseInt(val);
+  var mins  = Math.round(words / 140);
+  var el    = document.getElementById('wordCountLabel');
+  if (el) el.textContent = fmtNum(words) + ' words (~' + mins + ' min)';
+  updateCostEstimate();
+}
+
+// ── Story generation ──────────────────────────────────────────────────────────
+function startGeneration() {
+  if (!_selGenre) {
+    showToast('Choose a genre first.', 'warning'); return;
+  }
+  if (!_selProvider || !_selModel) {
+    showToast('Choose an AI model first.', 'warning'); return;
+  }
+
+  var params = {
+    word_count: parseInt(document.getElementById('wordCountSlider').value),
+    characters: parseInt(document.getElementById('paramCharacters').value),
+    age_rating: document.getElementById('paramAgeRating').value,
+    narrative:  document.querySelector('input[name="narrative"]:checked')?.value || 'third',
+    tone:       document.querySelector('input[name="tone"]:checked')?.value || 'neutral',
+    setting:    document.getElementById('paramSetting').value.trim(),
+    plot_hook:  document.getElementById('paramHook').value.trim(),
+  };
+
+  // UI state: generating
+  document.getElementById('btnGenerate').classList.add('d-none');
+  document.getElementById('btnCancel').classList.remove('d-none');
+  document.getElementById('genOutputArea').classList.remove('d-none');
+  var statusEl = document.getElementById('genStatus');
+  statusEl.textContent = 'Generating…';
+
+  var outputEl = document.getElementById('storyOutput');
+  outputEl.textContent = '';
+  _generatedContent = '';
+  document.getElementById('wordCountBadge').textContent = '0 words';
+  document.getElementById('costActualBadge').textContent = '';
+  document.getElementById('outputTitle').value =
+    document.getElementById('storyTitle').value.trim();
+
+  _genAbortCtrl = new AbortController();
+
+  fetch('/api/stories/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      genre_slug:  _selGenre,
+      provider_id: _selProvider,
+      model_id:    _selModel,
+      params:      params,
+    }),
+    signal: _genAbortCtrl.signal,
+  }).then(function(resp) {
+    if (!resp.ok) {
+      return resp.json().then(function(d) {
+        throw new Error(d.error || 'Generation failed');
+      });
+    }
+    var reader  = resp.body.getReader();
+    var decoder = new TextDecoder();
+    var buf     = '';
+    var wordUpdateTimer = null;
+
+    function pump() {
+      return reader.read().then(function(result) {
+        if (result.done) { onGenComplete(); return; }
+        buf += decoder.decode(result.value, { stream: true });
+        var lines = buf.split('\n');
+        buf = lines.pop();
+        lines.forEach(function(line) {
+          if (!line.startsWith('data: ')) return;
+          var payload;
+          try { payload = JSON.parse(line.slice(6)); } catch(e) { return; }
+          if (payload.error) {
+            onGenError(payload.error); return;
+          }
+          if (payload.text) {
+            _generatedContent += payload.text;
+            outputEl.textContent = _generatedContent;
+            outputEl.scrollTop   = outputEl.scrollHeight;
+            // Throttle word count updates
+            if (!wordUpdateTimer) {
+              wordUpdateTimer = setTimeout(function() {
+                wordUpdateTimer = null;
+                var wc = _generatedContent.trim().split(/\s+/).length;
+                document.getElementById('wordCountBadge').textContent = fmtNum(wc) + ' words';
+              }, 300);
+            }
+          }
+          if (payload.done) { onGenComplete(); return; }
+        });
+        return pump();
+      });
+    }
+    return pump();
+  }).catch(function(err) {
+    if (err.name !== 'AbortError') onGenError(err.message);
+  });
+}
+
+function onGenComplete() {
+  document.getElementById('btnGenerate').classList.remove('d-none');
+  document.getElementById('btnCancel').classList.add('d-none');
+  document.getElementById('genStatus').textContent = '';
+  var wc = _generatedContent.trim().split(/\s+/).length;
+  document.getElementById('wordCountBadge').textContent = fmtNum(wc) + ' words';
+  // Show actual cost
+  var prov  = _providers.find(function(p){ return p.id === _selProvider; });
+  var model = prov && prov.models.find(function(m){ return m.id === _selModel; });
+  if (model) {
+    var cost = (wc / 1000) * model.cost_per_1k_words;
+    document.getElementById('costActualBadge').textContent =
+      'actual cost: $' + cost.toFixed(4);
+  }
+  // Auto-generate title if empty
+  if (!document.getElementById('outputTitle').value) {
+    var g = _genres.find(function(x){ return x.slug === _selGenre; });
+    var d = new Date().toISOString().slice(0,10);
+    document.getElementById('outputTitle').value =
+      (g ? g.name : _selGenre) + ' Story — ' + d;
+  }
+  showToast('Story generated! Review it and click Save to Archive.', 'success');
+  _genAbortCtrl = null;
+}
+
+function onGenError(msg) {
+  document.getElementById('btnGenerate').classList.remove('d-none');
+  document.getElementById('btnCancel').classList.add('d-none');
+  document.getElementById('genStatus').textContent = '';
+  showToast('Generation error: ' + msg, 'danger');
+  _genAbortCtrl = null;
+}
+
+function cancelGeneration() {
+  if (_genAbortCtrl) { _genAbortCtrl.abort(); _genAbortCtrl = null; }
+  document.getElementById('btnGenerate').classList.remove('d-none');
+  document.getElementById('btnCancel').classList.add('d-none');
+  document.getElementById('genStatus').textContent = '';
+  showToast('Generation cancelled.', 'warning');
+}
+
+function regenerateStory() {
+  document.getElementById('storyOutput').textContent = '';
+  _generatedContent = '';
+  document.getElementById('wordCountBadge').textContent = '0 words';
+  document.getElementById('costActualBadge').textContent = '';
+  startGeneration();
+}
+
+// ── Save story ─────────────────────────────────────────────────────────────────
+function saveStory() {
+  var content = document.getElementById('storyOutput').textContent.trim();
+  if (!content) { showToast('No story to save.', 'warning'); return; }
+  var title = document.getElementById('outputTitle').value.trim();
+  var params = {
+    word_count: parseInt(document.getElementById('wordCountSlider').value),
+    characters: parseInt(document.getElementById('paramCharacters').value),
+    age_rating: document.getElementById('paramAgeRating').value,
+    narrative:  document.querySelector('input[name="narrative"]:checked')?.value,
+    tone:       document.querySelector('input[name="tone"]:checked')?.value,
+    setting:    document.getElementById('paramSetting').value.trim(),
+    plot_hook:  document.getElementById('paramHook').value.trim(),
+  };
+  fetch('/api/stories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      genre_slug:  _selGenre,
+      title:       title,
+      content:     content,
+      parameters:  params,
+      ai_provider: _selProvider,
+      ai_model:    _selModel,
+    }),
+  }).then(function(r){ return r.json(); }).then(function(d) {
+    if (d.ok) {
+      _currentStoryId = d.story.id;
+      showToast('Story saved to Archive! ID #' + d.story.id, 'success');
+      loadDashboard();
+    } else {
+      showToast('Save failed: ' + d.error, 'danger');
+    }
+  }).catch(function(e) { showToast('Save error: ' + e.message, 'danger'); });
+}
+
+// ── Download (before saved) ────────────────────────────────────────────────────
+function downloadStory(fmt) {
+  if (_currentStoryId) {
+    window.location = '/api/stories/' + _currentStoryId + '/download?fmt=' + fmt;
+    return;
+  }
+  // Download unsaved content directly
+  var content = document.getElementById('storyOutput').textContent;
+  var title   = document.getElementById('outputTitle').value || 'story';
+  var blob = new Blob([content], { type: 'text/plain' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = title.replace(/[^a-z0-9 _-]/gi,'_').slice(0,60) + '.txt';
+  a.click();
+}
+
+// ── Archive ───────────────────────────────────────────────────────────────────
+function populateArchiveFilter() {
+  var sel = document.getElementById('archiveGenreFilter');
+  if (!sel) return;
+  _genres.forEach(function(g) {
+    var opt = document.createElement('option');
+    opt.value = g.slug; opt.textContent = g.name;
+    sel.appendChild(opt);
+  });
+}
+
+function loadArchive() {
+  var genre = document.getElementById('archiveGenreFilter')?.value || '';
+  var url   = '/api/stories' + (genre ? '?genre=' + encodeURIComponent(genre) : '');
+  fetch(url).then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) return;
+    _archiveData = d.stories;
+    renderArchive(_archiveData);
+  });
+}
+
+function filterArchive() {
+  var q = (document.getElementById('archiveSearch')?.value || '').toLowerCase();
+  var filtered = q ? _archiveData.filter(function(s) {
+    return (s.title||'').toLowerCase().includes(q)
+      || (s.genre_slug||'').toLowerCase().includes(q);
+  }) : _archiveData;
+  renderArchive(filtered);
+}
+
+function renderArchive(stories) {
+  var el = document.getElementById('archiveTable');
+  if (!el) return;
+  if (!stories.length) {
+    el.innerHTML = '<div class="p-3 text-muted text-center">No stories found.</div>';
+    return;
+  }
+  el.innerHTML = '<table class="table table-dark table-sm table-hover mb-0" style="font-size:.82rem">'
+    + '<thead><tr>'
+    + '<th>Title</th><th>Genre</th><th>Provider</th>'
+    + '<th>Words</th><th>Date</th><th class="text-end">Actions</th>'
+    + '</tr></thead><tbody>'
+    + stories.map(function(s) {
+        return '<tr>'
+          + '<td class="text-truncate" style="max-width:250px">' + escHtml(s.title||'Untitled') + '</td>'
+          + '<td>' + genreBadge(s.genre_slug) + '</td>'
+          + '<td class="text-muted">' + escHtml((s.ai_provider||'')+' / '+(s.ai_model||'')) + '</td>'
+          + '<td>' + fmtNum(s.word_count) + '</td>'
+          + '<td>' + fmtDate(s.created_at) + '</td>'
+          + '<td class="text-end">'
+          + '<button class="btn btn-xs btn-outline-secondary me-1" onclick="viewStory(' + s.id + ')" title="View"><i class="bi bi-eye"></i></button>'
+          + '<button class="btn btn-xs btn-outline-secondary me-1" onclick="window.location=\'/api/stories/' + s.id + '/download?fmt=txt\'" title="Download"><i class="bi bi-download"></i></button>'
+          + '<button class="btn btn-xs btn-outline-danger" onclick="deleteStory(' + s.id + ')" title="Delete"><i class="bi bi-trash"></i></button>'
+          + '</td></tr>';
+      }).join('')
+    + '</tbody></table>';
+}
+
+function viewStory(id) {
+  fetch('/api/stories/' + id).then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) return;
+    var s = d.story;
+    document.getElementById('storyViewTitle').textContent = s.title || 'Untitled';
+    document.getElementById('storyViewContent').textContent = s.content || '';
+    document.getElementById('storyViewMeta').innerHTML =
+      genreBadge(s.genre_slug)
+      + '<span class="badge bg-secondary ms-1">' + fmtNum(s.word_count) + ' words</span>'
+      + '<span class="badge bg-secondary ms-1">' + escHtml(s.ai_provider||'') + ' / ' + escHtml(s.ai_model||'') + '</span>'
+      + '<span class="badge bg-secondary ms-1">' + fmtDate(s.created_at) + '</span>';
+    document.getElementById('storyViewDlTxt').onclick = function() {
+      window.location = '/api/stories/' + id + '/download?fmt=txt';
+    };
+    document.getElementById('storyViewDlJson').onclick = function() {
+      window.location = '/api/stories/' + id + '/download?fmt=json';
+    };
+    new bootstrap.Modal(document.getElementById('storyViewModal')).show();
+  });
+}
+
+function deleteStory(id) {
+  if (!confirm('Delete this story? This cannot be undone.')) return;
+  fetch('/api/stories/' + id, { method: 'DELETE' }).then(function(r){ return r.json(); }).then(function(d) {
+    if (d.ok) { loadArchive(); loadDashboard(); showToast('Story deleted.', 'success'); }
+  });
+}
+
+// ── Settings: API keys ────────────────────────────────────────────────────────
+function saveApiKeys() {
+  var d = {
+    anthropic_api_key:  document.getElementById('cfg_anthropic_api_key')?.value.trim(),
+    openai_api_key:     document.getElementById('cfg_openai_api_key')?.value.trim(),
+    gemini_api_key:     document.getElementById('cfg_gemini_api_key')?.value.trim(),
+    elevenlabs_api_key: document.getElementById('cfg_elevenlabs_api_key')?.value.trim(),
+  };
+  fetch('/api/app-settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(d),
+  }).then(function(r){ return r.json(); }).then(function(resp) {
+    if (resp.ok) showToast('API keys saved.', 'success');
+    else showToast('Save failed: ' + resp.error, 'danger');
+  });
+}
+
+function browseStoriesDir() {
+  fetch('/api/browse/folder').then(function(r){ return r.json(); }).then(function(d) {
+    if (d.ok && d.path) document.getElementById('cfg_stories_dir').value = d.path;
+  });
+}
+
+// Settings load
+function loadCfg(s) {
+  var fields = ['anthropic_api_key','openai_api_key','gemini_api_key','elevenlabs_api_key'];
+  fields.forEach(function(k) {
+    var el = document.getElementById('cfg_' + k);
+    if (el && s[k]) el.value = s[k];
+  });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function genreBadge(slug) {
+  var color = _genreColors[slug] || '#6ea8fe';
+  var g = _genres.find(function(x){ return x.slug === slug; });
+  var name = g ? g.name : slug;
+  return '<span class="badge" style="background:' + color + '20;color:' + color
+    + ';border:1px solid ' + color + '40">' + escHtml(name) + '</span>';
+}
+
+function fmtNum(n) {
+  return (n||0).toLocaleString();
+}
+
+function fmtDate(s) {
+  if (!s) return '—';
+  try {
+    return new Date(s).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  } catch(e) { return s; }
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+}
 
 // ── Settings masonry layout ─────────────────────────────────────────────────
-// Cards are absolutely positioned into the shortest column so no row-height
-// gaps appear between cards of different heights.
 var _masonryResizeTimer = null;
-var _MASONRY_GAP     = 12;   // px — matches 0.75 rem
-var _MASONRY_MIN_COL = 320;  // px — minimum column width
-
+var _MASONRY_GAP     = 12;
+var _MASONRY_MIN_COL = 320;
 function _onSettingsPaneShow() { _layoutSettingsMasonry(); }
-
 function _layoutSettingsMasonry() {
   var activePane = document.getElementById('settingsActivePane');
   if (!activePane || activePane.style.display === 'none') return;
@@ -115,22 +1210,17 @@ function _layoutSettingsMasonry() {
   cards.forEach(function(c) { c.style.position = 'static'; c.style.width = colW + 'px'; c.style.left = c.style.top = ''; });
   void container.offsetHeight;
   var heights = cards.map(function(c) { return c.offsetHeight; });
-  var colTops = [];
-  for (var i = 0; i < numCols; i++) colTops.push(0);
+  var colTops = []; for (var i = 0; i < numCols; i++) colTops.push(0);
   container.style.position = 'relative';
   cards.forEach(function(card, idx) {
     var col = 0;
     for (var j = 1; j < numCols; j++) { if (colTops[j] < colTops[col]) col = j; }
-    card.style.position = 'absolute';
-    card.style.left = (col * (colW + gap)) + 'px';
-    card.style.top  = colTops[col] + 'px';
+    card.style.position = 'absolute'; card.style.left = (col * (colW + gap)) + 'px'; card.style.top = colTops[col] + 'px';
     colTops[col] += heights[idx] + gap;
   });
-  var maxH = 0;
-  for (var k = 0; k < numCols; k++) { if (colTops[k] > maxH) maxH = colTops[k]; }
+  var maxH = 0; for (var k = 0; k < numCols; k++) { if (colTops[k] > maxH) maxH = colTops[k]; }
   container.style.height = (maxH - gap) + 'px';
 }
-
 window.addEventListener('resize', function() {
   clearTimeout(_masonryResizeTimer);
   _masonryResizeTimer = setTimeout(function() {
@@ -138,105 +1228,36 @@ window.addEventListener('resize', function() {
     if (pane && pane.classList.contains('active')) _layoutSettingsMasonry();
   }, 150);
 });
-
-// ── Settings card visibility (hide / restore per card) ─────────────────────
 var _settingsHiddenCards = [];
-
 function switchSettingsTab(tab) {
-  var activePane = document.getElementById('settingsActivePane');
-  var hiddenPane = document.getElementById('settingsHiddenPane');
-  var activeTab  = document.getElementById('settingsTab-active');
-  var hiddenTab  = document.getElementById('settingsTab-hidden');
-  if (!activePane || !hiddenPane) return;
-  var showHidden = (tab === 'hidden');
-  activePane.style.display = showHidden ? 'none' : '';
-  hiddenPane.style.display = showHidden ? '' : 'none';
-  if (activeTab) activeTab.classList.toggle('active', !showHidden);
-  if (hiddenTab) hiddenTab.classList.toggle('active',  showHidden);
+  var ap = document.getElementById('settingsActivePane'), hp = document.getElementById('settingsHiddenPane');
+  var at = document.getElementById('settingsTab-active'),  ht = document.getElementById('settingsTab-hidden');
+  if (!ap||!hp) return;
+  var sh = (tab==='hidden');
+  ap.style.display=sh?'none':''; hp.style.display=sh?'':'none';
+  if(at)at.classList.toggle('active',!sh); if(ht)ht.classList.toggle('active',sh);
 }
-
 function _initSettingsVisibility() {
   var grid = document.querySelector('#pane-settings .settings-grid');
   if (!grid) return;
   grid.querySelectorAll(':scope > .card').forEach(function(card) {
-    var cardHeader = card.querySelector('.card-header');
-    var h6 = cardHeader ? cardHeader.querySelector('h6') : null;
-    if (!cardHeader || !h6) return;
-    var text = (h6.textContent || '').trim().replace(/\s+/g, ' ');
-    var id   = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    card.setAttribute('data-settings-card-id', id);
-    cardHeader.style.display = 'flex'; cardHeader.style.alignItems = 'center';
-    h6.style.flex = '1';
-    var btn = document.createElement('button');
-    btn.className = 'settings-card-vis-btn'; btn.title = 'Hide this card';
-    btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
-    btn.onclick = (function(cid, crd) {
-      return function(e) { e.preventDefault(); _hideSettingsCard(cid, crd); };
-    })(id, card);
-    cardHeader.appendChild(btn);
+    var ch=card.querySelector('.card-header'), h6=ch?ch.querySelector('h6'):null;
+    if(!ch||!h6) return;
+    var text=(h6.textContent||'').trim().replace(/\s+/g,' ');
+    var id=text.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+    card.setAttribute('data-settings-card-id',id);
+    ch.style.display='flex'; ch.style.alignItems='center'; h6.style.flex='1';
+    var btn=document.createElement('button');
+    btn.className='settings-card-vis-btn'; btn.title='Hide this card';
+    btn.innerHTML='<i class="bi bi-eye-slash"></i>';
+    btn.onclick=(function(cid,crd){return function(e){e.preventDefault();_hideSettingsCard(cid,crd);};})(id,card);
+    ch.appendChild(btn);
   });
 }
-
-function _hideSettingsCard(id, card) {
-  if (!card) card = document.querySelector('[data-settings-card-id="' + id + '"]');
-  if (!card) return;
-  card.style.display = 'none';
-  if (_settingsHiddenCards.indexOf(id) === -1) _settingsHiddenCards.push(id);
-  _renderSettingsHiddenTab(); _saveSettingsHiddenCards();
-  requestAnimationFrame(_layoutSettingsMasonry);
-}
-
-function _showSettingsCard(id) {
-  var card = document.querySelector('[data-settings-card-id="' + id + '"]');
-  if (card) card.style.display = '';
-  _settingsHiddenCards = _settingsHiddenCards.filter(function(x) { return x !== id; });
-  _renderSettingsHiddenTab(); _saveSettingsHiddenCards();
-  if (!_settingsHiddenCards.length) switchSettingsTab('active');
-  requestAnimationFrame(_layoutSettingsMasonry);
-}
-
-function _renderSettingsHiddenTab() {
-  var list  = document.getElementById('settingsHiddenList');
-  var empty = document.getElementById('settingsHiddenEmpty');
-  var badge = document.getElementById('settingsHiddenBadge');
-  var count = _settingsHiddenCards.length;
-  if (badge) { badge.textContent = count; badge.classList.toggle('d-none', count === 0); }
-  if (!list) return;
-  if (!count) { list.innerHTML = ''; if (empty) empty.classList.remove('d-none'); return; }
-  if (empty) empty.classList.add('d-none');
-  list.innerHTML = _settingsHiddenCards.map(function(id) {
-    var card  = document.querySelector('[data-settings-card-id="' + id + '"]');
-    var h6    = card ? card.querySelector('.card-header h6') : null;
-    var label = h6 ? (h6.textContent || '').trim().replace(/\s+/g, ' ') : id;
-    return '<div class="d-flex align-items-center justify-content-between gap-3 py-2"'
-      + ' style="border-bottom:1px solid rgba(255,255,255,.06);">'
-      + '<span class="small">' + (label.replace(/&/g,'&amp;').replace(/</g,'&lt;')) + '</span>'
-      + '<button class="btn btn-xs" style="background:rgba(25,135,84,.15);color:#75b798;border:1px solid rgba(25,135,84,.3);"'
-      + ' onclick="_showSettingsCard(\'' + id.replace(/'/g,"\\'") + '\')">'
-      + '<i class="bi bi-eye me-1"></i>Restore</button></div>';
-  }).join('');
-}
-
-function _applySettingsHiddenCards() {
-  _settingsHiddenCards.forEach(function(id) {
-    var card = document.querySelector('[data-settings-card-id="' + id + '"]');
-    if (card) card.style.display = 'none';
-  });
-  _renderSettingsHiddenTab();
-}
-
-async function _saveSettingsHiddenCards() {
-  try {
-    await fetch('/api/app-settings', { method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ settings_hidden_cards: _settingsHiddenCards })
-    });
-  } catch(e) {}
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-  _initSettingsVisibility();
-  // App initialization goes here
-});
+function _hideSettingsCard(id,card){if(!card)card=document.querySelector('[data-settings-card-id="'+id+'"]');if(!card)return;card.style.display='none';if(_settingsHiddenCards.indexOf(id)===-1)_settingsHiddenCards.push(id);_renderSettingsHiddenTab();_saveSettingsHiddenCards();requestAnimationFrame(_layoutSettingsMasonry);}
+function _showSettingsCard(id){var card=document.querySelector('[data-settings-card-id="'+id+'"]');if(card)card.style.display='';_settingsHiddenCards=_settingsHiddenCards.filter(function(x){return x!==id;});_renderSettingsHiddenTab();_saveSettingsHiddenCards();if(!_settingsHiddenCards.length)switchSettingsTab('active');requestAnimationFrame(_layoutSettingsMasonry);}
+function _renderSettingsHiddenTab(){var list=document.getElementById('settingsHiddenList'),empty=document.getElementById('settingsHiddenEmpty'),badge=document.getElementById('settingsHiddenBadge'),count=_settingsHiddenCards.length;if(badge){badge.textContent=count;badge.classList.toggle('d-none',count===0);}if(!list)return;if(!count){list.innerHTML='';if(empty)empty.classList.remove('d-none');return;}if(empty)empty.classList.add('d-none');list.innerHTML=_settingsHiddenCards.map(function(id){var card=document.querySelector('[data-settings-card-id="'+id+'"]'),h6=card?card.querySelector('.card-header h6'):null,label=h6?(h6.textContent||'').trim().replace(/\s+/g,' '):id;return'<div class="d-flex align-items-center justify-content-between gap-3 py-2" style="border-bottom:1px solid rgba(255,255,255,.06);"><span class="small">'+label.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span><button class="btn btn-xs" style="background:rgba(25,135,84,.15);color:#75b798;border:1px solid rgba(25,135,84,.3);" onclick="_showSettingsCard(\''+id.replace(/'/g,"\\'")+'\')" ><i class="bi bi-eye me-1"></i>Restore</button></div>';}).join('');}
+function _applySettingsHiddenCards(){_settingsHiddenCards.forEach(function(id){var card=document.querySelector('[data-settings-card-id="'+id+'"]');if(card)card.style.display='none';});_renderSettingsHiddenTab();}
+async function _saveSettingsHiddenCards(){try{await fetch('/api/app-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({settings_hidden_cards:_settingsHiddenCards})});}catch(e){}}
 </script>
 {% endblock %}
