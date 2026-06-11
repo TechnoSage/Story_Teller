@@ -1042,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', function () {
    ──────────────────────────────────────────────────────────────────────────── */
 
 // List every input id whose value is an OS file-system path.
-// Override this in a {% block scripts %} if your app has different fields.
+// Override this in the child template's scripts block if your app has different fields.
 var _OS_PATH_FIELD_IDS = [];   // e.g. ['outputDir', 'dataRoot', 'iconFile']
 var _currentOS         = 'win';
 
@@ -1155,7 +1155,7 @@ document.addEventListener('DOMContentLoaded', _initOSDetect);
   beat();
   setInterval(beat, 5000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) beat(); });
-  window.addEventListener('beforeunload', function () { navigator.sendBeacon(closeUrl); });
+  window.addEventListener('beforeunload', function () { fetch(closeUrl, { method: 'POST', keepalive: true }).catch(function(){}); });
 }());
 </script>
 </body>
