@@ -18,6 +18,7 @@ import models as _db
 from story_engine import (GENRES, GENRES_BY_SLUG, PROVIDERS, PROVIDERS_BY_ID,
                           VOICE_PROVIDERS, INTRO_PROVIDERS, IMAGE_PROVIDERS,
                           stream_story)
+import voice_engine as _ve
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -297,6 +298,65 @@ def create_app() -> Flask:
     @app.route("/api/stats")
     def api_stats():
         return jsonify({"ok": True, "stats": _db.story_stats()})
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # VOICE NARRATION API  (Phase 2)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route("/api/voice/providers")
+    def api_voice_providers():
+        return jsonify({"ok": True, "providers": _ve.VOICE_PROVIDERS})
+
+    @app.route("/api/voice/cost-estimate", methods=["POST"])
+    def api_voice_cost():
+        d = request.get_json(silent=True) or {}
+        text        = d.get("text", "")
+        provider_id = d.get("provider_id", "openai_tts")
+        cost = _ve.cost_estimate(provider_id, text)
+        return jsonify({"ok": True, "cost": cost, "chars": len(text)})
+
+    @app.route("/api/voice/narrate/<int:sid>", methods=["POST"])
+    def api_voice_narrate(sid):
+        story = _db.story_get(sid)
+        if not story:
+            return jsonify({"ok": False, "error": "Story not found"}), 404
+
+        d           = request.get_json(silent=True) or {}
+        provider_id = d.get("provider_id", "openai_tts")
+        voice       = d.get("voice", "")
+        model       = d.get("model", "")
+
+        settings = _load_settings()
+        prov     = _ve.VOICE_PROVIDERS_BY_ID.get(provider_id, {})
+        key_name = prov.get("setting_key", "")
+        api_key  = settings.get(key_name, "") or os.environ.get(key_name.upper(), "")
+
+        if not api_key and provider_id != "google_tts":
+            return jsonify({
+                "ok":    False,
+                "error": f"No API key for {prov.get('name','provider')}. Add it in Settings → API Keys.",
+            }), 400
+
+        try:
+            audio_bytes = _ve.narrate(provider_id, story["content"],
+                                      api_key, voice=voice, model=model)
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+        # Save audio file alongside JSON backup
+        audio_dir = os.path.join(BASE_DIR, "stories", story["genre_slug"])
+        os.makedirs(audio_dir, exist_ok=True)
+        safe = "".join(c if c.isalnum() or c in "-_ " else "_"
+                       for c in story.get("title", "story"))[:50].strip().replace(" ", "_")
+        audio_path = os.path.join(audio_dir, f"{sid:05d}_{safe}.mp3")
+        with open(audio_path, "wb") as f:
+            f.write(audio_bytes)
+
+        buf = io.BytesIO(audio_bytes)
+        buf.seek(0)
+        return send_file(buf, mimetype="audio/mpeg",
+                         as_attachment=True,
+                         download_name=f"story_{sid}_narration.mp3")
 
     # ══════════════════════════════════════════════════════════════════════════
     # GIT / VCS API  (repo = BASE_DIR — Story Teller's own directory)
