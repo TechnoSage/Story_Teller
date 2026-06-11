@@ -658,6 +658,8 @@ function toast(msg, type, ms) {
   setTimeout(function () { el.remove(); }, ms);
 }
 
+var showToast = toast;
+
 // ── Section pane navigation ───────────────────────────────────────────────────
 var _allSections = ['dashboard', 'settings', 'notifications', 'help', 'support'];
 // Add your app-specific section IDs to this array in index.html:

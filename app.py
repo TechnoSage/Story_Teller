@@ -18,7 +18,9 @@ import models as _db
 from story_engine import (GENRES, GENRES_BY_SLUG, PROVIDERS, PROVIDERS_BY_ID,
                           VOICE_PROVIDERS, INTRO_PROVIDERS, IMAGE_PROVIDERS,
                           stream_story)
-import voice_engine as _ve
+import voice_engine   as _ve
+import image_engine   as _ie
+import caption_engine as _ce
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -357,6 +359,144 @@ def create_app() -> Flask:
         return send_file(buf, mimetype="audio/mpeg",
                          as_attachment=True,
                          download_name=f"story_{sid}_narration.mp3")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # IMAGE GENERATION API  (Phase 3)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route("/api/image/providers")
+    def api_image_providers():
+        return jsonify({"ok": True, "providers": _ie.IMAGE_PROVIDERS})
+
+    @app.route("/api/image/generate/<int:sid>", methods=["POST"])
+    def api_image_generate(sid):
+        story = _db.story_get(sid)
+        if not story:
+            return jsonify({"ok": False, "error": "Story not found"}), 404
+
+        d           = request.get_json(silent=True) or {}
+        provider_id = d.get("provider_id", "dalle3")
+        size        = d.get("size", "")
+        quality     = d.get("quality", "")
+        custom_prompt = d.get("custom_prompt", "")
+
+        settings = _load_settings()
+        prov     = _ie.IMAGE_PROVIDERS_BY_ID.get(provider_id, {})
+        key_name = prov.get("setting_key", "")
+        api_key  = settings.get(key_name, "") or os.environ.get(key_name.upper(), "")
+
+        if not api_key:
+            return jsonify({
+                "ok":    False,
+                "error": f"No API key for {prov.get('name','provider')}. Add it in Settings → API Keys.",
+            }), 400
+
+        prompt = _ie.build_image_prompt(
+            story.get("genre_slug", ""),
+            story.get("title", "story"),
+            story.get("content", "")[:600],
+            custom_prompt=custom_prompt,
+        )
+
+        try:
+            img_bytes = _ie.generate(provider_id, prompt, api_key,
+                                     size=size, quality=quality)
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+        img_dir = os.path.join(BASE_DIR, "stories", story["genre_slug"])
+        os.makedirs(img_dir, exist_ok=True)
+        safe = "".join(c if c.isalnum() or c in "-_ " else "_"
+                       for c in story.get("title", "story"))[:50].strip().replace(" ", "_")
+        img_path = os.path.join(img_dir, f"{sid:05d}_{safe}_scene.png")
+        with open(img_path, "wb") as f:
+            f.write(img_bytes)
+
+        buf = io.BytesIO(img_bytes)
+        buf.seek(0)
+        return send_file(buf, mimetype="image/png",
+                         as_attachment=False)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # CAPTION + VIDEO ASSEMBLY API  (Phase 4)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route("/api/ffmpeg/status")
+    def api_ffmpeg_status():
+        return jsonify({"ok": True, "available": _ce.ffmpeg_available()})
+
+    @app.route("/api/captions/generate/<int:sid>", methods=["POST"])
+    def api_captions_generate(sid):
+        story = _db.story_get(sid)
+        if not story:
+            return jsonify({"ok": False, "error": "Story not found"}), 404
+
+        d    = request.get_json(silent=True) or {}
+        mode = d.get("mode", "estimate")  # "whisper" | "estimate"
+
+        # Check for saved narration MP3
+        genre_dir = os.path.join(BASE_DIR, "stories", story.get("genre_slug", ""))
+        safe = "".join(c if c.isalnum() or c in "-_ " else "_"
+                       for c in story.get("title", "story"))[:50].strip().replace(" ", "_")
+        audio_path = os.path.join(genre_dir, f"{sid:05d}_{safe}.mp3")
+
+        if mode == "whisper" and os.path.isfile(audio_path):
+            settings = _load_settings()
+            api_key  = settings.get("openai_api_key", "") or os.environ.get("OPENAI_API_KEY", "")
+            if not api_key:
+                return jsonify({"ok": False, "error": "OpenAI API key required for Whisper transcription."}), 400
+            try:
+                srt = _ce.transcribe_to_srt(audio_path, api_key)
+            except Exception as exc:
+                return jsonify({"ok": False, "error": str(exc)}), 500
+        else:
+            srt = _ce.text_to_srt(story.get("content", ""))
+
+        srt_path = os.path.join(genre_dir, f"{sid:05d}_{safe}.srt")
+        os.makedirs(genre_dir, exist_ok=True)
+        with open(srt_path, "w", encoding="utf-8") as f:
+            f.write(srt)
+
+        return jsonify({"ok": True, "srt": srt, "srt_path": srt_path})
+
+    @app.route("/api/video/assemble/<int:sid>", methods=["POST"])
+    def api_video_assemble(sid):
+        story = _db.story_get(sid)
+        if not story:
+            return jsonify({"ok": False, "error": "Story not found"}), 404
+
+        d            = request.get_json(silent=True) or {}
+        burn_caps    = d.get("burn_captions", True)
+        music_vol    = float(d.get("music_volume", 0.08))
+
+        genre_dir = os.path.join(BASE_DIR, "stories", story.get("genre_slug", ""))
+        safe = "".join(c if c.isalnum() or c in "-_ " else "_"
+                       for c in story.get("title", "story"))[:50].strip().replace(" ", "_")
+
+        audio_path  = os.path.join(genre_dir, f"{sid:05d}_{safe}.mp3")
+        image_path  = os.path.join(genre_dir, f"{sid:05d}_{safe}_scene.png")
+        srt_path    = os.path.join(genre_dir, f"{sid:05d}_{safe}.srt")
+        output_path = os.path.join(genre_dir, f"{sid:05d}_{safe}_video.mp4")
+
+        if not os.path.isfile(audio_path):
+            return jsonify({"ok": False, "error": "Narration MP3 not found — generate voice narration first."}), 400
+        if not os.path.isfile(image_path):
+            return jsonify({"ok": False, "error": "Scene image not found — generate scene image first."}), 400
+
+        log, rc = _ce.assemble_video(
+            image_path=image_path,
+            audio_path=audio_path,
+            output_path=output_path,
+            srt_path=srt_path if os.path.isfile(srt_path) else None,
+            burn_captions=burn_caps,
+            music_volume=music_vol,
+        )
+        if rc != 0:
+            return jsonify({"ok": False, "error": log[-1000:]}), 500
+
+        return send_file(output_path, mimetype="video/mp4",
+                         as_attachment=True,
+                         download_name=f"story_{sid}_video.mp4")
 
     # ══════════════════════════════════════════════════════════════════════════
     # GIT / VCS API  (repo = BASE_DIR — Story Teller's own directory)

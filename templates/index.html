@@ -422,23 +422,131 @@
     </div>
   </div>
 
-  {# ── Phases 3-4: placeholders ── #}
-  <div class="phase-coming-soon-grid">
-
-    <div class="card phase-card">
-      <div class="card-body text-center py-4">
-        <i class="bi bi-image fs-2 mb-2" style="color:#6f42c1"></i>
-        <h6 class="fw-bold">Scene Image Generation</h6>
-        <p class="text-muted small mb-3">AI generates the atmospheric background image displayed throughout your story video.</p>
-        <div class="phase-cost-list">
-          <div class="phase-cost-item"><span>DALL-E 3</span><span class="badge bg-warning-subtle text-warning">$0.040 / image</span></div>
-          <div class="phase-cost-item"><span>Stability AI</span><span class="badge bg-success-subtle text-success">$0.020 / image</span></div>
-          <div class="phase-cost-item"><span>Ideogram</span><span class="badge bg-warning-subtle text-warning">$0.080 / image</span></div>
+  {# ── Phase 3: Scene Image Generation (LIVE) ── #}
+  <div class="card mb-4">
+    <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+      <h6 class="fw-bold mb-0 flex-grow-1">
+        <i class="bi bi-image me-1" style="color:#6f42c1"></i>Scene Image Generation
+        <span class="badge ms-2" style="background:rgba(25,135,84,.2);color:#75b798;font-size:.68rem;">Phase 3 — Live</span>
+      </h6>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Story</label>
+          <select id="imgStorySelect" class="form-select form-select-sm" onchange="onImgStoryChange()">
+            <option value="">— Select a saved story —</option>
+          </select>
         </div>
-        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 3</span>
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Provider</label>
+          <div id="imgProviderBtns" class="d-flex gap-2 flex-wrap"></div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted">Size / Aspect</label>
+          <select id="imgSizeSelect" class="form-select form-select-sm"></select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted">Quality</label>
+          <select id="imgQualitySelect" class="form-select form-select-sm"></select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted">Est. cost</label>
+          <div id="imgCostBadge" class="mt-1 fw-bold" style="color:#ffc107;">—</div>
+        </div>
+        <div class="col-12">
+          <label class="form-label small text-muted">Custom prompt <span class="text-muted">(leave blank for auto-generated)</span></label>
+          <input type="text" id="imgCustomPrompt" class="form-control form-control-sm"
+                 placeholder="Describe the scene you want — or leave blank for AI to decide based on your story">
+        </div>
+      </div>
+      <div class="d-flex gap-3 align-items-center mt-3 flex-wrap">
+        <button id="imgBtnGenerate" class="btn btn-primary" onclick="startImageGeneration()">
+          <i class="bi bi-image me-1"></i>Generate Scene Image
+        </button>
+        <span id="imgStatus" class="text-muted small"></span>
+      </div>
+      <div id="imgPreviewArea" class="mt-3 d-none">
+        <img id="imgPreview" src="" alt="Generated scene" class="img-fluid"
+             style="border-radius:.75rem;max-height:360px;width:100%;object-fit:contain;background:#111;">
+        <div class="d-flex gap-2 mt-2">
+          <a id="imgDownloadLink" class="btn btn-sm btn-outline-secondary" download>
+            <i class="bi bi-download me-1"></i>Download PNG
+          </a>
+        </div>
+      </div>
+      <div class="mt-3">
+        <div class="text-muted mb-1" style="font-size:.72rem;letter-spacing:.04em;">PROVIDER COSTS</div>
+        <div class="phase-cost-list">
+          <div class="phase-cost-item"><span>Stability AI Core</span><span class="badge bg-success-subtle text-success">$0.020 / image</span></div>
+          <div class="phase-cost-item"><span>DALL-E 3 HD (1792×1024)</span><span class="badge bg-warning-subtle text-warning">$0.040 / image</span></div>
+          <div class="phase-cost-item"><span>Ideogram v2 (16:9)</span><span class="badge bg-warning-subtle text-warning">$0.080 / image</span></div>
+        </div>
       </div>
     </div>
+  </div>
 
+  {# ── Phase 4: Captions + Video Assembly (LIVE) ── #}
+  <div class="card mb-4">
+    <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+      <h6 class="fw-bold mb-0 flex-grow-1">
+        <i class="bi bi-film me-1 text-danger"></i>Captions &amp; Video Assembly
+        <span class="badge ms-2" style="background:rgba(25,135,84,.2);color:#75b798;font-size:.68rem;">Phase 4 — Live</span>
+      </h6>
+      <span id="ffmpegBadge" class="badge" style="font-size:.68rem;"></span>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Story (needs voice + image first)</label>
+          <select id="vidStorySelect" class="form-select form-select-sm">
+            <option value="">— Select a saved story —</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Caption method</label>
+          <select id="vidCaptionMode" class="form-select form-select-sm">
+            <option value="estimate">Estimate from text (free)</option>
+            <option value="whisper">Whisper transcription (~$0.006)</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Music volume</label>
+          <select id="vidMusicVol" class="form-select form-select-sm">
+            <option value="0">No background music</option>
+            <option value="0.05">Very soft (5%)</option>
+            <option value="0.08" selected>Soft (8%)</option>
+            <option value="0.12">Medium (12%)</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="vidBurnCaps" checked>
+            <label class="form-check-label small" for="vidBurnCaps">Burn captions into video</label>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap mt-3">
+        <button class="btn btn-outline-secondary btn-sm" onclick="generateCaptions()">
+          <i class="bi bi-closed-caption me-1"></i>Generate Captions Only
+        </button>
+        <button id="vidBtnAssemble" class="btn btn-danger" onclick="assembleVideo()">
+          <i class="bi bi-film me-1"></i>Assemble Full Video
+        </button>
+        <span id="vidStatus" class="text-muted small align-self-center"></span>
+      </div>
+      <div id="vidCaptionPreview" class="mt-3 d-none">
+        <label class="form-label small text-muted">Generated SRT captions preview</label>
+        <pre class="vcs-log" style="max-height:180px;"></pre>
+        <a id="vidSrtDownload" class="btn btn-xs btn-outline-secondary mt-1" download>
+          <i class="bi bi-download me-1"></i>Download .srt
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {# ── Phase 3b: 5-sec intro placeholder ── #}
+  <div class="phase-coming-soon-grid">
     <div class="card phase-card">
       <div class="card-body text-center py-4">
         <i class="bi bi-camera-video-fill fs-2 mb-2" style="color:#0dcaf0"></i>
@@ -449,48 +557,21 @@
           <div class="phase-cost-item"><span>RunwayML Gen-3</span><span class="badge bg-warning-subtle text-warning">~$0.50 / clip</span></div>
           <div class="phase-cost-item"><span>Title Card (ffmpeg)</span><span class="badge bg-success-subtle text-success">Free</span></div>
         </div>
-        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 3</span>
+        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Coming — Phase 3b</span>
       </div>
     </div>
-
-    <div class="card phase-card">
-      <div class="card-body text-center py-4">
-        <i class="bi bi-closed-caption-fill fs-2 mb-2" style="color:#20c997"></i>
-        <h6 class="fw-bold">Closed Captions</h6>
-        <p class="text-muted small mb-3">Auto-generated SRT captions synced to narration. Burned in or attached as a separate file.</p>
-        <div class="phase-cost-list">
-          <div class="phase-cost-item"><span>OpenAI Whisper</span><span class="badge bg-success-subtle text-success">~$0.006 / story</span></div>
-          <div class="phase-cost-item"><span>TTS timestamps</span><span class="badge bg-success-subtle text-success">Free (from TTS output)</span></div>
-        </div>
-        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 4</span>
-      </div>
-    </div>
-
     <div class="card phase-card">
       <div class="card-body text-center py-4">
         <i class="bi bi-music-note-beamed fs-2 mb-2" style="color:#ffc107"></i>
-        <h6 class="fw-bold">Background Music</h6>
-        <p class="text-muted small mb-3">Genre-matched royalty-free music plays softly under the narration throughout the video.</p>
+        <h6 class="fw-bold">Background Music Library</h6>
+        <p class="text-muted small mb-3">Bundled royalty-free genre-matched tracks for HFYCinema-style ambient audio.</p>
         <div class="phase-cost-list">
           <div class="phase-cost-item"><span>Included library</span><span class="badge bg-success-subtle text-success">Free (bundled)</span></div>
           <div class="phase-cost-item"><span>Epidemic Sound</span><span class="badge bg-warning-subtle text-warning">$15/mo subscription</span></div>
         </div>
-        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 4</span>
+        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Coming — Phase 4b</span>
       </div>
     </div>
-
-    <div class="card phase-card">
-      <div class="card-body text-center py-4">
-        <i class="bi bi-film fs-2 mb-2" style="color:#dc3545"></i>
-        <h6 class="fw-bold">Video Assembly</h6>
-        <p class="text-muted small mb-3">ffmpeg combines intro clip + frozen frame + voice + music + captions into final MP4.</p>
-        <div class="phase-cost-list">
-          <div class="phase-cost-item"><span>ffmpeg (local)</span><span class="badge bg-success-subtle text-success">Free — runs on your machine</span></div>
-        </div>
-        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 4</span>
-      </div>
-    </div>
-
   </div>
 
   <div class="alert mt-4" style="background:rgba(13,202,240,.08);border:1px solid rgba(13,202,240,.2);border-radius:1rem;">
@@ -1595,6 +1676,174 @@ function startNarration() {
     showToast('Narration error: ' + e.message, 'danger');
   });
 }
+
+// ── Image Generation (Phase 3) ───────────────────────────────────────────────
+var _imgProviders    = [];
+var _selImgProvider  = 'stability';
+var _imgPanelInited  = false;
+
+function _initImagePanel() {
+  if (_imgPanelInited) return;
+  _imgPanelInited = true;
+  fetch('/api/image/providers').then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) return;
+    _imgProviders = d.providers;
+    _renderImgProviderBtns();
+    selectImgProvider('stability');
+  });
+  _populateImgStorySelect();
+}
+
+function _populateImgStorySelect() {
+  fetch('/api/stories').then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) return;
+    ['imgStorySelect','vidStorySelect'].forEach(function(id) {
+      var sel = document.getElementById(id);
+      if (!sel) return;
+      d.stories.forEach(function(s) {
+        var opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = (s.title || 'Untitled') + ' (' + fmtNum(s.word_count) + ' words)';
+        sel.appendChild(opt);
+      });
+    });
+  });
+  // Check ffmpeg
+  fetch('/api/ffmpeg/status').then(function(r){ return r.json(); }).then(function(d) {
+    var b = document.getElementById('ffmpegBadge');
+    if (!b) return;
+    b.textContent   = d.available ? 'ffmpeg ready' : 'ffmpeg not found';
+    b.style.background = d.available ? 'rgba(25,135,84,.2)' : 'rgba(220,53,69,.2)';
+    b.style.color      = d.available ? '#75b798'            : '#f87171';
+  });
+}
+
+function _renderImgProviderBtns() {
+  var el = document.getElementById('imgProviderBtns');
+  if (!el) return;
+  el.innerHTML = _imgProviders.map(function(p) {
+    return '<button class="btn btn-sm btn-outline-secondary iprov-btn" id="iprov-' + p.id + '"'
+      + ' onclick="selectImgProvider(\'' + p.id + '\')">'
+      + '<i class="bi bi-' + p.icon + ' me-1"></i>' + escHtml(p.name)
+      + '<span class="ms-1" style="font-size:.65rem;opacity:.7;">' + escHtml(p.cost_note) + '</span>'
+      + '</button>';
+  }).join('');
+}
+
+function selectImgProvider(id) {
+  _selImgProvider = id;
+  document.querySelectorAll('.iprov-btn').forEach(function(b) { b.classList.remove('active','btn-primary'); b.classList.add('btn-outline-secondary'); });
+  var btn = document.getElementById('iprov-' + id);
+  if (btn) { btn.classList.remove('btn-outline-secondary'); btn.classList.add('active','btn-primary'); }
+  var prov = _imgProviders.find(function(p){ return p.id === id; });
+  if (!prov) return;
+  var ssel = document.getElementById('imgSizeSelect');
+  if (ssel) { ssel.innerHTML = prov.sizes.map(function(s){ return '<option value="' + s.id + '">' + s.name + '</option>'; }).join(''); ssel.value = prov.default_size; }
+  var qsel = document.getElementById('imgQualitySelect');
+  if (qsel) { qsel.innerHTML = prov.qualities.map(function(q){ return '<option value="' + q.id + '">' + q.name + '</option>'; }).join(''); qsel.value = prov.default_quality; }
+  var costEl = document.getElementById('imgCostBadge');
+  if (costEl) costEl.textContent = prov.cost_note;
+}
+
+function onImgStoryChange() {}
+
+function startImageGeneration() {
+  var storyId = document.getElementById('imgStorySelect')?.value;
+  if (!storyId) { showToast('Select a story first.', 'warning'); return; }
+  var size    = document.getElementById('imgSizeSelect')?.value    || '';
+  var quality = document.getElementById('imgQualitySelect')?.value || '';
+  var custom  = document.getElementById('imgCustomPrompt')?.value.trim() || '';
+  var btn     = document.getElementById('imgBtnGenerate');
+  var status  = document.getElementById('imgStatus');
+  if (btn)    btn.disabled = true;
+  if (status) status.textContent = 'Generating image… (~10-30 seconds)';
+
+  fetch('/api/image/generate/' + storyId, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider_id: _selImgProvider, size: size, quality: quality, custom_prompt: custom }),
+  }).then(function(resp) {
+    if (!resp.ok) { return resp.json().then(function(d) { throw new Error(d.error || 'Image generation failed'); }); }
+    return resp.blob();
+  }).then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var img = document.getElementById('imgPreview');
+    var dl  = document.getElementById('imgDownloadLink');
+    var area = document.getElementById('imgPreviewArea');
+    if (img)  img.src  = url;
+    if (dl)   { dl.href = url; dl.download = 'scene_' + storyId + '.png'; }
+    if (area) area.classList.remove('d-none');
+    if (btn)    btn.disabled = false;
+    if (status) status.textContent = 'Image generated!';
+    showToast('Scene image generated.', 'success');
+  }).catch(function(e) {
+    if (btn)    btn.disabled = false;
+    if (status) status.textContent = '';
+    showToast('Image error: ' + e.message, 'danger');
+  });
+}
+
+// ── Captions + Video Assembly (Phase 4) ──────────────────────────────────────
+function generateCaptions() {
+  var storyId = document.getElementById('vidStorySelect')?.value;
+  if (!storyId) { showToast('Select a story first.', 'warning'); return; }
+  var mode    = document.getElementById('vidCaptionMode')?.value || 'estimate';
+  var status  = document.getElementById('vidStatus');
+  if (status) status.textContent = 'Generating captions…';
+
+  fetch('/api/captions/generate/' + storyId, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: mode }),
+  }).then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) { showToast('Caption error: ' + d.error, 'danger'); if (status) status.textContent = ''; return; }
+    var area = document.getElementById('vidCaptionPreview');
+    var pre  = area?.querySelector('pre');
+    var dl   = document.getElementById('vidSrtDownload');
+    if (pre)  pre.textContent  = d.srt.slice(0, 2000) + (d.srt.length > 2000 ? '\n…(truncated)' : '');
+    if (dl)   { dl.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(d.srt); dl.download = 'captions_' + storyId + '.srt'; }
+    if (area) area.classList.remove('d-none');
+    if (status) status.textContent = 'Captions ready.';
+    showToast('Captions generated.', 'success');
+  }).catch(function(e) {
+    if (status) status.textContent = '';
+    showToast('Caption error: ' + e.message, 'danger');
+  });
+}
+
+function assembleVideo() {
+  var storyId = document.getElementById('vidStorySelect')?.value;
+  if (!storyId) { showToast('Select a story first.', 'warning'); return; }
+  if (!confirm('Assemble the full video? This requires narration MP3 and scene image to already be generated. ffmpeg will run locally — may take several minutes.')) return;
+  var burn    = document.getElementById('vidBurnCaps')?.checked ?? true;
+  var musicVol = parseFloat(document.getElementById('vidMusicVol')?.value || '0.08');
+  var btn     = document.getElementById('vidBtnAssemble');
+  var status  = document.getElementById('vidStatus');
+  if (btn)    btn.disabled = true;
+  if (status) status.textContent = 'Running ffmpeg… this may take several minutes.';
+
+  fetch('/api/video/assemble/' + storyId, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ burn_captions: burn, music_volume: musicVol }),
+  }).then(function(resp) {
+    if (!resp.ok) { return resp.json().then(function(d) { throw new Error(d.error || 'Assembly failed'); }); }
+    return resp.blob();
+  }).then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'story_' + storyId + '_video.mp4'; a.click();
+    if (btn)    btn.disabled = false;
+    if (status) status.textContent = 'Video assembled and downloading!';
+    showToast('Video assembled! Downloading now.', 'success');
+  }).catch(function(e) {
+    if (btn)    btn.disabled = false;
+    if (status) status.textContent = '';
+    showToast('Assembly error: ' + e.message, 'danger');
+  });
+}
+
+// Load image/video panel on section switch
+document.addEventListener('sectionChanged', function(e) {
+  if (e.detail && e.detail.section === 'production') _initImagePanel();
+});
 
 // ── Hints tooltips ───────────────────────────────────────────────────────────
 var _stHintInstances = [];
