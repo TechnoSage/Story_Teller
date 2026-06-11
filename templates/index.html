@@ -38,6 +38,13 @@
     <i class="bi bi-calendar-check-fill"></i><span class="nav-label">Schedule</span>
   </a>
 </li>
+<li class="nav-item">
+  <a class="nav-link" href="#" id="nav-vcs"
+     data-tooltip="Version Control — Git status, commit &amp; push"
+     onclick="showSection('vcs');return false;">
+    <i class="bi bi-git"></i><span class="nav-label">Git</span>
+  </a>
+</li>
 {% endblock %}
 
 {# ── Dashboard ──────────────────────────────────────────────────────────────── #}
@@ -133,9 +140,10 @@
             <span>Target Length</span>
             <span id="wordCountLabel" class="text-white fw-semibold">6,000 words (~43 min)</span>
           </label>
-          <input type="range" class="form-range" id="wordCountSlider"
+          <input type="range" class="form-range st-hint" id="wordCountSlider"
                  min="1500" max="9000" step="500" value="6000"
-                 oninput="onWordCountChange(this.value)">
+                 oninput="onWordCountChange(this.value)"
+                 data-st-hint="Target word count — YouTube story narration runs ~140 words/minute. 6,000 words ≈ 43 min video. Longer = more ad revenue potential.">
           <div class="d-flex justify-content-between" style="font-size:.7rem;color:rgba(255,255,255,.35)">
             <span>1,500 (~11 min)</span><span>9,000 (~64 min)</span>
           </div>
@@ -165,11 +173,14 @@
           <label class="form-label small text-muted">Narrative Style</label>
           <div class="btn-group w-100" role="group">
             <input type="radio" class="btn-check" name="narrative" id="narr1" value="third" checked>
-            <label class="btn btn-outline-secondary btn-sm" for="narr1">Third Person</label>
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="narr1"
+                   data-st-hint="Third Person: narrator describes characters using 'he', 'she', 'they' — most common for YouTube stories">Third Person</label>
             <input type="radio" class="btn-check" name="narrative" id="narr2" value="first">
-            <label class="btn btn-outline-secondary btn-sm" for="narr2">First Person</label>
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="narr2"
+                   data-st-hint="First Person: the narrator speaks as 'I' — very immersive, works great for mystery and horror">First Person</label>
             <input type="radio" class="btn-check" name="narrative" id="narr3" value="omniscient">
-            <label class="btn btn-outline-secondary btn-sm" for="narr3">Omniscient</label>
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="narr3"
+                   data-st-hint="Omniscient: narrator knows all characters' thoughts and feelings — ideal for epic fantasy and sci-fi">Omniscient</label>
           </div>
         </div>
 
@@ -177,11 +188,14 @@
           <label class="form-label small text-muted">Tone</label>
           <div class="btn-group w-100" role="group">
             <input type="radio" class="btn-check" name="tone" id="tone1" value="dark">
-            <label class="btn btn-outline-secondary btn-sm" for="tone1">🌑 Dark</label>
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="tone1"
+                   data-st-hint="Dark: gritty, tense, and atmospheric — best for horror, thriller, and mature mystery">🌑 Dark</label>
             <input type="radio" class="btn-check" name="tone" id="tone2" value="neutral" checked>
-            <label class="btn btn-outline-secondary btn-sm" for="tone2">⚖️ Neutral</label>
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="tone2"
+                   data-st-hint="Neutral: balanced storytelling — works for any genre, lets plot and character drive the mood">⚖️ Neutral</label>
             <input type="radio" class="btn-check" name="tone" id="tone3" value="uplifting">
-            <label class="btn btn-outline-secondary btn-sm" for="tone3">☀️ Uplifting</label>
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="tone3"
+                   data-st-hint="Uplifting: hopeful and inspiring — great for children's, Christian/Bible stories, and romance">☀️ Uplifting</label>
           </div>
         </div>
 
@@ -214,15 +228,54 @@
     </div>
   </div>
 
-  {# ── Generate button ── #}
-  <div class="d-flex gap-3 align-items-center mb-4">
-    <button id="btnGenerate" class="btn btn-primary btn-lg px-5" onclick="startGeneration()">
-      <i class="bi bi-magic me-2"></i>Generate Story
-    </button>
-    <button id="btnCancel" class="btn btn-outline-danger btn-lg px-4 d-none" onclick="cancelGeneration()">
-      <i class="bi bi-stop-circle me-2"></i>Cancel
-    </button>
-    <div id="genStatus" class="text-muted small"></div>
+  {# ── Generate button + CI/CD pipeline ── #}
+  <div class="card mb-4" id="genPipelineCard">
+    <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-3">
+      <h6 class="fw-bold mb-0 flex-grow-1">
+        <i class="bi bi-diagram-3 me-1 text-secondary"></i>Generation Pipeline
+      </h6>
+      <button id="btnGenerate" class="btn btn-primary px-4" onclick="startGeneration()">
+        <i class="bi bi-magic me-2"></i>Generate Story
+      </button>
+      <button id="btnCancel" class="btn btn-outline-danger px-3 d-none" onclick="cancelGeneration()">
+        <i class="bi bi-stop-circle me-1"></i>Cancel
+      </button>
+    </div>
+    <div class="card-body pt-2 pb-3">
+      {# Pipeline tubes #}
+      <div id="stPipelineTrack" class="st-pipeline-track">
+        <div class="st-pg-wrap" id="stPg0">
+          <div class="st-pg-dot"></div>
+          <div class="st-pg-tube"><div class="st-pg-fill"></div><div class="st-pg-sheen"></div><div class="st-pg-lbl">Prompt</div></div>
+          <div class="st-pg-sub">Building prompt</div>
+        </div>
+        <div class="st-pg-arr">▶</div>
+        <div class="st-pg-wrap" id="stPg1">
+          <div class="st-pg-dot"></div>
+          <div class="st-pg-tube"><div class="st-pg-fill"></div><div class="st-pg-sheen"></div><div class="st-pg-lbl">Connect</div></div>
+          <div class="st-pg-sub">API call</div>
+        </div>
+        <div class="st-pg-arr">▶</div>
+        <div class="st-pg-wrap" id="stPg2">
+          <div class="st-pg-dot"></div>
+          <div class="st-pg-tube"><div class="st-pg-fill"></div><div class="st-pg-sheen"></div><div class="st-pg-lbl">Streaming</div></div>
+          <div class="st-pg-sub" id="stPgStreamSub">0 words</div>
+        </div>
+        <div class="st-pg-arr">▶</div>
+        <div class="st-pg-wrap" id="stPg3">
+          <div class="st-pg-dot"></div>
+          <div class="st-pg-tube"><div class="st-pg-fill"></div><div class="st-pg-sheen"></div><div class="st-pg-lbl">Finalize</div></div>
+          <div class="st-pg-sub">Processing</div>
+        </div>
+        <div class="st-pg-arr">▶</div>
+        <div class="st-pg-wrap" id="stPg4">
+          <div class="st-pg-dot"></div>
+          <div class="st-pg-tube"><div class="st-pg-fill"></div><div class="st-pg-sheen"></div><div class="st-pg-lbl">Ready</div></div>
+          <div class="st-pg-sub">Story done</div>
+        </div>
+      </div>
+      <div id="genStatus" class="mt-1 text-muted" style="font-size:.72rem;min-height:1.2em;"></div>
+    </div>
   </div>
 
   {# ── Generation output ── #}
@@ -512,6 +565,98 @@
   </div>
 </div>
 
+{# ══════════════════════════════════════════════════════════════════════════════
+   VERSION CONTROL — GIT
+══════════════════════════════════════════════════════════════════════════════ #}
+<div class="section-pane" id="pane-vcs">
+  <div class="page-header">
+    <h4><i class="bi bi-git me-2 text-primary"></i>Version Control</h4>
+    <div class="page-desc">Git status, commit, push, and merge for this Story Teller repository.</div>
+  </div>
+
+  <div class="row g-3">
+
+    {# ── Branch + remote info ── #}
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h6 class="fw-bold mb-0"><i class="bi bi-diagram-2 me-1 text-secondary"></i>Repository</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <div class="text-muted" style="font-size:.7rem;letter-spacing:.05em;">BRANCH</div>
+            <div class="fw-bold" id="vcsBranch" style="color:#6ea8fe;">—</div>
+          </div>
+          <div class="mb-2">
+            <div class="text-muted" style="font-size:.7rem;letter-spacing:.05em;">REMOTE</div>
+            <div id="vcsRemote" class="small text-muted" style="word-break:break-all;">—</div>
+          </div>
+          <div class="mb-3">
+            <div class="text-muted" style="font-size:.7rem;letter-spacing:.05em;">STATUS</div>
+            <div id="vcsStatus" class="small" style="color:#75b798;">Loading…</div>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-sm btn-outline-secondary" onclick="vcsRefresh()" id="vcsBtnRefresh">
+              <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+            </button>
+            <button class="btn btn-sm btn-outline-info" onclick="vcsPull()" id="vcsBtnPull">
+              <i class="bi bi-cloud-download me-1"></i>Pull
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Commit ── #}
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h6 class="fw-bold mb-0"><i class="bi bi-floppy me-1 text-secondary"></i>Commit &amp; Push</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <label class="form-label small text-muted">Commit message</label>
+            <input type="text" id="vcsCommitMsg" class="form-control form-control-sm"
+                   placeholder="feat: describe what changed…">
+          </div>
+          <div class="d-flex gap-2 flex-wrap align-items-center">
+            <button class="btn btn-primary btn-sm" onclick="vcsCommitPush()" id="vcsBtnCommit">
+              <i class="bi bi-cloud-upload me-1"></i>Stage All → Commit → Push dev
+            </button>
+            <button class="btn btn-sm btn-outline-success" onclick="vcsMergeMain()" id="vcsBtnMerge">
+              <i class="bi bi-arrow-down-up me-1"></i>Merge → main → Push
+            </button>
+          </div>
+          <div id="vcsOpStatus" class="mt-2" style="font-size:.78rem;"></div>
+        </div>
+      </div>
+
+      {# ── Status/diff ── #}
+      <div class="card mt-3">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h6 class="fw-bold mb-0"><i class="bi bi-list-ul me-1 text-secondary"></i>Working Tree</h6>
+        </div>
+        <div class="card-body p-0">
+          <pre id="vcsStatusPre" class="vcs-log" style="border-radius:0 0 calc(1.1rem - 1px) calc(1.1rem - 1px);">Loading…</pre>
+        </div>
+      </div>
+    </div>
+
+    {# ── Recent commits ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h6 class="fw-bold mb-0"><i class="bi bi-clock-history me-1 text-secondary"></i>Recent Commits</h6>
+        </div>
+        <div class="card-body p-0">
+          <pre id="vcsLogPre" class="vcs-log" style="border-radius:0 0 calc(1.1rem - 1px) calc(1.1rem - 1px);">Loading…</pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 {% endblock %}
 
 {# ── Story viewer modal ───────────────────────────────────────────────────────── #}
@@ -595,7 +740,7 @@
 <script>
 // ── Section registration ────────────────────────────────────────────────────
 _allSections = _allSections || [];
-['studio','archive','production','channels','schedule'].forEach(function(s) {
+['studio','archive','production','channels','schedule','vcs'].forEach(function(s) {
   _allSections.push(s);
 });
 
@@ -606,6 +751,7 @@ var _stTitleMap = {
   production: 'Production Pipeline',
   channels:   'YouTube Channels',
   schedule:   'Publishing Schedule',
+  vcs:        'Version Control',
 };
 document.addEventListener('sectionChanged', function(e) {
   var t = _stTitleMap[e.detail && e.detail.section];
@@ -845,6 +991,21 @@ function onWordCountChange(val) {
   updateCostEstimate();
 }
 
+// ── CI/CD Pipeline stage helpers ──────────────────────────────────────────────
+function _pgSet(idx, state) {
+  var wrap = document.getElementById('stPg' + idx);
+  if (!wrap) return;
+  ['pg-idle','pg-active','pg-done','pg-error'].forEach(function(c) { wrap.classList.remove(c); });
+  wrap.classList.add('pg-' + state);
+  var fill = wrap.querySelector('.st-pg-fill');
+  if (fill) {
+    fill.style.width = state === 'done' ? '100%' : state === 'active' ? '50%' : state === 'error' ? '35%' : '0%';
+  }
+}
+function _pgReset() {
+  for (var i = 0; i < 5; i++) _pgSet(i, 'idle');
+}
+
 // ── Story generation ──────────────────────────────────────────────────────────
 function startGeneration() {
   if (!_selGenre) {
@@ -869,7 +1030,11 @@ function startGeneration() {
   document.getElementById('btnCancel').classList.remove('d-none');
   document.getElementById('genOutputArea').classList.remove('d-none');
   var statusEl = document.getElementById('genStatus');
-  statusEl.textContent = 'Generating…';
+  statusEl.textContent = 'Building prompt…';
+
+  // Pipeline: stage 0 — Prompt
+  _pgReset();
+  _pgSet(0, 'active');
 
   var outputEl = document.getElementById('storyOutput');
   outputEl.textContent = '';
@@ -880,6 +1045,14 @@ function startGeneration() {
     document.getElementById('storyTitle').value.trim();
 
   _genAbortCtrl = new AbortController();
+  var _pgStage = 0;  // tracks which pipeline stage we're on
+
+  // Advance to stage 1 (Connect) after a beat — gives the Prompt stage a moment to show
+  setTimeout(function() {
+    _pgSet(0, 'done');
+    _pgSet(1, 'active');
+    statusEl.textContent = 'Connecting to AI…';
+  }, 400);
 
   fetch('/api/stories/generate', {
     method: 'POST',
@@ -897,10 +1070,16 @@ function startGeneration() {
         throw new Error(d.error || 'Generation failed');
       });
     }
+    // Stage 2 — Streaming
+    _pgSet(1, 'done');
+    _pgSet(2, 'active');
+    statusEl.textContent = 'Streaming story…';
+
     var reader  = resp.body.getReader();
     var decoder = new TextDecoder();
     var buf     = '';
     var wordUpdateTimer = null;
+    var _firstChunk = true;
 
     function pump() {
       return reader.read().then(function(result) {
@@ -919,13 +1098,14 @@ function startGeneration() {
             _generatedContent += payload.text;
             outputEl.textContent = _generatedContent;
             outputEl.scrollTop   = outputEl.scrollHeight;
-            // Throttle word count updates
             if (!wordUpdateTimer) {
               wordUpdateTimer = setTimeout(function() {
                 wordUpdateTimer = null;
                 var wc = _generatedContent.trim().split(/\s+/).length;
                 document.getElementById('wordCountBadge').textContent = fmtNum(wc) + ' words';
-              }, 300);
+                var subEl = document.getElementById('stPgStreamSub');
+                if (subEl) subEl.textContent = fmtNum(wc) + ' words';
+              }, 250);
             }
           }
           if (payload.done) { onGenComplete(); return; }
@@ -940,11 +1120,25 @@ function startGeneration() {
 }
 
 function onGenComplete() {
+  // Pipeline: stage 3 Finalize → 4 Ready
+  _pgSet(2, 'done');
+  _pgSet(3, 'active');
+  document.getElementById('genStatus').textContent = 'Finalizing…';
+  setTimeout(function() {
+    _pgSet(3, 'done');
+    _pgSet(4, 'active');
+    setTimeout(function() {
+      _pgSet(4, 'done');
+      document.getElementById('genStatus').textContent = '';
+    }, 600);
+  }, 500);
+
   document.getElementById('btnGenerate').classList.remove('d-none');
   document.getElementById('btnCancel').classList.add('d-none');
-  document.getElementById('genStatus').textContent = '';
   var wc = _generatedContent.trim().split(/\s+/).length;
   document.getElementById('wordCountBadge').textContent = fmtNum(wc) + ' words';
+  var subEl = document.getElementById('stPgStreamSub');
+  if (subEl) subEl.textContent = fmtNum(wc) + ' words';
   // Show actual cost
   var prov  = _providers.find(function(p){ return p.id === _selProvider; });
   var model = prov && prov.models.find(function(m){ return m.id === _selModel; });
@@ -953,7 +1147,6 @@ function onGenComplete() {
     document.getElementById('costActualBadge').textContent =
       'actual cost: $' + cost.toFixed(4);
   }
-  // Auto-generate title if empty
   if (!document.getElementById('outputTitle').value) {
     var g = _genres.find(function(x){ return x.slug === _selGenre; });
     var d = new Date().toISOString().slice(0,10);
@@ -965,6 +1158,11 @@ function onGenComplete() {
 }
 
 function onGenError(msg) {
+  // Pipeline: mark active stage as error
+  for (var i = 4; i >= 0; i--) {
+    var w = document.getElementById('stPg' + i);
+    if (w && w.classList.contains('pg-active')) { _pgSet(i, 'error'); break; }
+  }
   document.getElementById('btnGenerate').classList.remove('d-none');
   document.getElementById('btnCancel').classList.add('d-none');
   document.getElementById('genStatus').textContent = '';
@@ -974,6 +1172,7 @@ function onGenError(msg) {
 
 function cancelGeneration() {
   if (_genAbortCtrl) { _genAbortCtrl.abort(); _genAbortCtrl = null; }
+  _pgReset();
   document.getElementById('btnGenerate').classList.remove('d-none');
   document.getElementById('btnCancel').classList.add('d-none');
   document.getElementById('genStatus').textContent = '';
@@ -1184,6 +1383,111 @@ function escHtml(s) {
 function escAttr(s) {
   return String(s||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
 }
+
+// ── VCS / Git ────────────────────────────────────────────────────────────────
+function vcsRefresh() {
+  var btn = document.getElementById('vcsBtnRefresh');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-arrow-clockwise spin me-1"></i>Refreshing'; }
+  fetch('/api/git/status').then(function(r){ return r.json(); }).then(function(d) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Refresh'; }
+    if (!d.ok) {
+      document.getElementById('vcsStatus').textContent = 'Error: ' + d.error;
+      document.getElementById('vcsStatus').style.color = '#f87171';
+      return;
+    }
+    document.getElementById('vcsBranch').textContent  = d.branch;
+    document.getElementById('vcsRemote').textContent  = d.remote || '(none)';
+    var statusEl = document.getElementById('vcsStatus');
+    statusEl.textContent  = d.dirty ? 'Uncommitted changes' : 'Clean — nothing to commit';
+    statusEl.style.color  = d.dirty ? '#ffc107' : '#75b798';
+    document.getElementById('vcsStatusPre').textContent = d.status;
+    document.getElementById('vcsLogPre').textContent    = d.recent_log;
+  }).catch(function(e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Refresh'; }
+  });
+}
+
+function vcsPull() {
+  var btn = document.getElementById('vcsBtnPull');
+  if (btn) btn.disabled = true;
+  _vcsOp('Pulling…', function() {
+    return fetch('/api/git/pull', { method: 'POST' }).then(function(r){ return r.json(); });
+  }, function() { if (btn) btn.disabled = false; });
+}
+
+function vcsCommitPush() {
+  var msg = (document.getElementById('vcsCommitMsg')?.value || '').trim();
+  if (!msg) { showToast('Enter a commit message first.', 'warning'); return; }
+  var btn = document.getElementById('vcsBtnCommit');
+  if (btn) btn.disabled = true;
+  _vcsOp('Staging, committing, pushing…', function() {
+    return fetch('/api/git/commit-push', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, branch: 'development' }),
+    }).then(function(r){ return r.json(); });
+  }, function() {
+    if (btn) btn.disabled = false;
+    document.getElementById('vcsCommitMsg').value = '';
+  });
+}
+
+function vcsMergeMain() {
+  if (!confirm('Merge development → main and push main to GitHub?')) return;
+  var btn = document.getElementById('vcsBtnMerge');
+  if (btn) btn.disabled = true;
+  _vcsOp('Merging to main…', function() {
+    return fetch('/api/git/merge-main', { method: 'POST' }).then(function(r){ return r.json(); });
+  }, function() { if (btn) btn.disabled = false; });
+}
+
+function _vcsOp(label, apiFn, onFinally) {
+  var opEl = document.getElementById('vcsOpStatus');
+  if (opEl) { opEl.textContent = label; opEl.style.color = '#6ea8fe'; }
+  apiFn().then(function(d) {
+    if (opEl) {
+      opEl.style.color = d.ok ? '#75b798' : '#f87171';
+      opEl.textContent = d.ok ? ('Done. ' + (d.output||'').slice(0,200)) : ('Error: ' + d.error);
+    }
+    if (d.ok) { showToast('Git operation complete.', 'success'); vcsRefresh(); }
+    else       { showToast('Git error: ' + d.error, 'danger'); }
+  }).catch(function(e) {
+    if (opEl) { opEl.style.color = '#f87171'; opEl.textContent = 'Network error: ' + e.message; }
+  }).finally(function() { if (onFinally) onFinally(); });
+}
+
+// Load VCS on section switch
+document.addEventListener('sectionChanged', function(e) {
+  if (e.detail && e.detail.section === 'vcs') vcsRefresh();
+});
+
+// ── Hints tooltips ───────────────────────────────────────────────────────────
+var _stHintInstances = [];
+function _stInitHints() {
+  document.querySelectorAll('[data-st-hint]').forEach(function(el) {
+    el.setAttribute('title', el.getAttribute('data-st-hint'));
+    if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+      var tip = new bootstrap.Tooltip(el, {
+        trigger: 'hover', placement: 'top', boundary: 'window',
+      });
+      _stHintInstances.push(tip);
+    }
+  });
+  _stSetHints(document.body.classList.contains('hints-on'));
+}
+function _stSetHints(on) {
+  _stHintInstances.forEach(function(t) { try { on ? t.enable() : t.disable(); } catch(e){} });
+}
+var _stHintsObs = new MutationObserver(function(muts) {
+  muts.forEach(function(m) {
+    if (m.attributeName === 'class') {
+      _stSetHints(document.body.classList.contains('hints-on'));
+    }
+  });
+});
+document.addEventListener('DOMContentLoaded', function() {
+  _stInitHints();
+  _stHintsObs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+});
 
 // ── Settings masonry layout ─────────────────────────────────────────────────
 var _masonryResizeTimer = null;
