@@ -345,38 +345,85 @@
 </div>
 
 {# ══════════════════════════════════════════════════════════════════════════════
-   PRODUCTION (Phase 2 placeholder)
+   PRODUCTION — Phase 2 LIVE + Phases 3-4 placeholder
 ══════════════════════════════════════════════════════════════════════════════ #}
 <div class="section-pane" id="pane-production">
   <div class="page-header">
     <h4><i class="bi bi-film me-2 text-primary"></i>Production Pipeline</h4>
-    <div class="page-desc">Voice narration, background images, intro video, closed captions, and final video assembly.</div>
+    <div class="page-desc">Voice narration (Phase 2 live), scene images, intro video, captions, and video assembly.</div>
   </div>
 
-  <div class="phase-coming-soon-grid">
+  {# ── Phase 2: Voice Narration (LIVE) ── #}
+  <div class="card mb-4">
+    <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+      <h6 class="fw-bold mb-0 flex-grow-1">
+        <i class="bi bi-soundwave me-1" style="color:#6ea8fe"></i>Voice Narration
+        <span class="badge ms-2" style="background:rgba(25,135,84,.2);color:#75b798;font-size:.68rem;">Phase 2 — Live</span>
+      </h6>
+      <span id="voiceCostBadge" class="badge" style="background:rgba(255,193,7,.12);color:#ffc107;"></span>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
 
-    <div class="card phase-card">
-      <div class="card-body text-center py-4">
-        <i class="bi bi-soundwave fs-2 mb-2" style="color:#6ea8fe"></i>
-        <h6 class="fw-bold">Voice Narration</h6>
-        <p class="text-muted small mb-3">AI voice reads your story aloud. Choose provider and voice style per genre.</p>
-        <div class="phase-cost-list">
-          <div class="phase-cost-item">
-            <span>OpenAI TTS</span>
-            <span class="badge bg-success-subtle text-success">~$0.09 / story</span>
-          </div>
-          <div class="phase-cost-item">
-            <span>ElevenLabs</span>
-            <span class="badge bg-warning-subtle text-warning">~$0.20 / story + plan</span>
-          </div>
-          <div class="phase-cost-item">
-            <span>Google TTS</span>
-            <span class="badge bg-success-subtle text-success">Free up to 1M chars/mo</span>
-          </div>
+        {# Story selector #}
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Story to narrate</label>
+          <select id="voiceStorySelect" class="form-select form-select-sm" onchange="onVoiceStoryChange()">
+            <option value="">— Select a saved story —</option>
+          </select>
         </div>
-        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 2</span>
+
+        {# Provider selector #}
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Voice Provider</label>
+          <div id="voiceProviderBtns" class="d-flex gap-2 flex-wrap"></div>
+        </div>
+
+        {# Voice selector #}
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Voice</label>
+          <select id="voiceVoiceSelect" class="form-select form-select-sm" onchange="updateVoiceCost()"></select>
+        </div>
+
+        {# Model selector #}
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Quality / Model</label>
+          <select id="voiceModelSelect" class="form-select form-select-sm" onchange="updateVoiceCost()"></select>
+        </div>
+
+      </div>
+
+      <div class="d-flex gap-3 align-items-center mt-3 flex-wrap">
+        <button id="voiceBtnNarrate" class="btn btn-primary" onclick="startNarration()">
+          <i class="bi bi-soundwave me-1"></i>Generate Narration
+        </button>
+        <span id="voiceStatus" class="text-muted small"></span>
+      </div>
+
+      {# Audio player — shown after narration is downloaded #}
+      <div id="voicePlayerArea" class="mt-3 d-none">
+        <audio id="voicePlayer" controls class="w-100" style="border-radius:.5rem;"></audio>
+        <div class="d-flex gap-2 mt-2">
+          <a id="voiceDownloadLink" class="btn btn-sm btn-outline-secondary" download>
+            <i class="bi bi-download me-1"></i>Download MP3
+          </a>
+        </div>
+      </div>
+
+      {# Cost reference table #}
+      <div class="mt-3">
+        <div class="text-muted mb-1" style="font-size:.72rem;letter-spacing:.04em;">VOICE PROVIDER COSTS</div>
+        <div class="phase-cost-list">
+          <div class="phase-cost-item"><span>Google TTS</span><span class="badge bg-success-subtle text-success">Free up to 1M chars/mo</span></div>
+          <div class="phase-cost-item"><span>OpenAI TTS-1-HD</span><span class="badge bg-success-subtle text-success">~$0.09 / story (6k words)</span></div>
+          <div class="phase-cost-item"><span>ElevenLabs Multilingual v2</span><span class="badge bg-warning-subtle text-warning">~$0.20 / story + plan</span></div>
+        </div>
       </div>
     </div>
+  </div>
+
+  {# ── Phases 3-4: placeholders ── #}
+  <div class="phase-coming-soon-grid">
 
     <div class="card phase-card">
       <div class="card-body text-center py-4">
@@ -384,20 +431,11 @@
         <h6 class="fw-bold">Scene Image Generation</h6>
         <p class="text-muted small mb-3">AI generates the atmospheric background image displayed throughout your story video.</p>
         <div class="phase-cost-list">
-          <div class="phase-cost-item">
-            <span>DALL-E 3</span>
-            <span class="badge bg-warning-subtle text-warning">$0.040 / image</span>
-          </div>
-          <div class="phase-cost-item">
-            <span>Stability AI</span>
-            <span class="badge bg-success-subtle text-success">$0.020 / image</span>
-          </div>
-          <div class="phase-cost-item">
-            <span>Ideogram</span>
-            <span class="badge bg-warning-subtle text-warning">$0.080 / image</span>
-          </div>
+          <div class="phase-cost-item"><span>DALL-E 3</span><span class="badge bg-warning-subtle text-warning">$0.040 / image</span></div>
+          <div class="phase-cost-item"><span>Stability AI</span><span class="badge bg-success-subtle text-success">$0.020 / image</span></div>
+          <div class="phase-cost-item"><span>Ideogram</span><span class="badge bg-warning-subtle text-warning">$0.080 / image</span></div>
         </div>
-        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 2</span>
+        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 3</span>
       </div>
     </div>
 
@@ -407,18 +445,9 @@
         <h6 class="fw-bold">5-Second Intro Video</h6>
         <p class="text-muted small mb-3">Animated opening clip from the scene image. Plays then freezes as story narration begins.</p>
         <div class="phase-cost-list">
-          <div class="phase-cost-item">
-            <span>LTX-2 API</span>
-            <span class="badge bg-success-subtle text-success">~$0.30 / clip</span>
-          </div>
-          <div class="phase-cost-item">
-            <span>RunwayML Gen-3</span>
-            <span class="badge bg-warning-subtle text-warning">~$0.50 / clip</span>
-          </div>
-          <div class="phase-cost-item">
-            <span>Title Card (ffmpeg)</span>
-            <span class="badge bg-success-subtle text-success">Free</span>
-          </div>
+          <div class="phase-cost-item"><span>LTX-2 API</span><span class="badge bg-success-subtle text-success">~$0.30 / clip</span></div>
+          <div class="phase-cost-item"><span>RunwayML Gen-3</span><span class="badge bg-warning-subtle text-warning">~$0.50 / clip</span></div>
+          <div class="phase-cost-item"><span>Title Card (ffmpeg)</span><span class="badge bg-success-subtle text-success">Free</span></div>
         </div>
         <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 3</span>
       </div>
@@ -428,16 +457,10 @@
       <div class="card-body text-center py-4">
         <i class="bi bi-closed-caption-fill fs-2 mb-2" style="color:#20c997"></i>
         <h6 class="fw-bold">Closed Captions</h6>
-        <p class="text-muted small mb-3">Auto-generated SRT captions synced to narration. Burned in or attached as separate file.</p>
+        <p class="text-muted small mb-3">Auto-generated SRT captions synced to narration. Burned in or attached as a separate file.</p>
         <div class="phase-cost-list">
-          <div class="phase-cost-item">
-            <span>OpenAI Whisper</span>
-            <span class="badge bg-success-subtle text-success">~$0.006 / story</span>
-          </div>
-          <div class="phase-cost-item">
-            <span>TTS timestamps</span>
-            <span class="badge bg-success-subtle text-success">Free (from TTS output)</span>
-          </div>
+          <div class="phase-cost-item"><span>OpenAI Whisper</span><span class="badge bg-success-subtle text-success">~$0.006 / story</span></div>
+          <div class="phase-cost-item"><span>TTS timestamps</span><span class="badge bg-success-subtle text-success">Free (from TTS output)</span></div>
         </div>
         <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 4</span>
       </div>
@@ -449,14 +472,8 @@
         <h6 class="fw-bold">Background Music</h6>
         <p class="text-muted small mb-3">Genre-matched royalty-free music plays softly under the narration throughout the video.</p>
         <div class="phase-cost-list">
-          <div class="phase-cost-item">
-            <span>Included library</span>
-            <span class="badge bg-success-subtle text-success">Free (bundled)</span>
-          </div>
-          <div class="phase-cost-item">
-            <span>Epidemic Sound</span>
-            <span class="badge bg-warning-subtle text-warning">$15/mo subscription</span>
-          </div>
+          <div class="phase-cost-item"><span>Included library</span><span class="badge bg-success-subtle text-success">Free (bundled)</span></div>
+          <div class="phase-cost-item"><span>Epidemic Sound</span><span class="badge bg-warning-subtle text-warning">$15/mo subscription</span></div>
         </div>
         <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 4</span>
       </div>
@@ -466,12 +483,9 @@
       <div class="card-body text-center py-4">
         <i class="bi bi-film fs-2 mb-2" style="color:#dc3545"></i>
         <h6 class="fw-bold">Video Assembly</h6>
-        <p class="text-muted small mb-3">ffmpeg combines intro clip + frozen frame + voice + music + captions into final MP4 for YouTube.</p>
+        <p class="text-muted small mb-3">ffmpeg combines intro clip + frozen frame + voice + music + captions into final MP4.</p>
         <div class="phase-cost-list">
-          <div class="phase-cost-item">
-            <span>ffmpeg (local)</span>
-            <span class="badge bg-success-subtle text-success">Free — runs on your machine</span>
-          </div>
+          <div class="phase-cost-item"><span>ffmpeg (local)</span><span class="badge bg-success-subtle text-success">Free — runs on your machine</span></div>
         </div>
         <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Phase 4</span>
       </div>
@@ -481,9 +495,9 @@
 
   <div class="alert mt-4" style="background:rgba(13,202,240,.08);border:1px solid rgba(13,202,240,.2);border-radius:1rem;">
     <i class="bi bi-info-circle me-2 text-info"></i>
-    <strong>Total estimated cost per story</strong> (all phases, mid-range options):
-    <span class="fw-bold text-white">~$0.50 – $0.90 per complete video</span>
-    <span class="text-muted small d-block mt-1">Story generation ($0.046) + voice ($0.09) + scene image ($0.04) + intro clip ($0.30) + captions ($0.006) + music (free) + assembly (free) = ~$0.48 using recommended options.</span>
+    <strong>Total estimated cost per complete video</strong> (mid-range options):
+    <span class="fw-bold text-white">~$0.48 – $0.90</span>
+    <span class="text-muted small d-block mt-1">Story ($0.046) + voice ($0.09) + scene image ($0.04) + intro clip ($0.30) + captions ($0.006) + music (free) + assembly (free)</span>
   </div>
 </div>
 
@@ -1457,8 +1471,130 @@ function _vcsOp(label, apiFn, onFinally) {
 
 // Load VCS on section switch
 document.addEventListener('sectionChanged', function(e) {
-  if (e.detail && e.detail.section === 'vcs') vcsRefresh();
+  if (e.detail && e.detail.section === 'vcs')        vcsRefresh();
+  if (e.detail && e.detail.section === 'production') initVoicePanel();
 });
+
+// ── Voice Narration (Phase 2) ─────────────────────────────────────────────────
+var _voiceProviders    = [];
+var _selVoiceProvider  = 'google_tts';
+var _voicePanelInited  = false;
+
+function initVoicePanel() {
+  if (_voicePanelInited) return;
+  _voicePanelInited = true;
+  // Load voice providers
+  fetch('/api/voice/providers').then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) return;
+    _voiceProviders = d.providers;
+    _renderVoiceProviderBtns();
+    selectVoiceProvider('google_tts');
+  });
+  // Populate story selector from archive
+  fetch('/api/stories').then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) return;
+    var sel = document.getElementById('voiceStorySelect');
+    if (!sel) return;
+    d.stories.forEach(function(s) {
+      var opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = (s.title || 'Untitled') + ' (' + fmtNum(s.word_count) + ' words)';
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function _renderVoiceProviderBtns() {
+  var el = document.getElementById('voiceProviderBtns');
+  if (!el) return;
+  el.innerHTML = _voiceProviders.map(function(p) {
+    return '<button class="btn btn-sm btn-outline-secondary vprov-btn" id="vprov-' + p.id + '"'
+      + ' onclick="selectVoiceProvider(\'' + p.id + '\')">'
+      + '<i class="bi bi-' + p.icon + ' me-1"></i>' + escHtml(p.name)
+      + '<span class="ms-1" style="font-size:.65rem;opacity:.7;">' + escHtml(p.cost_note) + '</span>'
+      + '</button>';
+  }).join('');
+}
+
+function selectVoiceProvider(id) {
+  _selVoiceProvider = id;
+  document.querySelectorAll('.vprov-btn').forEach(function(b) { b.classList.remove('active','btn-primary'); b.classList.add('btn-outline-secondary'); });
+  var btn = document.getElementById('vprov-' + id);
+  if (btn) { btn.classList.remove('btn-outline-secondary'); btn.classList.add('active','btn-primary'); }
+  var prov = _voiceProviders.find(function(p){ return p.id === id; });
+  if (!prov) return;
+  // Populate voice select
+  var vsel = document.getElementById('voiceVoiceSelect');
+  if (vsel) {
+    vsel.innerHTML = prov.voices.map(function(v) {
+      return '<option value="' + escHtml(v.id) + '">' + escHtml(v.name) + ' — ' + escHtml(v.desc) + '</option>';
+    }).join('');
+    vsel.value = prov.default_voice;
+  }
+  // Populate model select
+  var msel = document.getElementById('voiceModelSelect');
+  if (msel) {
+    msel.innerHTML = prov.models.map(function(m) {
+      return '<option value="' + escHtml(m.id) + '">' + escHtml(m.name) + ' — ' + escHtml(m.desc) + '</option>';
+    }).join('');
+    msel.value = prov.default_model;
+  }
+  updateVoiceCost();
+}
+
+function onVoiceStoryChange() { updateVoiceCost(); }
+
+function updateVoiceCost() {
+  var badge = document.getElementById('voiceCostBadge');
+  if (!badge) return;
+  var storyId = document.getElementById('voiceStorySelect')?.value;
+  if (!storyId) { badge.textContent = ''; return; }
+  var prov = _voiceProviders.find(function(p){ return p.id === _selVoiceProvider; });
+  if (!prov) return;
+  // Fetch the story word count to estimate chars (~5 chars/word)
+  var opt = document.getElementById('voiceStorySelect')?.options[document.getElementById('voiceStorySelect').selectedIndex];
+  var match = opt ? (opt.textContent.match(/(\d[\d,]*)\s+words/) || []) : [];
+  var words = match[1] ? parseInt(match[1].replace(/,/g,'')) : 6000;
+  var chars = words * 5;
+  var cost  = (chars / 1000) * prov.cost_per_1k_chars;
+  badge.textContent = cost > 0 ? 'est. cost: $' + cost.toFixed(4) : 'Free';
+}
+
+function startNarration() {
+  var storyId = document.getElementById('voiceStorySelect')?.value;
+  if (!storyId) { showToast('Select a story to narrate first.', 'warning'); return; }
+  var voiceId = document.getElementById('voiceVoiceSelect')?.value || '';
+  var modelId = document.getElementById('voiceModelSelect')?.value || '';
+  var btn     = document.getElementById('voiceBtnNarrate');
+  var status  = document.getElementById('voiceStatus');
+  if (btn)    btn.disabled = true;
+  if (status) status.textContent = 'Generating narration… this may take 1-5 minutes.';
+
+  fetch('/api/voice/narrate/' + storyId, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider_id: _selVoiceProvider, voice: voiceId, model: modelId }),
+  }).then(function(resp) {
+    if (!resp.ok) {
+      return resp.json().then(function(d) { throw new Error(d.error || 'Narration failed'); });
+    }
+    return resp.blob();
+  }).then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var player = document.getElementById('voicePlayer');
+    var dlLink = document.getElementById('voiceDownloadLink');
+    var area   = document.getElementById('voicePlayerArea');
+    if (player) { player.src = url; player.load(); }
+    if (dlLink) { dlLink.href = url; dlLink.download = 'narration_' + storyId + '.mp3'; }
+    if (area)   area.classList.remove('d-none');
+    if (btn)    btn.disabled = false;
+    if (status) status.textContent = 'Narration complete!';
+    showToast('Narration generated and ready to play.', 'success');
+  }).catch(function(e) {
+    if (btn)    btn.disabled = false;
+    if (status) status.textContent = '';
+    showToast('Narration error: ' + e.message, 'danger');
+  });
+}
 
 // ── Hints tooltips ───────────────────────────────────────────────────────────
 var _stHintInstances = [];
