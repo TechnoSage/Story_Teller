@@ -9,6 +9,8 @@ import os
 import threading as _th
 import time as _hbt
 
+import subprocess as _sp
+
 from flask import (Flask, Response, jsonify, render_template,
                    request, send_file, stream_with_context)
 
@@ -295,5 +297,96 @@ def create_app() -> Flask:
     @app.route("/api/stats")
     def api_stats():
         return jsonify({"ok": True, "stats": _db.story_stats()})
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # GIT / VCS API  (repo = BASE_DIR — Story Teller's own directory)
+    # ══════════════════════════════════════════════════════════════════════════
+    _CREATE_NO_WINDOW = 0x08000000
+
+    def _git(*args: str, timeout: int = 20) -> tuple[str, int]:
+        import platform as _p
+        cf = _CREATE_NO_WINDOW if _p.system() == "Windows" else 0
+        try:
+            r = _sp.run(
+                ["git", *args], cwd=BASE_DIR,
+                capture_output=True, text=True,
+                timeout=timeout, creationflags=cf,
+            )
+            return (r.stdout + r.stderr).strip(), r.returncode
+        except Exception as exc:
+            return str(exc), 1
+
+    @app.route("/api/git/status")
+    def api_git_status():
+        branch, _ = _git("rev-parse", "--abbrev-ref", "HEAD")
+        status, _ = _git("status", "--short")
+        log,    _ = _git("log", "--oneline", "-12")
+        diff_stat, _ = _git("diff", "--stat", "HEAD")
+        remote, _ = _git("remote", "get-url", "origin")
+        return jsonify({
+            "ok":             True,
+            "branch":         branch or "(unknown)",
+            "dirty":          bool(status.strip()),
+            "status":         status.strip() or "(clean — nothing to commit)",
+            "recent_log":     log.strip() or "(no commits)",
+            "diff_stat":      diff_stat.strip(),
+            "remote":         remote.strip(),
+        })
+
+    @app.route("/api/git/commit-push", methods=["POST"])
+    def api_git_commit_push():
+        data   = request.get_json(silent=True) or {}
+        msg    = (data.get("message") or "").strip()
+        branch = (data.get("branch") or "development").strip()
+        if not msg:
+            return jsonify({"ok": False, "error": "Commit message is required."})
+        add_out, rc = _git("add", "-A")
+        if rc != 0:
+            return jsonify({"ok": False, "error": f"git add failed:\n{add_out}"})
+        cmt_out, rc = _git("commit", "-m", msg, timeout=30)
+        if rc != 0 and "nothing to commit" not in cmt_out:
+            return jsonify({"ok": False, "error": f"git commit failed:\n{cmt_out}"})
+        psh_out, rc = _git("push", "origin", branch, timeout=60)
+        if rc != 0:
+            return jsonify({"ok": False, "error": f"git push failed:\n{psh_out}"})
+        return jsonify({"ok": True, "output": f"{cmt_out}\n{psh_out}".strip()})
+
+    @app.route("/api/git/pull", methods=["POST"])
+    def api_git_pull():
+        out, rc = _git("pull", "--rebase", timeout=60)
+        if rc != 0:
+            return jsonify({"ok": False, "error": f"git pull failed:\n{out}"})
+        return jsonify({"ok": True, "output": out})
+
+    @app.route("/api/git/merge-main", methods=["POST"])
+    def api_git_merge_main():
+        """Merge development → main, push main, return to development."""
+        # Determine current/dev branch
+        cur, _ = _git("rev-parse", "--abbrev-ref", "HEAD")
+        dev = cur.strip() or "development"
+        # Checkout main
+        out1, rc = _git("checkout", "main")
+        if rc != 0:
+            return jsonify({"ok": False, "error": f"checkout main failed:\n{out1}"})
+        # Merge
+        out2, rc = _git("merge", "--no-ff", dev,
+                        "-m", f"release: merge {dev} → main", timeout=30)
+        if rc != 0:
+            _git("checkout", dev)
+            return jsonify({"ok": False, "error": f"merge failed:\n{out2}"})
+        # Push main
+        out3, rc = _git("push", "origin", "main", timeout=60)
+        if rc != 0:
+            _git("checkout", dev)
+            return jsonify({"ok": False, "error": f"push main failed:\n{out3}"})
+        # Return to dev
+        _git("checkout", dev)
+        return jsonify({"ok": True, "output": f"{out2}\n{out3}".strip()})
+
+    @app.route("/api/git/branches")
+    def api_git_branches():
+        out, _ = _git("branch", "-a")
+        branches = [b.strip().lstrip("* ") for b in out.splitlines() if b.strip()]
+        return jsonify({"ok": True, "branches": branches})
 
     return app
