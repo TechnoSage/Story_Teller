@@ -100,7 +100,8 @@ logger = logging.getLogger("daemon")
 PID_FILE    = os.path.join(PROJECT_DIR, "daemon.pid")
 ICON_SIGNAL = os.path.join(PROJECT_DIR, "icon_refresh_daemon.signal")
 
-_stop_event = threading.Event()
+_stop_event = threading.Event()   # signals the work loop to stop
+_user_quit  = threading.Event()   # set ONLY on intentional exit (tray Exit / SIGTERM)
 _tray_icon  = None
 
 
@@ -134,6 +135,71 @@ def _read_settings() -> dict:
 
 def _get(key: str, default):
     return _read_settings().get(key, default)
+
+
+# ---------------------------------------------------------------------------
+# Restart logic — up to _MAX_RESTARTS automatic restarts before giving up
+# ---------------------------------------------------------------------------
+_MAX_RESTARTS    = 5
+_RESTART_BACKOFF = [5, 15, 30, 60, 120]   # seconds to wait before each attempt
+
+
+def _restart_self(reason: str, restart_count: int) -> None:
+    """Spawn a replacement daemon process, tracking how many times we've done this.
+
+    Tries sys.executable first, then sys._base_executable, then real .exe files
+    found next to sys.executable — handles MS Store Python stubs that
+    CreateProcess cannot spawn directly (WinError 2).
+
+    If restart_count >= _MAX_RESTARTS the daemon stops permanently and logs the
+    failure. The caller should call os._exit() after this returns.
+    """
+    if restart_count >= _MAX_RESTARTS:
+        logger.error(
+            "RESTART LIMIT REACHED (%d/%d) — reason: %s"
+            " — daemon will not restart automatically.",
+            restart_count, _MAX_RESTARTS, reason,
+        )
+        return
+
+    attempt  = restart_count + 1
+    wait     = _RESTART_BACKOFF[min(restart_count, len(_RESTART_BACKOFF) - 1)]
+    logger.warning(
+        "DAEMON RESTART %d/%d in %d s — reason: %s",
+        attempt, _MAX_RESTARTS, wait, reason,
+    )
+    time.sleep(wait)
+
+    import subprocess as _sp
+    _flags  = 0
+    if sys.platform == "win32":
+        _flags = _sp.CREATE_NO_WINDOW | _sp.DETACHED_PROCESS
+
+    _script     = os.path.abspath(__file__)
+    _candidates: list[str] = [sys.executable]
+    _base = getattr(sys, "_base_executable", None)
+    if _base and _base != sys.executable:
+        _candidates.append(_base)
+    _exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+    for _name in ("pythonw.exe", "python.exe"):
+        _p = os.path.join(_exe_dir, _name)
+        if os.path.isfile(_p) and os.path.getsize(_p) > 0 and _p not in _candidates:
+            _candidates.append(_p)
+
+    for _exe in _candidates:
+        try:
+            _cmd = [_exe, _script, f"--restart-count={attempt}"]
+            logger.info("Restart via: [%s] %s (attempt %d/%d)", _exe, _script, attempt, _MAX_RESTARTS)
+            _sp.Popen(_cmd, creationflags=_flags, close_fds=True)
+            logger.info("Replacement process launched successfully.")
+            return
+        except Exception as _exc:
+            logger.warning("Launch via %s failed: %s", _exe, _exc)
+
+    logger.error(
+        "All Python exe candidates failed for restart attempt %d — daemon will not restart.",
+        attempt,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -260,6 +326,7 @@ def _icon_refresh_loop() -> None:
 
 def run_with_tray() -> None:
     global _tray_icon
+
     import pystray  # type: ignore
 
     loop_thread    = threading.Thread(target=_check_loop,        name="task-loop",    daemon=True)
@@ -292,7 +359,7 @@ def run_with_tray() -> None:
 
         if not _alive():
             _run_py = os.path.join(PROJECT_DIR, "run.py")
-            _python = shutil.which("python") or shutil.which("python3") or sys.executable  # type: ignore
+            _python = _shutil.which("python") or _shutil.which("python3") or sys.executable  # type: ignore
             _flags  = 0
             if sys.platform == "win32":
                 _flags = _sp.CREATE_NO_WINDOW | _sp.DETACHED_PROCESS
@@ -315,8 +382,29 @@ def run_with_tray() -> None:
         webbrowser.open(_url)
 
     def on_exit(icon, item):  # noqa: ANN001
+        logger.info("Tray exit — stopping daemon.")
+        _user_quit.set()   # intentional stop — suppress restart in main()
         _stop_event.set()
         icon.stop()
+
+    # Watchdog: if the task loop thread dies while the tray is still up,
+    # stop the tray so main() can detect the unexpected exit and restart.
+    def _loop_watchdog() -> None:
+        loop_thread.join()
+        if not _user_quit.is_set():
+            logger.error(
+                "Task loop thread exited unexpectedly — triggering daemon restart."
+            )
+            _stop_event.set()
+            if _tray_icon is not None:
+                try:
+                    _tray_icon.stop()
+                except Exception:
+                    pass
+            time.sleep(2)
+            os._exit(1)   # fallback if tray doesn't stop
+
+    threading.Thread(target=_loop_watchdog, name="loop-watchdog", daemon=True).start()
 
     menu = pystray.Menu(
         pystray.MenuItem(f"{APP_NAME} Daemon", None, enabled=False),
@@ -334,7 +422,8 @@ def run_with_tray() -> None:
         menu,
     )
     _tray_icon = icon
-    icon.run()
+    logger.info("Tray icon started — right-click for options.")
+    icon.run()   # blocks until on_exit() calls icon.stop()
 
     _stop_event.set()
     loop_thread.join(timeout=5)
@@ -351,6 +440,8 @@ def run_daemon() -> None:
     _write_pid()
 
     def _handle_stop(sig, frame):  # noqa: ANN001
+        logger.info("Stop signal received.")
+        _user_quit.set()
         _stop_event.set()
 
     signal.signal(signal.SIGTERM, _handle_stop)
@@ -360,7 +451,9 @@ def run_daemon() -> None:
     try:
         _check_loop()
     except KeyboardInterrupt:
-        pass
+        logger.info("Interrupted.")
+        _user_quit.set()
+        _stop_event.set()
     finally:
         _remove_pid()
         logger.info("Daemon exited.")
@@ -372,23 +465,45 @@ def run_daemon() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=f"{APP_NAME} Background Daemon")
-    parser.add_argument("--once",    action="store_true", help="Run one task cycle and exit.")
-    parser.add_argument("--no-tray", action="store_true", help="Force headless mode.")
+    parser.add_argument("--once",          action="store_true", help="Run one task cycle and exit.")
+    parser.add_argument("--no-tray",       action="store_true", help="Force headless mode.")
+    parser.add_argument("--restart-count", type=int, default=0, help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     if args.once:
         _run_background_task()
         return
 
-    _write_pid()
+    if args.restart_count > 0:
+        logger.info(
+            "Daemon restarted (attempt %d/%d).",
+            args.restart_count, _MAX_RESTARTS,
+        )
 
+    _write_pid()
     use_tray = not args.no_tray and bool(_get("show_tray_icon", True))
 
-    if use_tray and _ensure_tray_deps():
-        run_with_tray()
-        return
+    _crash: Exception | None = None
+    try:
+        if use_tray and _ensure_tray_deps():
+            run_with_tray()
+        else:
+            run_daemon()
+    except Exception as exc:
+        _crash = exc
+        logger.error("Daemon crashed unexpectedly: %s", exc, exc_info=True)
+        _remove_pid()
 
-    run_daemon()
+    # If _user_quit is set the user (or OS) intentionally stopped the daemon.
+    # Anything else — crash, pystray exit, loop death — triggers a restart.
+    if not _user_quit.is_set():
+        _reason = (
+            f"unhandled exception: {_crash}"
+            if _crash is not None
+            else "unexpected exit without clean stop request"
+        )
+        _restart_self(_reason, args.restart_count)
+        os._exit(1)
 
 
 if __name__ == "__main__":
