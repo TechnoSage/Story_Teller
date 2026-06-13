@@ -391,6 +391,28 @@
           <select id="voiceModelSelect" class="form-select form-select-sm" onchange="updateVoiceCost()"></select>
         </div>
 
+        {# ElevenLabs fine-tune controls — shown only when ElevenLabs is selected #}
+        <div id="elabsControls" class="col-12 d-none">
+          <div class="d-flex flex-wrap gap-3 p-2 rounded-2" style="background:rgba(255,193,7,.06);border:1px solid rgba(255,193,7,.15);">
+            <div style="flex:1 1 200px;">
+              <label class="form-label small text-warning mb-1">Stability <span class="text-muted fw-normal">(40-55% = natural story range)</span></label>
+              <div class="d-flex align-items-center gap-2">
+                <input type="range" id="elabsStability" min="0" max="100" value="50" class="form-range" style="flex:1;"
+                       oninput="document.getElementById('elabsStabilityVal').textContent=this.value+'%'">
+                <span id="elabsStabilityVal" class="small text-muted" style="min-width:2.5rem;">50%</span>
+              </div>
+            </div>
+            <div style="flex:1 1 200px;">
+              <label class="form-label small text-warning mb-1">Style Exaggeration <span class="text-muted fw-normal">(10-50% = dramatic storytelling)</span></label>
+              <div class="d-flex align-items-center gap-2">
+                <input type="range" id="elabsStyle" min="0" max="100" value="25" class="form-range" style="flex:1;"
+                       oninput="document.getElementById('elabsStyleVal').textContent=this.value+'%'">
+                <span id="elabsStyleVal" class="small text-muted" style="min-width:2.5rem;">25%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div class="d-flex gap-3 align-items-center mt-3 flex-wrap">
@@ -505,9 +527,18 @@
         </div>
         <div class="col-md-3">
           <label class="form-label small text-muted">Caption method</label>
-          <select id="vidCaptionMode" class="form-select form-select-sm">
+          <select id="vidCaptionMode" class="form-select form-select-sm" onchange="onCaptionModeChange()">
             <option value="estimate">Estimate from text (free)</option>
-            <option value="whisper">Whisper transcription (~$0.006)</option>
+            <option value="whisper">Whisper — standard (~$0.006)</option>
+            <option value="whisper_word">Whisper — word-level, for karaoke (~$0.006)</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Caption style</label>
+          <select id="vidCaptionStyle" class="form-select form-select-sm" onchange="onCaptionStyleChange()">
+            <option value="standard">Standard (white on dark bar)</option>
+            <option value="karaoke">Karaoke (word-highlight)</option>
+            <option value="none">No captions</option>
           </select>
         </div>
         <div class="col-md-3">
@@ -519,16 +550,29 @@
             <option value="0.12">Medium (12%)</option>
           </select>
         </div>
-        <div class="col-md-6">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="vidBurnCaps" checked>
-            <label class="form-check-label small" for="vidBurnCaps">Burn captions into video</label>
+        <div class="col-md-9">
+          <div class="d-flex flex-wrap gap-3 mt-1">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="vidBurnCaps" checked>
+              <label class="form-check-label small" for="vidBurnCaps">Burn captions into video pixels</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="vidIncludeIntro">
+              <label class="form-check-label small" for="vidIncludeIntro">
+                Prepend intro clip <span class="text-muted">(generate below first)</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
+      <div id="karaokeNote" class="mt-2 p-2 rounded-2 d-none"
+           style="background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.2);">
+        <i class="bi bi-info-circle me-1 text-warning"></i>
+        <span class="small text-warning">Karaoke style requires <strong>Whisper word-level</strong> — auto-selected above. Generate captions first, then assemble.</span>
+      </div>
       <div class="d-flex gap-2 flex-wrap mt-3">
         <button class="btn btn-outline-secondary btn-sm" onclick="generateCaptions()">
-          <i class="bi bi-closed-caption me-1"></i>Generate Captions Only
+          <i class="bi bi-closed-caption me-1"></i>Generate Captions
         </button>
         <button id="vidBtnAssemble" class="btn btn-danger" onclick="assembleVideo()">
           <i class="bi bi-film me-1"></i>Assemble Full Video
@@ -536,41 +580,93 @@
         <span id="vidStatus" class="text-muted small align-self-center"></span>
       </div>
       <div id="vidCaptionPreview" class="mt-3 d-none">
-        <label class="form-label small text-muted">Generated SRT captions preview</label>
+        <label class="form-label small text-muted">Generated captions preview (SRT)</label>
         <pre class="vcs-log" style="max-height:180px;"></pre>
-        <a id="vidSrtDownload" class="btn btn-xs btn-outline-secondary mt-1" download>
-          <i class="bi bi-download me-1"></i>Download .srt
-        </a>
+        <div class="d-flex gap-2 mt-1 flex-wrap">
+          <a id="vidSrtDownload" class="btn btn-xs btn-outline-secondary" download>
+            <i class="bi bi-download me-1"></i>Download .srt
+          </a>
+          <a id="vidAssDownload" class="btn btn-xs btn-outline-warning d-none" download>
+            <i class="bi bi-download me-1"></i>Download .ass (karaoke)
+          </a>
+        </div>
       </div>
     </div>
   </div>
 
-  {# ── Phase 3b: 5-sec intro placeholder ── #}
-  <div class="phase-coming-soon-grid">
-    <div class="card phase-card">
-      <div class="card-body text-center py-4">
-        <i class="bi bi-camera-video-fill fs-2 mb-2" style="color:#0dcaf0"></i>
-        <h6 class="fw-bold">5-Second Intro Video</h6>
-        <p class="text-muted small mb-3">Animated opening clip from the scene image. Plays then freezes as story narration begins.</p>
-        <div class="phase-cost-list">
-          <div class="phase-cost-item"><span>LTX-2 API</span><span class="badge bg-success-subtle text-success">~$0.30 / clip</span></div>
-          <div class="phase-cost-item"><span>RunwayML Gen-3</span><span class="badge bg-warning-subtle text-warning">~$0.50 / clip</span></div>
-          <div class="phase-cost-item"><span>Title Card (ffmpeg)</span><span class="badge bg-success-subtle text-success">Free</span></div>
+  {# ── Phase 4b: Intro Clip Generator (LIVE) ── #}
+  <div class="card mb-4">
+    <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+      <h6 class="fw-bold mb-0 flex-grow-1">
+        <i class="bi bi-camera-video-fill me-1" style="color:#0dcaf0"></i>Intro Clip Generator
+        <span class="badge ms-2" style="background:rgba(25,135,84,.2);color:#75b798;font-size:.68rem;">Phase 4b — Live</span>
+      </h6>
+    </div>
+    <div class="card-body">
+      <div class="text-muted small mb-3">
+        Generates a <strong class="text-white">hook clip</strong> — the narrator reads the opening 3 sentences of your story over the scene image with the title displayed. Prepended to your final video to grab viewers in the first 5 seconds (the YouTube retention make-or-break moment).
+      </div>
+      <div class="row g-3">
+        <div class="col-md-5">
+          <label class="form-label small text-muted">Story</label>
+          <select id="introStorySelect" class="form-select form-select-sm">
+            <option value="">— Select a saved story —</option>
+          </select>
         </div>
-        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Coming — Phase 3b</span>
+        <div class="col-md-4">
+          <label class="form-label small text-muted">Voice provider</label>
+          <select id="introVoiceProviderSelect" class="form-select form-select-sm" onchange="onIntroProviderChange()"></select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Voice</label>
+          <select id="introVoiceSelect" class="form-select form-select-sm"></select>
+        </div>
+      </div>
+      <div class="mt-3 p-2 rounded-2" style="background:rgba(13,202,240,.06);border:1px solid rgba(13,202,240,.15);">
+        <i class="bi bi-lightbulb me-1 text-info"></i>
+        <span class="small text-muted"><strong class="text-info">How it works:</strong> Extracts the first 3 sentences from your story as a teaser, runs them through TTS, then uses ffmpeg to overlay the story title on your scene image. Free beyond TTS cost (~$0.003 for 3 sentences). Enable "Prepend intro clip" in Phase 4 to include it in your final video.</span>
+      </div>
+      <div class="d-flex gap-2 flex-wrap mt-3 align-items-center">
+        <button class="btn btn-sm" style="background:#0dcaf0;color:#000;" onclick="generateIntroClip()">
+          <i class="bi bi-camera-video-fill me-1"></i>Generate Intro Clip
+        </button>
+        <span id="introStatus" class="text-muted small align-self-center"></span>
+      </div>
+      <div id="introPreviewArea" class="mt-3 d-none">
+        <label class="form-label small text-muted">Intro clip preview</label>
+        <video id="introPreview" controls class="w-100" style="border-radius:.75rem;max-height:240px;background:#000;"></video>
+        <div class="mt-1 p-2 rounded-2 small" style="background:rgba(0,0,0,.25);color:#adb5bd;">
+          <strong class="text-info">Teaser narrated:</strong> <span id="introTeaserText" class="fst-italic"></span>
+        </div>
+        <div class="d-flex gap-2 mt-2">
+          <a id="introDownloadLink" class="btn btn-sm btn-outline-info" download>
+            <i class="bi bi-download me-1"></i>Download intro.mp4
+          </a>
+        </div>
+      </div>
+      <div class="mt-3">
+        <div class="text-muted mb-1" style="font-size:.72rem;letter-spacing:.04em;">INTRO CLIP COST</div>
+        <div class="phase-cost-list">
+          <div class="phase-cost-item"><span>Title card overlay (ffmpeg)</span><span class="badge bg-success-subtle text-success">Free</span></div>
+          <div class="phase-cost-item"><span>Teaser TTS (~3 sentences via Google TTS)</span><span class="badge bg-success-subtle text-success">Free</span></div>
+          <div class="phase-cost-item"><span>Teaser TTS (OpenAI TTS-1-HD)</span><span class="badge bg-success-subtle text-success">&lt;$0.005</span></div>
+          <div class="phase-cost-item"><span>Teaser TTS (ElevenLabs)</span><span class="badge bg-success-subtle text-success">&lt;$0.01</span></div>
+        </div>
       </div>
     </div>
-    <div class="card phase-card">
-      <div class="card-body text-center py-4">
-        <i class="bi bi-music-note-beamed fs-2 mb-2" style="color:#ffc107"></i>
-        <h6 class="fw-bold">Background Music Library</h6>
-        <p class="text-muted small mb-3">Bundled royalty-free genre-matched tracks for HFYCinema-style ambient audio.</p>
-        <div class="phase-cost-list">
-          <div class="phase-cost-item"><span>Included library</span><span class="badge bg-success-subtle text-success">Free (bundled)</span></div>
-          <div class="phase-cost-item"><span>Epidemic Sound</span><span class="badge bg-warning-subtle text-warning">$15/mo subscription</span></div>
-        </div>
-        <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Coming — Phase 4b</span>
+  </div>
+
+  {# ── Background Music placeholder ── #}
+  <div class="card phase-card mb-4">
+    <div class="card-body text-center py-4">
+      <i class="bi bi-music-note-beamed fs-2 mb-2" style="color:#ffc107"></i>
+      <h6 class="fw-bold">Background Music Library</h6>
+      <p class="text-muted small mb-3">Bundled royalty-free genre-matched tracks for HFYCinema-style ambient audio.</p>
+      <div class="phase-cost-list">
+        <div class="phase-cost-item"><span>Included library</span><span class="badge bg-success-subtle text-success">Free (bundled)</span></div>
+        <div class="phase-cost-item"><span>Epidemic Sound</span><span class="badge bg-warning-subtle text-warning">$15/mo subscription</span></div>
       </div>
+      <span class="badge mt-3" style="background:rgba(108,117,125,.2);color:#adb5bd;">Coming — Phase 5</span>
     </div>
   </div>
 
@@ -1570,17 +1666,19 @@ function initVoicePanel() {
     _voiceProviders = d.providers;
     _renderVoiceProviderBtns();
     selectVoiceProvider('google_tts');
+    _populateIntroProviders();
   });
-  // Populate story selector from archive
+  // Populate story selectors (voice, caption/assembly, intro)
   fetch('/api/stories').then(function(r){ return r.json(); }).then(function(d) {
     if (!d.ok) return;
-    var sel = document.getElementById('voiceStorySelect');
-    if (!sel) return;
-    d.stories.forEach(function(s) {
-      var opt = document.createElement('option');
-      opt.value = s.id;
-      opt.textContent = (s.title || 'Untitled') + ' (' + fmtNum(s.word_count) + ' words)';
-      sel.appendChild(opt);
+    var storyHtml = '<option value="">— Select a saved story —</option>' +
+      d.stories.map(function(s) {
+        return '<option value="' + s.id + '">' +
+          escHtml((s.title || 'Untitled') + ' (' + fmtNum(s.word_count) + ' words)') + '</option>';
+      }).join('');
+    ['voiceStorySelect', 'vidStorySelect', 'introStorySelect'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = storyHtml;
     });
   });
 }
@@ -1620,6 +1718,9 @@ function selectVoiceProvider(id) {
     }).join('');
     msel.value = prov.default_model;
   }
+  // Show ElevenLabs fine-tune controls only when ElevenLabs is selected
+  var elabs = document.getElementById('elabsControls');
+  if (elabs) elabs.classList.toggle('d-none', id !== 'elevenlabs');
   updateVoiceCost();
 }
 
@@ -1642,18 +1743,21 @@ function updateVoiceCost() {
 }
 
 function startNarration() {
-  var storyId = document.getElementById('voiceStorySelect')?.value;
+  var storyId   = document.getElementById('voiceStorySelect')?.value;
   if (!storyId) { showToast('Select a story to narrate first.', 'warning'); return; }
-  var voiceId = document.getElementById('voiceVoiceSelect')?.value || '';
-  var modelId = document.getElementById('voiceModelSelect')?.value || '';
-  var btn     = document.getElementById('voiceBtnNarrate');
-  var status  = document.getElementById('voiceStatus');
+  var voiceId   = document.getElementById('voiceVoiceSelect')?.value || '';
+  var modelId   = document.getElementById('voiceModelSelect')?.value || '';
+  var stability = parseFloat(document.getElementById('elabsStability')?.value || '50') / 100;
+  var styleVal  = parseFloat(document.getElementById('elabsStyle')?.value || '25') / 100;
+  var btn       = document.getElementById('voiceBtnNarrate');
+  var status    = document.getElementById('voiceStatus');
   if (btn)    btn.disabled = true;
   if (status) status.textContent = 'Generating narration… this may take 1-5 minutes.';
 
   fetch('/api/voice/narrate/' + storyId, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ provider_id: _selVoiceProvider, voice: voiceId, model: modelId }),
+    body: JSON.stringify({ provider_id: _selVoiceProvider, voice: voiceId, model: modelId,
+                           stability: stability, style: styleVal }),
   }).then(function(resp) {
     if (!resp.ok) {
       return resp.json().then(function(d) { throw new Error(d.error || 'Narration failed'); });
@@ -1783,11 +1887,33 @@ function startImageGeneration() {
 }
 
 // ── Captions + Video Assembly (Phase 4) ──────────────────────────────────────
+function onCaptionStyleChange() {
+  var style = document.getElementById('vidCaptionStyle')?.value;
+  var note  = document.getElementById('karaokeNote');
+  if (style === 'karaoke') {
+    var modeSelect = document.getElementById('vidCaptionMode');
+    if (modeSelect) modeSelect.value = 'whisper_word';
+    if (note) note.classList.remove('d-none');
+  } else {
+    if (note) note.classList.add('d-none');
+  }
+}
+
+function onCaptionModeChange() {
+  var mode = document.getElementById('vidCaptionMode')?.value;
+  if (mode !== 'whisper_word') {
+    var styleSelect = document.getElementById('vidCaptionStyle');
+    if (styleSelect && styleSelect.value === 'karaoke') styleSelect.value = 'standard';
+    var note = document.getElementById('karaokeNote');
+    if (note) note.classList.add('d-none');
+  }
+}
+
 function generateCaptions() {
   var storyId = document.getElementById('vidStorySelect')?.value;
   if (!storyId) { showToast('Select a story first.', 'warning'); return; }
-  var mode    = document.getElementById('vidCaptionMode')?.value || 'estimate';
-  var status  = document.getElementById('vidStatus');
+  var mode   = document.getElementById('vidCaptionMode')?.value || 'estimate';
+  var status = document.getElementById('vidStatus');
   if (status) status.textContent = 'Generating captions…';
 
   fetch('/api/captions/generate/' + storyId, {
@@ -1795,13 +1921,22 @@ function generateCaptions() {
     body: JSON.stringify({ mode: mode }),
   }).then(function(r){ return r.json(); }).then(function(d) {
     if (!d.ok) { showToast('Caption error: ' + d.error, 'danger'); if (status) status.textContent = ''; return; }
-    var area = document.getElementById('vidCaptionPreview');
-    var pre  = area?.querySelector('pre');
-    var dl   = document.getElementById('vidSrtDownload');
-    if (pre)  pre.textContent  = d.srt.slice(0, 2000) + (d.srt.length > 2000 ? '\n…(truncated)' : '');
-    if (dl)   { dl.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(d.srt); dl.download = 'captions_' + storyId + '.srt'; }
+    var area   = document.getElementById('vidCaptionPreview');
+    var pre    = area?.querySelector('pre');
+    var dl     = document.getElementById('vidSrtDownload');
+    var dlAss  = document.getElementById('vidAssDownload');
+    if (pre)   pre.textContent = d.srt.slice(0, 2000) + (d.srt.length > 2000 ? '\n…(truncated)' : '');
+    if (dl)    { dl.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(d.srt); dl.download = 'captions_' + storyId + '.srt'; }
+    if (dlAss) {
+      if (d.ass) {
+        dlAss.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(d.ass);
+        dlAss.download = 'captions_' + storyId + '.ass';
+        dlAss.classList.remove('d-none');
+      } else { dlAss.classList.add('d-none'); }
+    }
     if (area) area.classList.remove('d-none');
-    if (status) status.textContent = 'Captions ready.';
+    var msg = 'Captions ready.' + (d.has_karaoke ? ' Karaoke ASS file also generated.' : '');
+    if (status) status.textContent = msg;
     showToast('Captions generated.', 'success');
   }).catch(function(e) {
     if (status) status.textContent = '';
@@ -1810,26 +1945,30 @@ function generateCaptions() {
 }
 
 function assembleVideo() {
-  var storyId = document.getElementById('vidStorySelect')?.value;
+  var storyId      = document.getElementById('vidStorySelect')?.value;
   if (!storyId) { showToast('Select a story first.', 'warning'); return; }
-  if (!confirm('Assemble the full video? This requires narration MP3 and scene image to already be generated. ffmpeg will run locally — may take several minutes.')) return;
-  var burn    = document.getElementById('vidBurnCaps')?.checked ?? true;
-  var musicVol = parseFloat(document.getElementById('vidMusicVol')?.value || '0.08');
-  var btn     = document.getElementById('vidBtnAssemble');
-  var status  = document.getElementById('vidStatus');
+  var includeIntro = document.getElementById('vidIncludeIntro')?.checked ?? false;
+  var msg = 'Assemble the full video? Requires narration MP3 + scene image.';
+  if (includeIntro) msg += '\nIntro clip will be prepended if it exists.';
+  if (!confirm(msg)) return;
+  var burn         = document.getElementById('vidBurnCaps')?.checked ?? true;
+  var musicVol     = parseFloat(document.getElementById('vidMusicVol')?.value || '0.08');
+  var captionStyle = document.getElementById('vidCaptionStyle')?.value || 'standard';
+  var btn    = document.getElementById('vidBtnAssemble');
+  var status = document.getElementById('vidStatus');
   if (btn)    btn.disabled = true;
   if (status) status.textContent = 'Running ffmpeg… this may take several minutes.';
 
   fetch('/api/video/assemble/' + storyId, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ burn_captions: burn, music_volume: musicVol }),
+    body: JSON.stringify({ burn_captions: burn, music_volume: musicVol,
+                           caption_style: captionStyle, include_intro: includeIntro }),
   }).then(function(resp) {
     if (!resp.ok) { return resp.json().then(function(d) { throw new Error(d.error || 'Assembly failed'); }); }
     return resp.blob();
   }).then(function(blob) {
     var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url; a.download = 'story_' + storyId + '_video.mp4'; a.click();
+    var a = document.createElement('a'); a.href = url; a.download = 'story_' + storyId + '_video.mp4'; a.click();
     if (btn)    btn.disabled = false;
     if (status) status.textContent = 'Video assembled and downloading!';
     showToast('Video assembled! Downloading now.', 'success');
@@ -1837,6 +1976,61 @@ function assembleVideo() {
     if (btn)    btn.disabled = false;
     if (status) status.textContent = '';
     showToast('Assembly error: ' + e.message, 'danger');
+  });
+}
+
+// ── Intro Clip Generator (Phase 4b) ──────────────────────────────────────────
+function onIntroProviderChange() {
+  var id   = document.getElementById('introVoiceProviderSelect')?.value;
+  var prov = _voiceProviders.find(function(p){ return p.id === id; });
+  var vsel = document.getElementById('introVoiceSelect');
+  if (!vsel || !prov) return;
+  vsel.innerHTML = prov.voices.map(function(v) {
+    return '<option value="' + escHtml(v.id) + '">' + escHtml(v.name) + ' — ' + escHtml(v.desc) + '</option>';
+  }).join('');
+  vsel.value = prov.default_voice;
+}
+
+function _populateIntroProviders() {
+  var sel = document.getElementById('introVoiceProviderSelect');
+  if (!sel || !_voiceProviders.length) return;
+  sel.innerHTML = _voiceProviders.map(function(p) {
+    return '<option value="' + escHtml(p.id) + '">' + escHtml(p.name) + '</option>';
+  }).join('');
+  sel.value = 'openai_tts';
+  onIntroProviderChange();
+  // Populate intro story select
+  var introSel = document.getElementById('introStorySelect');
+  var vidSel   = document.getElementById('vidStorySelect');
+  if (introSel && vidSel) introSel.innerHTML = vidSel.innerHTML;
+}
+
+function generateIntroClip() {
+  var storyId  = document.getElementById('introStorySelect')?.value;
+  if (!storyId) { showToast('Select a story first.', 'warning'); return; }
+  var provider = document.getElementById('introVoiceProviderSelect')?.value || 'openai_tts';
+  var voice    = document.getElementById('introVoiceSelect')?.value || '';
+  var status   = document.getElementById('introStatus');
+  if (status) status.textContent = 'Extracting teaser → generating audio → building clip…';
+
+  fetch('/api/intro/generate/' + storyId, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider_id: provider, voice: voice }),
+  }).then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) { showToast('Intro error: ' + d.error, 'danger'); if (status) status.textContent = ''; return; }
+    var area   = document.getElementById('introPreviewArea');
+    var player = document.getElementById('introPreview');
+    var teaser = document.getElementById('introTeaserText');
+    var dl     = document.getElementById('introDownloadLink');
+    if (player) { player.src = '/api/intro/preview/' + storyId + '?t=' + Date.now(); player.load(); }
+    if (teaser) teaser.textContent = d.teaser_text || '';
+    if (dl)     { dl.href = '/api/intro/preview/' + storyId; dl.download = 'intro_' + storyId + '.mp4'; }
+    if (area)   area.classList.remove('d-none');
+    if (status) status.textContent = 'Intro clip ready! Enable "Prepend intro clip" in Phase 4 to include it.';
+    showToast('Intro clip generated.', 'success');
+  }).catch(function(e) {
+    if (status) status.textContent = '';
+    showToast('Intro error: ' + e.message, 'danger');
   });
 }
 
