@@ -327,6 +327,8 @@ def create_app() -> Flask:
         provider_id = d.get("provider_id", "openai_tts")
         voice       = d.get("voice", "")
         model       = d.get("model", "")
+        stability   = float(d.get("stability", 0.50))
+        style       = float(d.get("style", 0.25))
 
         settings = _load_settings()
         prov     = _ve.VOICE_PROVIDERS_BY_ID.get(provider_id, {})
@@ -341,7 +343,8 @@ def create_app() -> Flask:
 
         try:
             audio_bytes = _ve.narrate(provider_id, story["content"],
-                                      api_key, voice=voice, model=model)
+                                      api_key, voice=voice, model=model,
+                                      stability=stability, style=style)
         except Exception as exc:
             return jsonify({"ok": False, "error": str(exc)}), 500
 
@@ -432,32 +435,54 @@ def create_app() -> Flask:
             return jsonify({"ok": False, "error": "Story not found"}), 404
 
         d    = request.get_json(silent=True) or {}
-        mode = d.get("mode", "estimate")  # "whisper" | "estimate"
+        mode = d.get("mode", "estimate")  # "estimate" | "whisper" | "whisper_word"
 
-        # Check for saved narration MP3
         genre_dir = os.path.join(BASE_DIR, "stories", story.get("genre_slug", ""))
         safe = "".join(c if c.isalnum() or c in "-_ " else "_"
                        for c in story.get("title", "story"))[:50].strip().replace(" ", "_")
         audio_path = os.path.join(genre_dir, f"{sid:05d}_{safe}.mp3")
 
-        if mode == "whisper" and os.path.isfile(audio_path):
+        srt      = ""
+        ass      = None
+        word_data: list[dict] = []
+
+        if mode in ("whisper", "whisper_word") and os.path.isfile(audio_path):
             settings = _load_settings()
             api_key  = settings.get("openai_api_key", "") or os.environ.get("OPENAI_API_KEY", "")
             if not api_key:
-                return jsonify({"ok": False, "error": "OpenAI API key required for Whisper transcription."}), 400
+                return jsonify({"ok": False,
+                                "error": "OpenAI API key required for Whisper transcription."}), 400
             try:
-                srt = _ce.transcribe_to_srt(audio_path, api_key)
+                if mode == "whisper_word":
+                    srt, word_data = _ce.transcribe_to_word_srt(audio_path, api_key)
+                    if word_data:
+                        ass = _ce.word_data_to_ass(word_data)
+                else:
+                    srt = _ce.transcribe_to_srt(audio_path, api_key)
             except Exception as exc:
                 return jsonify({"ok": False, "error": str(exc)}), 500
         else:
             srt = _ce.text_to_srt(story.get("content", ""))
 
-        srt_path = os.path.join(genre_dir, f"{sid:05d}_{safe}.srt")
         os.makedirs(genre_dir, exist_ok=True)
+        srt_path = os.path.join(genre_dir, f"{sid:05d}_{safe}.srt")
         with open(srt_path, "w", encoding="utf-8") as f:
             f.write(srt)
 
-        return jsonify({"ok": True, "srt": srt, "srt_path": srt_path})
+        ass_path = None
+        if ass:
+            ass_path = os.path.join(genre_dir, f"{sid:05d}_{safe}.ass")
+            with open(ass_path, "w", encoding="utf-8") as f:
+                f.write(ass)
+
+        return jsonify({
+            "ok":         True,
+            "srt":        srt,
+            "srt_path":   srt_path,
+            "ass":        ass,
+            "ass_path":   ass_path,
+            "has_karaoke": ass is not None,
+        })
 
     @app.route("/api/video/assemble/<int:sid>", methods=["POST"])
     def api_video_assemble(sid):
@@ -465,9 +490,11 @@ def create_app() -> Flask:
         if not story:
             return jsonify({"ok": False, "error": "Story not found"}), 404
 
-        d            = request.get_json(silent=True) or {}
-        burn_caps    = d.get("burn_captions", True)
-        music_vol    = float(d.get("music_volume", 0.08))
+        d             = request.get_json(silent=True) or {}
+        burn_caps     = d.get("burn_captions", True)
+        music_vol     = float(d.get("music_volume", 0.08))
+        caption_style = d.get("caption_style", "standard")  # "standard"|"karaoke"|"none"
+        include_intro = bool(d.get("include_intro", False))
 
         genre_dir = os.path.join(BASE_DIR, "stories", story.get("genre_slug", ""))
         safe = "".join(c if c.isalnum() or c in "-_ " else "_"
@@ -476,27 +503,118 @@ def create_app() -> Flask:
         audio_path  = os.path.join(genre_dir, f"{sid:05d}_{safe}.mp3")
         image_path  = os.path.join(genre_dir, f"{sid:05d}_{safe}_scene.png")
         srt_path    = os.path.join(genre_dir, f"{sid:05d}_{safe}.srt")
+        ass_path    = os.path.join(genre_dir, f"{sid:05d}_{safe}.ass")
+        intro_path  = os.path.join(genre_dir, f"{sid:05d}_{safe}_intro.mp4")
         output_path = os.path.join(genre_dir, f"{sid:05d}_{safe}_video.mp4")
+        final_path  = os.path.join(genre_dir, f"{sid:05d}_{safe}_final.mp4")
 
         if not os.path.isfile(audio_path):
-            return jsonify({"ok": False, "error": "Narration MP3 not found — generate voice narration first."}), 400
+            return jsonify({"ok": False,
+                            "error": "Narration MP3 not found — generate voice narration first."}), 400
         if not os.path.isfile(image_path):
-            return jsonify({"ok": False, "error": "Scene image not found — generate scene image first."}), 400
+            return jsonify({"ok": False,
+                            "error": "Scene image not found — generate scene image first."}), 400
 
         log, rc = _ce.assemble_video(
             image_path=image_path,
             audio_path=audio_path,
             output_path=output_path,
             srt_path=srt_path if os.path.isfile(srt_path) else None,
+            ass_path=ass_path if os.path.isfile(ass_path) else None,
             burn_captions=burn_caps,
+            caption_style=caption_style,
             music_volume=music_vol,
         )
         if rc != 0:
             return jsonify({"ok": False, "error": log[-1000:]}), 500
 
-        return send_file(output_path, mimetype="video/mp4",
+        serve_path = output_path
+        if include_intro and os.path.isfile(intro_path):
+            log2, rc2 = _ce.prepend_intro(intro_path, output_path, final_path)
+            if rc2 == 0:
+                serve_path = final_path
+
+        return send_file(serve_path, mimetype="video/mp4",
                          as_attachment=True,
                          download_name=f"story_{sid}_video.mp4")
+
+    # ── Intro Clip Generator API  (Phase 4b) ──────────────────────────────────
+
+    @app.route("/api/intro/generate/<int:sid>", methods=["POST"])
+    def api_intro_generate(sid):
+        story = _db.story_get(sid)
+        if not story:
+            return jsonify({"ok": False, "error": "Story not found"}), 404
+
+        d           = request.get_json(silent=True) or {}
+        provider_id = d.get("provider_id", "openai_tts")
+        voice       = d.get("voice", "")
+        model       = d.get("model", "")
+        stability   = float(d.get("stability", 0.50))
+        style_v     = float(d.get("style", 0.25))
+
+        settings = _load_settings()
+        prov     = _ve.VOICE_PROVIDERS_BY_ID.get(provider_id, {})
+        key_name = prov.get("setting_key", "")
+        api_key  = settings.get(key_name, "") or os.environ.get(key_name.upper(), "")
+
+        if not api_key and provider_id != "google_tts":
+            return jsonify({
+                "ok":    False,
+                "error": f"No API key for {prov.get('name','provider')}. Add it in Settings → API Keys.",
+            }), 400
+
+        import re as _re
+        sentences = _re.split(r'(?<=[.!?])\s+', story.get("content", "").strip())
+        teaser_text = " ".join(sentences[:3])[:600]
+
+        genre_dir = os.path.join(BASE_DIR, "stories", story.get("genre_slug", ""))
+        os.makedirs(genre_dir, exist_ok=True)
+        safe = "".join(c if c.isalnum() or c in "-_ " else "_"
+                       for c in story.get("title", "story"))[:50].strip().replace(" ", "_")
+
+        teaser_audio = os.path.join(genre_dir, f"{sid:05d}_{safe}_teaser.mp3")
+        intro_path   = os.path.join(genre_dir, f"{sid:05d}_{safe}_intro.mp4")
+        image_path   = os.path.join(genre_dir, f"{sid:05d}_{safe}_scene.png")
+
+        if not os.path.isfile(image_path):
+            return jsonify({"ok": False,
+                            "error": "Scene image not found — generate it in Phase 3 first."}), 400
+
+        try:
+            audio_bytes = _ve.narrate(provider_id, teaser_text, api_key,
+                                      voice=voice, model=model,
+                                      stability=stability, style=style_v)
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+        with open(teaser_audio, "wb") as f:
+            f.write(audio_bytes)
+
+        log, rc = _ce.build_intro_clip(
+            image_path=image_path,
+            audio_path=teaser_audio,
+            title_text=story.get("title", ""),
+            output_path=intro_path,
+        )
+        if rc != 0:
+            return jsonify({"ok": False, "error": f"ffmpeg intro failed: {log[-600:]}"}), 500
+
+        return jsonify({"ok": True, "teaser_text": teaser_text})
+
+    @app.route("/api/intro/preview/<int:sid>")
+    def api_intro_preview(sid):
+        story = _db.story_get(sid)
+        if not story:
+            return jsonify({"ok": False, "error": "Not found"}), 404
+        safe = "".join(c if c.isalnum() or c in "-_ " else "_"
+                       for c in story.get("title", "story"))[:50].strip().replace(" ", "_")
+        intro_path = os.path.join(BASE_DIR, "stories",
+                                  story.get("genre_slug", ""),
+                                  f"{sid:05d}_{safe}_intro.mp4")
+        if not os.path.isfile(intro_path):
+            return jsonify({"ok": False, "error": "Intro clip not found"}), 404
+        return send_file(intro_path, mimetype="video/mp4")
 
     # ══════════════════════════════════════════════════════════════════════════
     # GIT / VCS API  (repo = BASE_DIR — Story Teller's own directory)

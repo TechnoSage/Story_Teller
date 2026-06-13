@@ -154,8 +154,14 @@ def narrate_google(text: str, api_key: str,
 # ── ElevenLabs TTS ─────────────────────────────────────────────────────────────
 def narrate_elevenlabs(text: str, api_key: str,
                        voice_id: str = "pNInz6obpgDQGcFmaJgB",
-                       model_id: str = "eleven_multilingual_v2") -> bytes:
-    """ElevenLabs text-to-speech via REST API."""
+                       model_id: str = "eleven_multilingual_v2",
+                       stability: float = 0.50,
+                       style: float = 0.25) -> bytes:
+    """ElevenLabs text-to-speech via REST API.
+
+    stability: 0.0–1.0. 0.40–0.55 recommended for story narration (emotional range).
+    style:     0.0–1.0. 0.10–0.50 for drama; 0 = neutral.
+    """
     import json, urllib.request
     chunks = _split_text(text, 2500)
     parts: list[bytes] = []
@@ -164,7 +170,12 @@ def narrate_elevenlabs(text: str, api_key: str,
         payload = json.dumps({
             "text":     chunk,
             "model_id": model_id,
-            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+            "voice_settings": {
+                "stability":        max(0.0, min(1.0, stability)),
+                "similarity_boost": 0.75,
+                "style":            max(0.0, min(1.0, style)),
+                "use_speaker_boost": True,
+            },
         }).encode()
         req = urllib.request.Request(
             url, data=payload,
@@ -181,7 +192,8 @@ def narrate_elevenlabs(text: str, api_key: str,
 
 # ── Unified dispatcher ─────────────────────────────────────────────────────────
 def narrate(provider_id: str, text: str, api_key: str,
-            voice: str = "", model: str = "") -> bytes:
+            voice: str = "", model: str = "",
+            stability: float = 0.50, style: float = 0.25) -> bytes:
     """Dispatch to the correct TTS provider. Returns raw MP3 bytes."""
     p = VOICE_PROVIDERS_BY_ID.get(provider_id)
     if not p:
@@ -193,7 +205,8 @@ def narrate(provider_id: str, text: str, api_key: str,
     if provider_id == "google_tts":
         return narrate_google(text, api_key, voice_name=v)
     if provider_id == "elevenlabs":
-        return narrate_elevenlabs(text, api_key, voice_id=v, model_id=m)
+        return narrate_elevenlabs(text, api_key, voice_id=v, model_id=m,
+                                  stability=stability, style=style)
     raise ValueError(f"Unimplemented provider: {provider_id!r}")
 
 
