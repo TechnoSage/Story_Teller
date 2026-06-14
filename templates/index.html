@@ -25,6 +25,13 @@
   </a>
 </li>
 <li class="nav-item">
+  <a class="nav-link" href="#" id="nav-promptlab"
+     data-tooltip="Prompt Lab — Track &amp; optimize AI generation parameters"
+     onclick="showSection('promptlab');return false;">
+    <i class="bi bi-lightbulb-fill"></i><span class="nav-label">Prompt Lab</span>
+  </a>
+</li>
+<li class="nav-item">
   <a class="nav-link" href="#" id="nav-channels"
      data-tooltip="Channels — YouTube channel management (Phase 5)"
      onclick="showSection('channels');return false;">
@@ -379,10 +386,13 @@
           <div id="voiceProviderBtns" class="d-flex gap-2 flex-wrap"></div>
         </div>
 
-        {# Voice selector #}
-        <div class="col-md-6">
-          <label class="form-label small text-muted">Voice</label>
-          <select id="voiceVoiceSelect" class="form-select form-select-sm" onchange="updateVoiceCost()"></select>
+        {# Voice card grid (replaces select) #}
+        <div class="col-12">
+          <label class="form-label small text-muted d-flex align-items-center gap-2">
+            Voice
+            <span class="text-muted" style="font-size:.68rem;">Click a card to select &bull; ▶ Preview plays a sample clip</span>
+          </label>
+          <div id="voiceCardGrid" class="voice-card-grid"></div>
         </div>
 
         {# Model selector #}
@@ -540,6 +550,7 @@
             <option value="karaoke">Karaoke (word-highlight)</option>
             <option value="none">No captions</option>
           </select>
+          <div id="captionStyleDemo" class="mt-2"></div>
         </div>
         <div class="col-md-3">
           <label class="form-label small text-muted">Music volume</label>
@@ -675,6 +686,75 @@
     <strong>Total estimated cost per complete video</strong> (mid-range options):
     <span class="fw-bold text-white">~$0.48 – $0.90</span>
     <span class="text-muted small d-block mt-1">Story ($0.046) + voice ($0.09) + scene image ($0.04) + intro clip ($0.30) + captions ($0.006) + music (free) + assembly (free)</span>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   PROMPT LAB
+══════════════════════════════════════════════════════════════════════════════ #}
+<div class="section-pane" id="pane-promptlab">
+  <div class="page-header">
+    <h4><i class="bi bi-lightbulb-fill me-2 text-warning"></i>Prompt Lab</h4>
+    <div class="page-desc">Track every AI generation and use the optimizer agent to refine your prompts — the app gets smarter the more stories you create.</div>
+  </div>
+
+  {# ── Prompt History ── #}
+  <div class="card mb-3">
+    <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+      <h6 class="fw-bold mb-0 flex-grow-1"><i class="bi bi-clock-history me-1 text-secondary"></i>Generation History</h6>
+      <button class="btn btn-xs btn-outline-secondary" onclick="loadPromptHistory()" style="font-size:.68rem;padding:2px 8px;">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+        <select id="promptGenreFilter" class="form-select form-select-sm" style="width:auto;" onchange="loadPromptHistory()">
+          <option value="">All Genres</option>
+        </select>
+        <select id="promptSectionFilter" class="form-select form-select-sm" style="width:auto;" onchange="loadPromptHistory()">
+          <option value="">All Sections</option>
+          <option value="story">Story Generation</option>
+          <option value="voice">Voice Narration</option>
+          <option value="image">Image Generation</option>
+        </select>
+        <span id="promptHistoryCount" class="text-muted small ms-1"></span>
+      </div>
+      <div id="promptHistoryTable" class="text-muted small">Click Refresh to load history.</div>
+    </div>
+  </div>
+
+  {# ── AI Prompt Optimizer ── #}
+  <div class="card mb-3">
+    <div class="card-header bg-transparent border-0 pb-0">
+      <h6 class="fw-bold mb-0">
+        <i class="bi bi-robot me-1" style="color:#ffc107"></i>AI Prompt Optimizer
+        <span class="badge ms-2" style="background:rgba(255,193,7,.15);color:#ffc107;font-size:.65rem;">Agent</span>
+      </h6>
+    </div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        Analyzes your past stories and generation parameters to identify what's working and suggest specific improvements. Gets smarter as your archive grows.
+      </p>
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label small text-muted">Analyze genre</label>
+          <select id="optimizerGenreSelect" class="form-select form-select-sm"></select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted">AI for analysis</label>
+          <select id="optimizerProviderSelect" class="form-select form-select-sm" onchange="onOptimizerProviderChange()"></select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted">Model</label>
+          <select id="optimizerModelSelect" class="form-select form-select-sm"></select>
+        </div>
+      </div>
+      <button class="btn btn-warning" onclick="runOptimizer()">
+        <i class="bi bi-lightbulb me-1"></i>Analyze &amp; Optimize
+      </button>
+      <span id="optimizerStatus" class="text-muted small ms-2"></span>
+      <div id="optimizerResults" class="mt-3 d-none"></div>
+    </div>
   </div>
 </div>
 
@@ -931,7 +1011,7 @@
 <script>
 // ── Section registration ────────────────────────────────────────────────────
 _allSections = _allSections || [];
-['studio','archive','production','channels','schedule','vcs'].forEach(function(s) {
+['studio','archive','production','promptlab','channels','schedule','vcs'].forEach(function(s) {
   _allSections.push(s);
 });
 
@@ -1650,6 +1730,7 @@ function _vcsOp(label, apiFn, onFinally) {
 document.addEventListener('sectionChanged', function(e) {
   if (e.detail && e.detail.section === 'vcs')        vcsRefresh();
   if (e.detail && e.detail.section === 'production') initVoicePanel();
+  if (e.detail && e.detail.section === 'promptlab')  initPromptLab();
 });
 
 // ── Voice Narration (Phase 2) ─────────────────────────────────────────────────
@@ -1695,6 +1776,8 @@ function _renderVoiceProviderBtns() {
   }).join('');
 }
 
+var _selVoice = '';
+
 function selectVoiceProvider(id) {
   _selVoiceProvider = id;
   document.querySelectorAll('.vprov-btn').forEach(function(b) { b.classList.remove('active','btn-primary'); b.classList.add('btn-outline-secondary'); });
@@ -1702,14 +1785,8 @@ function selectVoiceProvider(id) {
   if (btn) { btn.classList.remove('btn-outline-secondary'); btn.classList.add('active','btn-primary'); }
   var prov = _voiceProviders.find(function(p){ return p.id === id; });
   if (!prov) return;
-  // Populate voice select
-  var vsel = document.getElementById('voiceVoiceSelect');
-  if (vsel) {
-    vsel.innerHTML = prov.voices.map(function(v) {
-      return '<option value="' + escHtml(v.id) + '">' + escHtml(v.name) + ' — ' + escHtml(v.desc) + '</option>';
-    }).join('');
-    vsel.value = prov.default_voice;
-  }
+  // Render voice cards
+  _renderVoiceCards(prov.voices, prov.default_voice, id);
   // Populate model select
   var msel = document.getElementById('voiceModelSelect');
   if (msel) {
@@ -1724,17 +1801,113 @@ function selectVoiceProvider(id) {
   updateVoiceCost();
 }
 
+function _renderVoiceCards(voices, defaultVoice, providerId) {
+  var grid = document.getElementById('voiceCardGrid');
+  if (!grid) return;
+  _selVoice = defaultVoice;
+  grid.innerHTML = voices.map(function(v) {
+    var g = (v.gender || 'N');
+    var gc = g === 'M' ? 'male' : (g === 'F' ? 'female' : 'neutral');
+    var sel = v.id === defaultVoice;
+    var cid = escHtml(providerId + '-' + v.id);
+    return '<div class="voice-card' + (sel ? ' selected' : '') + '" id="vcard-' + cid + '"'
+      + ' onclick="selectVoiceCard(\'' + escHtml(providerId) + '\',\'' + escHtml(v.id) + '\')">'
+      + '<div><span class="vc-gender ' + gc + '">' + g + '</span>'
+      + '<span class="vc-name">' + escHtml(v.name) + '</span></div>'
+      + '<div class="vc-desc">' + escHtml(v.desc) + '</div>'
+      + '<div class="vc-actions">'
+      + '<button class="btn btn-xs btn-outline-secondary" style="font-size:.63rem;padding:1px 7px;"'
+      + ' onclick="previewVoice(event,\'' + escHtml(providerId) + '\',\'' + escHtml(v.id) + '\')">'
+      + '<i class="bi bi-play-fill"></i> Preview</button>'
+      + '<button class="btn btn-xs btn-outline-secondary" style="font-size:.63rem;padding:1px 6px;"'
+      + ' onclick="dlVoicePreview(event,\'' + escHtml(providerId) + '\',\'' + escHtml(v.id) + '\')"'
+      + ' title="Download preview">'
+      + '<i class="bi bi-download"></i></button>'
+      + '</div>'
+      + '<audio id="vprev-' + cid + '" preload="none" style="display:none;"></audio>'
+      + '</div>';
+  }).join('');
+}
+
+function selectVoiceCard(providerId, voiceId) {
+  _selVoice = voiceId;
+  document.querySelectorAll('.voice-card').forEach(function(c) { c.classList.remove('selected'); });
+  var card = document.getElementById('vcard-' + providerId + '-' + voiceId);
+  if (card) card.classList.add('selected');
+  updateVoiceCost();
+}
+
+var _voicePreviewBusy = {};
+
+function previewVoice(ev, providerId, voiceId) {
+  ev.stopPropagation();
+  var key   = providerId + '-' + voiceId;
+  var btn   = ev.target.closest('button');
+  var audio = document.getElementById('vprev-' + key);
+  if (!audio) return;
+
+  // Already loaded — just play
+  if (audio.src && audio.getAttribute('data-loaded') === '1') {
+    audio.style.display = '';
+    audio.play().catch(function(){});
+    return;
+  }
+
+  if (_voicePreviewBusy[key]) return;
+  _voicePreviewBusy[key] = true;
+  var origHtml = btn ? btn.innerHTML : '';
+  if (btn) { btn.innerHTML = '<span class="spinner-border" style="width:.6rem;height:.6rem;border-width:2px;"></span>'; btn.disabled = true; }
+
+  var prov   = _voiceProviders.find(function(p){ return p.id === providerId; });
+  var mId    = prov ? prov.default_model : '';
+
+  fetch('/api/voice/preview', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({provider_id: providerId, voice_id: voiceId, model_id: mId})
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(d){ throw new Error(d.error || 'Preview failed'); });
+    return r.blob();
+  }).then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    audio.src = url;
+    audio.setAttribute('data-loaded', '1');
+    audio.style.display = '';
+    audio.play().catch(function(){});
+    if (btn) { btn.innerHTML = '<i class="bi bi-play-fill"></i> Preview'; btn.disabled = false; }
+    _voicePreviewBusy[key] = false;
+  }).catch(function(e) {
+    if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
+    _voicePreviewBusy[key] = false;
+    showToast('Preview error: ' + e.message, 'danger');
+  });
+}
+
+function dlVoicePreview(ev, providerId, voiceId) {
+  ev.stopPropagation();
+  var key   = providerId + '-' + voiceId;
+  var audio = document.getElementById('vprev-' + key);
+  if (audio && audio.getAttribute('data-loaded') === '1' && audio.src) {
+    var a = document.createElement('a');
+    a.href = audio.src;
+    a.download = 'voice_preview_' + providerId + '_' + voiceId.replace(/[^\w]/g,'_') + '.mp3';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } else {
+    // Trigger preview generation first
+    showToast('Generating preview… click Download again once it plays.', 'info');
+    previewVoice(ev, providerId, voiceId);
+  }
+}
+
 function onVoiceStoryChange() { updateVoiceCost(); }
 
 function updateVoiceCost() {
   var badge = document.getElementById('voiceCostBadge');
   if (!badge) return;
-  var storyId = document.getElementById('voiceStorySelect')?.value;
-  if (!storyId) { badge.textContent = ''; return; }
+  var sel = document.getElementById('voiceStorySelect');
+  if (!sel || !sel.value) { badge.textContent = ''; return; }
   var prov = _voiceProviders.find(function(p){ return p.id === _selVoiceProvider; });
   if (!prov) return;
-  // Fetch the story word count to estimate chars (~5 chars/word)
-  var opt = document.getElementById('voiceStorySelect')?.options[document.getElementById('voiceStorySelect').selectedIndex];
+  var opt   = sel.options[sel.selectedIndex];
   var match = opt ? (opt.textContent.match(/(\d[\d,]*)\s+words/) || []) : [];
   var words = match[1] ? parseInt(match[1].replace(/,/g,'')) : 6000;
   var chars = words * 5;
@@ -1745,7 +1918,8 @@ function updateVoiceCost() {
 function startNarration() {
   var storyId   = document.getElementById('voiceStorySelect')?.value;
   if (!storyId) { showToast('Select a story to narrate first.', 'warning'); return; }
-  var voiceId   = document.getElementById('voiceVoiceSelect')?.value || '';
+  if (!_selVoice) { showToast('Select a voice first.', 'warning'); return; }
+  var voiceId   = _selVoice;
   var modelId   = document.getElementById('voiceModelSelect')?.value || '';
   var stability = parseFloat(document.getElementById('elabsStability')?.value || '50') / 100;
   var styleVal  = parseFloat(document.getElementById('elabsStyle')?.value || '25') / 100;
@@ -1890,12 +2064,26 @@ function startImageGeneration() {
 function onCaptionStyleChange() {
   var style = document.getElementById('vidCaptionStyle')?.value;
   var note  = document.getElementById('karaokeNote');
+  var demo  = document.getElementById('captionStyleDemo');
   if (style === 'karaoke') {
     var modeSelect = document.getElementById('vidCaptionMode');
     if (modeSelect) modeSelect.value = 'whisper_word';
     if (note) note.classList.remove('d-none');
+    if (demo) demo.innerHTML = '<div style="margin-top:.3rem;padding:.4rem .55rem;background:rgba(13,202,240,.05);border:1px solid rgba(13,202,240,.15);border-radius:.45rem;">'
+      + '<div style="font-size:.6rem;color:rgba(255,255,255,.35);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.25rem;">Karaoke preview</div>'
+      + '<span style="font-family:Arial,sans-serif;font-size:.78rem;letter-spacing:.01em;">'
+      + 'The old lighthouse <span style="color:#00ffff;font-weight:700;text-shadow:0 0 8px rgba(0,255,255,.5);">stood</span>'
+      + ' at the edge of the world,</span></div>';
+  } else if (style === 'standard') {
+    if (note) note.classList.add('d-none');
+    if (demo) demo.innerHTML = '<div style="margin-top:.3rem;padding:.4rem .55rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:.45rem;">'
+      + '<div style="font-size:.6rem;color:rgba(255,255,255,.35);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.25rem;">Standard preview</div>'
+      + '<div style="display:inline-block;background:rgba(0,0,0,.68);padding:3px 10px;border-radius:2px;">'
+      + '<span style="color:#fff;font-family:Arial,sans-serif;font-size:.78rem;">The old lighthouse stood at the edge of the world,</span>'
+      + '</div></div>';
   } else {
     if (note) note.classList.add('d-none');
+    if (demo) demo.innerHTML = '<div class="text-muted" style="font-size:.68rem;margin-top:.25rem;">No captions — clean video only.</div>';
   }
 }
 
@@ -2142,5 +2330,143 @@ function _showSettingsCard(id){var card=document.querySelector('[data-settings-c
 function _renderSettingsHiddenTab(){var list=document.getElementById('settingsHiddenList'),empty=document.getElementById('settingsHiddenEmpty'),badge=document.getElementById('settingsHiddenBadge'),count=_settingsHiddenCards.length;if(badge){badge.textContent=count;badge.classList.toggle('d-none',count===0);}if(!list)return;if(!count){list.innerHTML='';if(empty)empty.classList.remove('d-none');return;}if(empty)empty.classList.add('d-none');list.innerHTML=_settingsHiddenCards.map(function(id){var card=document.querySelector('[data-settings-card-id="'+id+'"]'),h6=card?card.querySelector('.card-header h6'):null,label=h6?(h6.textContent||'').trim().replace(/\s+/g,' '):id;return'<div class="d-flex align-items-center justify-content-between gap-3 py-2" style="border-bottom:1px solid rgba(255,255,255,.06);"><span class="small">'+label.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span><button class="btn btn-xs" style="background:rgba(25,135,84,.15);color:#75b798;border:1px solid rgba(25,135,84,.3);" onclick="_showSettingsCard(\''+id.replace(/'/g,"\\'")+'\')" ><i class="bi bi-eye me-1"></i>Restore</button></div>';}).join('');}
 function _applySettingsHiddenCards(){_settingsHiddenCards.forEach(function(id){var card=document.querySelector('[data-settings-card-id="'+id+'"]');if(card)card.style.display='none';});_renderSettingsHiddenTab();}
 async function _saveSettingsHiddenCards(){try{await fetch('/api/app-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({settings_hidden_cards:_settingsHiddenCards})});}catch(e){}}
+
+// ── Prompt Lab ────────────────────────────────────────────────────────────────
+var _promptLabInited = false;
+var _allProviders    = [];
+
+function initPromptLab() {
+  if (_promptLabInited) return;
+  _promptLabInited = true;
+  // Populate genre filters
+  fetch('/api/genres').then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) return;
+    var genreOpts = '<option value="">All Genres</option>'
+      + d.genres.map(function(g){ return '<option value="' + escHtml(g.slug) + '">' + escHtml(g.name) + '</option>'; }).join('');
+    ['promptGenreFilter', 'optimizerGenreSelect'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = genreOpts;
+    });
+  });
+  // Populate AI providers for optimizer
+  fetch('/api/providers').then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) return;
+    _allProviders = d.providers || [];
+    var psel = document.getElementById('optimizerProviderSelect');
+    if (psel) {
+      psel.innerHTML = _allProviders.map(function(p){
+        return '<option value="' + escHtml(p.id) + '">' + escHtml(p.name) + '</option>';
+      }).join('');
+      onOptimizerProviderChange();
+    }
+  });
+  loadPromptHistory();
+}
+
+function onOptimizerProviderChange() {
+  var pid  = document.getElementById('optimizerProviderSelect')?.value;
+  var msel = document.getElementById('optimizerModelSelect');
+  if (!msel) return;
+  var prov = _allProviders.find(function(p){ return p.id === pid; });
+  if (!prov) return;
+  msel.innerHTML = prov.models.map(function(m){
+    return '<option value="' + escHtml(m.id) + '">' + escHtml(m.name) + '</option>';
+  }).join('');
+  // Default to haiku for speed/cost
+  var haiku = prov.models.find(function(m){ return m.id.indexOf('haiku') > -1 || m.id.indexOf('mini') > -1 || m.id.indexOf('lite') > -1; });
+  if (haiku) msel.value = haiku.id;
+}
+
+function loadPromptHistory() {
+  var genre   = document.getElementById('promptGenreFilter')?.value   || '';
+  var section = document.getElementById('promptSectionFilter')?.value || '';
+  var table   = document.getElementById('promptHistoryTable');
+  var countEl = document.getElementById('promptHistoryCount');
+  if (table) table.innerHTML = '<span class="text-muted">Loading…</span>';
+
+  var url = '/api/prompts';
+  var params = [];
+  if (genre)   params.push('genre='   + encodeURIComponent(genre));
+  if (section) params.push('section=' + encodeURIComponent(section));
+  if (params.length) url += '?' + params.join('&');
+
+  fetch(url).then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) { if (table) table.innerHTML = '<span class="text-danger small">Error loading history.</span>'; return; }
+    var rows = d.prompts || [];
+    if (countEl) countEl.textContent = rows.length + ' record' + (rows.length !== 1 ? 's' : '');
+    if (!rows.length) {
+      if (table) table.innerHTML = '<div class="text-muted small py-2">No records yet. Generate stories, voices, or images and they\'ll appear here.</div>';
+      return;
+    }
+    var headerHtml = '<div class="prompt-history-row prompt-history-header">'
+      + '<span>Genre</span><span>Section</span><span>Provider / Model</span><span>Voice</span><span>Date</span></div>';
+    var rowHtml = rows.map(function(r) {
+      var params = r.params || {};
+      var provInfo = escHtml((r.provider || '—') + (r.model ? ' / ' + r.model : ''));
+      var voice    = escHtml(r.voice || '—');
+      var date     = (r.created_at || '').slice(0,16).replace('T',' ');
+      var genre    = escHtml(r.genre_slug || '—');
+      var section  = escHtml(r.section || '—');
+      var sectionColor = r.section === 'story' ? '#6ea8fe' : (r.section === 'voice' ? '#75b798' : '#e96eb3');
+      return '<div class="prompt-history-row">'
+        + '<span>' + genre + '</span>'
+        + '<span><span class="badge" style="background:rgba(255,255,255,.08);color:' + sectionColor + ';font-size:.62rem;">' + section + '</span></span>'
+        + '<span class="text-truncate" title="' + provInfo + '">' + provInfo + '</span>'
+        + '<span>' + voice + '</span>'
+        + '<span style="color:rgba(255,255,255,.4);">' + date + '</span>'
+        + '</div>';
+    }).join('');
+    if (table) table.innerHTML = headerHtml + rowHtml;
+  }).catch(function(e) {
+    if (table) table.innerHTML = '<span class="text-danger small">Error: ' + e.message + '</span>';
+  });
+}
+
+function runOptimizer() {
+  var genre      = document.getElementById('optimizerGenreSelect')?.value;
+  var providerId = document.getElementById('optimizerProviderSelect')?.value;
+  var modelId    = document.getElementById('optimizerModelSelect')?.value;
+  var statusEl   = document.getElementById('optimizerStatus');
+  var resultsEl  = document.getElementById('optimizerResults');
+  var btn        = document.querySelector('[onclick="runOptimizer()"]');
+
+  if (!genre) { showToast('Select a genre to analyze.', 'warning'); return; }
+
+  if (btn) btn.disabled = true;
+  if (statusEl) statusEl.textContent = 'Analyzing past stories and generating recommendations…';
+  if (resultsEl) resultsEl.classList.add('d-none');
+
+  fetch('/api/agent/optimize', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({genre_slug: genre, provider_id: providerId, model_id: modelId})
+  }).then(function(r){ return r.json(); }).then(function(d) {
+    if (btn) btn.disabled = false;
+    if (!d.ok) {
+      if (statusEl) statusEl.textContent = '';
+      showToast('Optimizer error: ' + d.error, 'danger');
+      return;
+    }
+    if (statusEl) statusEl.textContent = 'Analysis complete (' + d.story_count + ' stories analyzed via ' + d.provider + '/' + d.model + ')';
+    // Render markdown-ish analysis
+    var html = '<div class="optimizer-suggestion">'
+      + _renderMarkdownBasic(d.analysis)
+      + '</div>';
+    if (resultsEl) { resultsEl.innerHTML = html; resultsEl.classList.remove('d-none'); }
+  }).catch(function(e) {
+    if (btn) btn.disabled = false;
+    if (statusEl) statusEl.textContent = '';
+    showToast('Optimizer error: ' + e.message, 'danger');
+  });
+}
+
+function _renderMarkdownBasic(text) {
+  // Very lightweight markdown-ish renderer for the optimizer output
+  if (!text) return '';
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
 </script>
 {% endblock %}

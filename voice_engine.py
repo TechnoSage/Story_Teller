@@ -6,9 +6,19 @@ Returns raw audio bytes so the caller can stream or save directly.
 from __future__ import annotations
 import io
 import os
+import re as _re
 from pathlib import Path
 
+# ── Sample text used for voice preview clips ───────────────────────────────────
+VOICE_PREVIEW_TEXT = (
+    "The old lighthouse stood at the edge of the world, "
+    "its beacon cutting through the dark like a blade of light. "
+    "Inside, a lone keeper tended the flame — "
+    "unaware that tonight, the sea had other plans."
+)
+
 # ── Voice provider catalogue (mirrors story_engine cost format) ────────────────
+# gender: "M" = Male, "F" = Female, "N" = Neutral/Unspecified
 VOICE_PROVIDERS = [
     {
         "id":          "openai_tts",
@@ -18,17 +28,20 @@ VOICE_PROVIDERS = [
         "cost_note":   "~$0.015 / 1k chars (~$0.09 / story)",
         "cost_per_1k_chars": 0.015,
         "voices": [
-            {"id": "alloy",   "name": "Alloy",   "desc": "Neutral, balanced"},
-            {"id": "echo",    "name": "Echo",    "desc": "Male, warm"},
-            {"id": "fable",   "name": "Fable",   "desc": "British, expressive"},
-            {"id": "onyx",    "name": "Onyx",    "desc": "Male, deep"},
-            {"id": "nova",    "name": "Nova",    "desc": "Female, energetic"},
-            {"id": "shimmer", "name": "Shimmer", "desc": "Female, soft"},
+            {"id": "onyx",    "name": "Onyx",    "gender": "M", "desc": "Deep, powerful narrator"},
+            {"id": "echo",    "name": "Echo",    "gender": "M", "desc": "Warm, engaging storyteller"},
+            {"id": "ash",     "name": "Ash",     "gender": "M", "desc": "Confident, conversational"},
+            {"id": "fable",   "name": "Fable",   "gender": "F", "desc": "British, expressive narrator"},
+            {"id": "nova",    "name": "Nova",    "gender": "F", "desc": "Energetic, dynamic voice"},
+            {"id": "shimmer", "name": "Shimmer", "gender": "F", "desc": "Soft, calming storyteller"},
+            {"id": "coral",   "name": "Coral",   "gender": "F", "desc": "Warm, natural tone"},
+            {"id": "sage",    "name": "Sage",    "gender": "F", "desc": "Thoughtful, measured pace"},
+            {"id": "alloy",   "name": "Alloy",   "gender": "N", "desc": "Neutral, balanced tone"},
         ],
         "default_voice": "onyx",
         "models": [
+            {"id": "tts-1-hd", "name": "TTS-1 HD", "desc": "High quality, slightly slower"},
             {"id": "tts-1",    "name": "TTS-1",    "desc": "Standard quality, fast"},
-            {"id": "tts-1-hd", "name": "TTS-1 HD", "desc": "High quality, slower"},
         ],
         "default_model": "tts-1-hd",
     },
@@ -40,17 +53,21 @@ VOICE_PROVIDERS = [
         "cost_note":   "Free up to 1M chars/month",
         "cost_per_1k_chars": 0.0,
         "voices": [
-            {"id": "en-US-Journey-D", "name": "Journey D", "desc": "Male, natural"},
-            {"id": "en-US-Journey-F", "name": "Journey F", "desc": "Female, natural"},
-            {"id": "en-US-Neural2-A", "name": "Neural2-A", "desc": "Female, clear"},
-            {"id": "en-US-Neural2-D", "name": "Neural2-D", "desc": "Male, deep"},
-            {"id": "en-GB-Neural2-B", "name": "UK Neural2-B", "desc": "British male"},
+            {"id": "en-US-Journey-D",  "name": "Journey D",     "gender": "M", "desc": "American male, natural"},
+            {"id": "en-US-Neural2-D",  "name": "Neural2-D",     "gender": "M", "desc": "American male, deep"},
+            {"id": "en-US-Neural2-J",  "name": "Neural2-J",     "gender": "M", "desc": "American male, authoritative"},
+            {"id": "en-GB-Neural2-B",  "name": "UK Neural2-B",  "gender": "M", "desc": "British male, clear"},
+            {"id": "en-AU-Neural2-B",  "name": "AU Neural2-B",  "gender": "M", "desc": "Australian male"},
+            {"id": "en-US-Journey-F",  "name": "Journey F",     "gender": "F", "desc": "American female, natural"},
+            {"id": "en-US-Neural2-A",  "name": "Neural2-A",     "gender": "F", "desc": "American female, clear"},
+            {"id": "en-GB-Neural2-A",  "name": "UK Neural2-A",  "gender": "F", "desc": "British female, warm"},
+            {"id": "en-AU-Neural2-A",  "name": "AU Neural2-A",  "gender": "F", "desc": "Australian female"},
         ],
         "default_voice": "en-US-Journey-D",
         "models": [
-            {"id": "standard", "name": "Standard", "desc": "Free tier"},
-            {"id": "neural2",  "name": "Neural2",  "desc": "Free tier (natural)"},
-            {"id": "journey",  "name": "Journey",  "desc": "Free tier (most natural)"},
+            {"id": "journey",  "name": "Journey",  "desc": "Most natural (free tier)"},
+            {"id": "neural2",  "name": "Neural2",  "desc": "Natural voices (free tier)"},
+            {"id": "standard", "name": "Standard", "desc": "Basic quality (free tier)"},
         ],
         "default_model": "journey",
     },
@@ -62,12 +79,19 @@ VOICE_PROVIDERS = [
         "cost_note":   "~$0.33 / 10k chars (~$0.20 / story) + plan",
         "cost_per_1k_chars": 0.033,
         "voices": [
-            {"id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel",  "desc": "Female, calm"},
-            {"id": "AZnzlk1XvdvUeBnXmlld", "name": "Domi",    "desc": "Female, strong"},
-            {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Bella",   "desc": "Female, soft"},
-            {"id": "ErXwobaYiN019PkySvjV", "name": "Antoni",  "desc": "Male, well-rounded"},
-            {"id": "VR6AewLTigWG4xSOukaG", "name": "Arnold",  "desc": "Male, crisp"},
-            {"id": "pNInz6obpgDQGcFmaJgB", "name": "Adam",    "desc": "Male, deep"},
+            {"id": "pNInz6obpgDQGcFmaJgB", "name": "Adam",      "gender": "M", "desc": "Deep, authoritative narrator"},
+            {"id": "ErXwobaYiN019PkySvjV", "name": "Antoni",    "gender": "M", "desc": "Well-rounded storyteller"},
+            {"id": "VR6AewLTigWG4xSOukaG", "name": "Arnold",    "gender": "M", "desc": "Crisp, confident"},
+            {"id": "TxGEqnHWrfWFTfGW9XjX", "name": "Josh",      "gender": "M", "desc": "Dynamic, energetic narrator"},
+            {"id": "yoZ06aMxZJJ28mfd3POQ", "name": "Sam",       "gender": "M", "desc": "Raspy, gritty voice"},
+            {"id": "nPczCjzI2devNBz1zQrb", "name": "Brian",     "gender": "M", "desc": "Deep American, warm"},
+            {"id": "onwK4e9ZLuTAKqWW03F9", "name": "Daniel",    "gender": "M", "desc": "Deep British narrator"},
+            {"id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel",    "gender": "F", "desc": "Calm, professional narrator"},
+            {"id": "AZnzlk1XvdvUeBnXmlld", "name": "Domi",      "gender": "F", "desc": "Strong, powerful storyteller"},
+            {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Bella",     "gender": "F", "desc": "Soft, intimate narrator"},
+            {"id": "MF3mGyEYCl7XYWbV9V6O", "name": "Elli",      "gender": "F", "desc": "Emotional, expressive voice"},
+            {"id": "XB0fDUnXU5powFXDhCwa", "name": "Charlotte", "gender": "F", "desc": "British female, measured"},
+            {"id": "oWAxZDx7w5VEj9dCyTzz", "name": "Grace",     "gender": "F", "desc": "Southern US, warm & inviting"},
         ],
         "default_voice": "pNInz6obpgDQGcFmaJgB",
         "models": [
@@ -134,10 +158,12 @@ def narrate_google(text: str, api_key: str,
     chunks = _split_text(text, 5000)
     parts: list[bytes] = []
     url = f"https://texttospeech.googleapis.com/v1/text:synthesize?key={api_key}"
+    # Determine language code from voice name
+    lang = "-".join(voice_name.split("-")[:2]) if voice_name else "en-US"
     for chunk in chunks:
         payload = json.dumps({
             "input":       {"text": chunk},
-            "voice":       {"languageCode": "en-US", "name": voice_name},
+            "voice":       {"languageCode": lang, "name": voice_name},
             "audioConfig": {"audioEncoding": audio_encoding},
         }).encode()
         req = urllib.request.Request(
@@ -212,3 +238,25 @@ def narrate(provider_id: str, text: str, api_key: str,
 
 def cost_estimate(provider_id: str, text: str) -> float:
     return _cost_estimate(text, provider_id)
+
+
+# ── Voice preview (cached short clip) ─────────────────────────────────────────
+def generate_preview(
+    provider_id: str,
+    voice_id: str,
+    model_id: str,
+    api_key: str,
+    cache_dir: str,
+) -> bytes:
+    """Generate (or return cached) a short voice preview clip as MP3 bytes."""
+    safe = _re.sub(r'[^\w]', '_', voice_id)[:48]
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, f"{provider_id}_{safe}.mp3")
+    if os.path.isfile(cache_path):
+        with open(cache_path, "rb") as f:
+            return f.read()
+    audio = narrate(provider_id, VOICE_PREVIEW_TEXT, api_key,
+                    voice=voice_id, model=model_id or "")
+    with open(cache_path, "wb") as f:
+        f.write(audio)
+    return audio
