@@ -232,6 +232,7 @@
     <div class="card-body">
       <div id="providerGrid" class="provider-grid mb-3"></div>
       <div id="modelSelector" class="model-selector"></div>
+      <div id="noKeyWarning" class="d-none mt-2 p-2 rounded-2" style="background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.2);"></div>
     </div>
   </div>
 
@@ -959,38 +960,232 @@
 
 {# ── Extra settings ───────────────────────────────────────────────────────────── #}
 {% block settings_extra %}
-<div class="card">
-  <div class="card-header bg-transparent border-0 pb-0">
-    <h6 class="fw-bold mb-0"><i class="bi bi-key-fill me-1 text-secondary"></i>API Keys</h6>
-  </div>
-  <div class="card-body">
-    <p class="text-muted small mb-3">Keys are stored locally in <code>instance/app_settings.json</code> — never committed to git.</p>
-    <div class="mb-3">
-      <label class="form-label small text-muted">Anthropic (Claude) API Key</label>
-      <input type="password" id="cfg_anthropic_api_key" class="form-control form-control-sm"
-             placeholder="sk-ant-…" autocomplete="off">
-    </div>
-    <div class="mb-3">
-      <label class="form-label small text-muted">OpenAI API Key</label>
-      <input type="password" id="cfg_openai_api_key" class="form-control form-control-sm"
-             placeholder="sk-…" autocomplete="off">
-    </div>
-    <div class="mb-3">
-      <label class="form-label small text-muted">Google Gemini API Key</label>
-      <input type="password" id="cfg_gemini_api_key" class="form-control form-control-sm"
-             placeholder="AIza…" autocomplete="off">
-    </div>
-    <div class="mb-3">
-      <label class="form-label small text-muted">ElevenLabs API Key <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Phase 2</span></label>
-      <input type="password" id="cfg_elevenlabs_api_key" class="form-control form-control-sm"
-             placeholder="xi-api-key-…" autocomplete="off">
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="saveApiKeys()">
-      <i class="bi bi-save me-1"></i>Save Keys
+
+{# ── API Keys overview banner ─────────────────────────────────────────────── #}
+<div class="card mb-3">
+  <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+    <h6 class="fw-bold mb-0 flex-grow-1"><i class="bi bi-key-fill me-1 text-warning"></i>API Keys</h6>
+    <span id="keyStatusSummary" class="text-muted small"></span>
+    <button class="btn btn-xs btn-outline-secondary" onclick="refreshKeyStatus()" style="font-size:.68rem;padding:2px 8px;">
+      <i class="bi bi-arrow-clockwise me-1"></i>Refresh Status
     </button>
+  </div>
+  <div class="card-body pb-2">
+    <p class="text-muted small mb-0">
+      Keys are stored <strong class="text-white">locally</strong> in <code>instance/app_settings.json</code> — never committed to git or sent anywhere except the provider's own servers.
+    </p>
   </div>
 </div>
 
+{# ── ANTHROPIC CLAUDE ─────────────────────────────────────────────────────── #}
+<div class="card mb-3" id="keycard_anthropic">
+  <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+    <i class="bi bi-cpu me-1" style="color:#e87c6e"></i>
+    <h6 class="fw-bold mb-0 flex-grow-1">Anthropic Claude <span class="badge ms-1" style="background:rgba(232,124,110,.15);color:#e87c6e;font-size:.62rem;">Story Generation</span></h6>
+    <span id="keystatus_anthropic_api_key" class="key-status-badge"></span>
+  </div>
+  <div class="card-body">
+    <div class="input-group input-group-sm mb-2">
+      <input type="password" id="cfg_anthropic_api_key" class="form-control form-control-sm"
+             placeholder="sk-ant-api03-…" autocomplete="off"
+             oninput="onKeyInput('anthropic_api_key')">
+      <button class="btn btn-outline-secondary" onclick="toggleKeyVis('anthropic_api_key')" title="Show/hide key"><i class="bi bi-eye" id="eye_anthropic_api_key"></i></button>
+      <button class="btn btn-outline-secondary" onclick="testKey('anthropic_api_key')" id="testbtn_anthropic_api_key">Test</button>
+      <button class="btn btn-primary" onclick="saveOneKey('anthropic_api_key')">Save</button>
+    </div>
+    <details class="mt-1">
+      <summary class="small text-info" style="cursor:pointer;user-select:none;">
+        <i class="bi bi-info-circle me-1"></i>How to get this key
+      </summary>
+      <ol class="small text-muted mt-2 mb-1" style="padding-left:1.2rem;line-height:1.9;">
+        <li>Go to <a href="https://console.anthropic.com" target="_blank" class="text-info">console.anthropic.com</a> and sign up / log in</li>
+        <li>Click <strong class="text-white">API Keys</strong> in the left sidebar</li>
+        <li>Click <strong class="text-white">Create Key</strong>, name it <em>Story Teller</em></li>
+        <li>Copy the key starting with <code>sk-ant-…</code> and paste it above</li>
+        <li>Add billing credit at <strong class="text-white">Console → Billing</strong> (min $5) — pay-per-use, no subscription required</li>
+      </ol>
+      <div class="small" style="color:rgba(255,255,255,.4);">~$0.046 per 1,000 words (Sonnet 4.6) &bull; ~$0.28 per 6,000-word story</div>
+    </details>
+  </div>
+</div>
+
+{# ── OPENAI ───────────────────────────────────────────────────────────────── #}
+<div class="card mb-3" id="keycard_openai">
+  <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+    <i class="bi bi-stars me-1" style="color:#75b798"></i>
+    <h6 class="fw-bold mb-0 flex-grow-1">OpenAI
+      <span class="badge ms-1" style="background:rgba(117,183,152,.15);color:#75b798;font-size:.62rem;">Story Generation</span>
+      <span class="badge ms-1" style="background:rgba(110,168,254,.15);color:#6ea8fe;font-size:.62rem;">Voice (TTS)</span>
+      <span class="badge ms-1" style="background:rgba(232,62,140,.15);color:#e96eb3;font-size:.62rem;">Captions (Whisper)</span>
+      <span class="badge ms-1" style="background:rgba(111,66,193,.15);color:#b987fb;font-size:.62rem;">DALL-E 3</span>
+    </h6>
+    <span id="keystatus_openai_api_key" class="key-status-badge"></span>
+  </div>
+  <div class="card-body">
+    <div class="input-group input-group-sm mb-2">
+      <input type="password" id="cfg_openai_api_key" class="form-control form-control-sm"
+             placeholder="sk-proj-… or sk-…" autocomplete="off"
+             oninput="onKeyInput('openai_api_key')">
+      <button class="btn btn-outline-secondary" onclick="toggleKeyVis('openai_api_key')" title="Show/hide"><i class="bi bi-eye" id="eye_openai_api_key"></i></button>
+      <button class="btn btn-outline-secondary" onclick="testKey('openai_api_key')" id="testbtn_openai_api_key">Test</button>
+      <button class="btn btn-primary" onclick="saveOneKey('openai_api_key')">Save</button>
+    </div>
+    <details class="mt-1">
+      <summary class="small text-info" style="cursor:pointer;user-select:none;">
+        <i class="bi bi-info-circle me-1"></i>How to get this key
+      </summary>
+      <ol class="small text-muted mt-2 mb-1" style="padding-left:1.2rem;line-height:1.9;">
+        <li>Go to <a href="https://platform.openai.com" target="_blank" class="text-info">platform.openai.com</a> and sign up / log in</li>
+        <li>Click your account icon (top-right) → <strong class="text-white">API keys</strong></li>
+        <li>Click <strong class="text-white">Create new secret key</strong></li>
+        <li>Copy the key starting with <code>sk-</code> and paste it above</li>
+        <li>Add credits at <strong class="text-white">Platform → Billing</strong> (min $5)</li>
+      </ol>
+      <div class="small" style="color:rgba(255,255,255,.4);">
+        Story (GPT-4o): ~$0.013/1k words &bull; TTS-1-HD voice: ~$0.015/1k chars &bull;
+        Whisper captions: ~$0.006/story &bull; DALL-E 3: $0.040/image
+      </div>
+    </details>
+  </div>
+</div>
+
+{# ── GOOGLE GEMINI / TTS ──────────────────────────────────────────────────── #}
+<div class="card mb-3" id="keycard_gemini">
+  <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+    <i class="bi bi-google me-1" style="color:#4285f4"></i>
+    <h6 class="fw-bold mb-0 flex-grow-1">Google Gemini / Cloud
+      <span class="badge ms-1" style="background:rgba(66,133,244,.15);color:#6ea8fe;font-size:.62rem;">Story Generation</span>
+      <span class="badge ms-1" style="background:rgba(25,135,84,.15);color:#75b798;font-size:.62rem;">Voice TTS — FREE</span>
+    </h6>
+    <span id="keystatus_gemini_api_key" class="key-status-badge"></span>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-success border-0 mb-2 p-2" style="background:rgba(25,135,84,.1);font-size:.77rem;">
+      <i class="bi bi-gift-fill me-1 text-success"></i>
+      <strong class="text-success">Free tier:</strong> Gemini 2.0 Flash story generation is free up to daily limits.
+      Google TTS voice narration is free up to 1 million characters/month (~100 stories).
+    </div>
+    <div class="input-group input-group-sm mb-2">
+      <input type="password" id="cfg_gemini_api_key" class="form-control form-control-sm"
+             placeholder="AIzaSy…" autocomplete="off"
+             oninput="onKeyInput('gemini_api_key')">
+      <button class="btn btn-outline-secondary" onclick="toggleKeyVis('gemini_api_key')" title="Show/hide"><i class="bi bi-eye" id="eye_gemini_api_key"></i></button>
+      <button class="btn btn-outline-secondary" onclick="testKey('gemini_api_key')" id="testbtn_gemini_api_key">Test</button>
+      <button class="btn btn-primary" onclick="saveOneKey('gemini_api_key')">Save</button>
+    </div>
+    <details class="mt-1">
+      <summary class="small text-info" style="cursor:pointer;user-select:none;">
+        <i class="bi bi-info-circle me-1"></i>How to get this key (free — no billing required)
+      </summary>
+      <ol class="small text-muted mt-2 mb-1" style="padding-left:1.2rem;line-height:1.9;">
+        <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-info">aistudio.google.com/app/apikey</a></li>
+        <li>Sign in with your Google account</li>
+        <li>Click <strong class="text-white">Create API Key</strong> → <strong class="text-white">Create API key in new project</strong></li>
+        <li>Copy the key starting with <code>AIzaSy…</code> and paste it above</li>
+      </ol>
+      <div class="small" style="color:rgba(255,255,255,.4);">This single key unlocks Gemini story generation AND Google TTS voice narration.</div>
+    </details>
+  </div>
+</div>
+
+{# ── ELEVENLABS ───────────────────────────────────────────────────────────── #}
+<div class="card mb-3" id="keycard_elevenlabs">
+  <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+    <i class="bi bi-mic-fill me-1" style="color:#e8b86d"></i>
+    <h6 class="fw-bold mb-0 flex-grow-1">ElevenLabs
+      <span class="badge ms-1" style="background:rgba(232,184,109,.15);color:#e8b86d;font-size:.62rem;">Voice Narration — Most Realistic</span>
+    </h6>
+    <span id="keystatus_elevenlabs_api_key" class="key-status-badge"></span>
+  </div>
+  <div class="card-body">
+    <div class="input-group input-group-sm mb-2">
+      <input type="password" id="cfg_elevenlabs_api_key" class="form-control form-control-sm"
+             placeholder="sk_… or xi-api-key-…" autocomplete="off"
+             oninput="onKeyInput('elevenlabs_api_key')">
+      <button class="btn btn-outline-secondary" onclick="toggleKeyVis('elevenlabs_api_key')" title="Show/hide"><i class="bi bi-eye" id="eye_elevenlabs_api_key"></i></button>
+      <button class="btn btn-outline-secondary" onclick="testKey('elevenlabs_api_key')" id="testbtn_elevenlabs_api_key">Test</button>
+      <button class="btn btn-primary" onclick="saveOneKey('elevenlabs_api_key')">Save</button>
+    </div>
+    <details class="mt-1">
+      <summary class="small text-info" style="cursor:pointer;user-select:none;">
+        <i class="bi bi-info-circle me-1"></i>How to get this key
+      </summary>
+      <ol class="small text-muted mt-2 mb-1" style="padding-left:1.2rem;line-height:1.9;">
+        <li>Go to <a href="https://elevenlabs.io" target="_blank" class="text-info">elevenlabs.io</a> and create an account</li>
+        <li>Choose a plan — <strong class="text-white">Starter ($5/mo)</strong> includes 30k chars/month (~15 story intros), <strong class="text-white">Creator ($22/mo)</strong> includes 100k chars/month (~3 full stories)</li>
+        <li>Click your profile icon (top-right) → <strong class="text-white">Profile + API Key</strong></li>
+        <li>Copy your API key and paste it above</li>
+      </ol>
+      <div class="small" style="color:rgba(255,255,255,.4);">~$0.033 per 1,000 chars (~$0.20 per 6,000-word story narration)</div>
+    </details>
+  </div>
+</div>
+
+{# ── STABILITY AI ─────────────────────────────────────────────────────────── #}
+<div class="card mb-3" id="keycard_stability">
+  <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+    <i class="bi bi-image-fill me-1" style="color:#b987fb"></i>
+    <h6 class="fw-bold mb-0 flex-grow-1">Stability AI
+      <span class="badge ms-1" style="background:rgba(185,135,251,.15);color:#b987fb;font-size:.62rem;">Scene Images — $0.02/image</span>
+    </h6>
+    <span id="keystatus_stability_api_key" class="key-status-badge"></span>
+  </div>
+  <div class="card-body">
+    <div class="input-group input-group-sm mb-2">
+      <input type="password" id="cfg_stability_api_key" class="form-control form-control-sm"
+             placeholder="sk-…" autocomplete="off"
+             oninput="onKeyInput('stability_api_key')">
+      <button class="btn btn-outline-secondary" onclick="toggleKeyVis('stability_api_key')" title="Show/hide"><i class="bi bi-eye" id="eye_stability_api_key"></i></button>
+      <button class="btn btn-outline-secondary" onclick="testKey('stability_api_key')" id="testbtn_stability_api_key">Test</button>
+      <button class="btn btn-primary" onclick="saveOneKey('stability_api_key')">Save</button>
+    </div>
+    <details class="mt-1">
+      <summary class="small text-info" style="cursor:pointer;user-select:none;">
+        <i class="bi bi-info-circle me-1"></i>How to get this key
+      </summary>
+      <ol class="small text-muted mt-2 mb-1" style="padding-left:1.2rem;line-height:1.9;">
+        <li>Go to <a href="https://platform.stability.ai" target="_blank" class="text-info">platform.stability.ai</a> and sign up</li>
+        <li>Purchase credits (starts at $10 = 500 images at $0.02 each)</li>
+        <li>Click your account (top-right) → <strong class="text-white">API Keys</strong></li>
+        <li>Click <strong class="text-white">Generate API Key</strong>, copy and paste it above</li>
+      </ol>
+      <div class="small" style="color:rgba(255,255,255,.4);">$0.020 per image (Stable Image Core) — most affordable scene image option</div>
+    </details>
+  </div>
+</div>
+
+{# ── IDEOGRAM ─────────────────────────────────────────────────────────────── #}
+<div class="card mb-3" id="keycard_ideogram">
+  <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+    <i class="bi bi-palette-fill me-1" style="color:#e96eb3"></i>
+    <h6 class="fw-bold mb-0 flex-grow-1">Ideogram
+      <span class="badge ms-1" style="background:rgba(232,62,140,.15);color:#e96eb3;font-size:.62rem;">Scene Images — Best with text/titles</span>
+    </h6>
+    <span id="keystatus_ideogram_api_key" class="key-status-badge"></span>
+  </div>
+  <div class="card-body">
+    <div class="input-group input-group-sm mb-2">
+      <input type="password" id="cfg_ideogram_api_key" class="form-control form-control-sm"
+             placeholder="ideogram API key" autocomplete="off"
+             oninput="onKeyInput('ideogram_api_key')">
+      <button class="btn btn-outline-secondary" onclick="toggleKeyVis('ideogram_api_key')" title="Show/hide"><i class="bi bi-eye" id="eye_ideogram_api_key"></i></button>
+      <button class="btn btn-primary" onclick="saveOneKey('ideogram_api_key')">Save</button>
+    </div>
+    <details class="mt-1">
+      <summary class="small text-info" style="cursor:pointer;user-select:none;">
+        <i class="bi bi-info-circle me-1"></i>How to get this key
+      </summary>
+      <ol class="small text-muted mt-2 mb-1" style="padding-left:1.2rem;line-height:1.9;">
+        <li>Go to <a href="https://ideogram.ai" target="_blank" class="text-info">ideogram.ai</a> and create an account</li>
+        <li>Go to <strong class="text-white">Account Settings → API</strong></li>
+        <li>Generate an API key and paste it above</li>
+      </ol>
+      <div class="small" style="color:rgba(255,255,255,.4);">$0.080 per image — best for scenes with readable title text overlaid</div>
+    </details>
+  </div>
+</div>
+
+{# ── Story Backup Directory ───────────────────────────────────────────────── #}
 <div class="card">
   <div class="card-header bg-transparent border-0 pb-0">
     <h6 class="fw-bold mb-0"><i class="bi bi-folder-fill me-1 text-secondary"></i>Story Backup Directory</h6>
@@ -1020,6 +1215,7 @@ var _stTitleMap = {
   studio:     'Story Studio',
   archive:    'Archive',
   production: 'Production Pipeline',
+  promptlab:  'Prompt Lab',
   channels:   'YouTube Channels',
   schedule:   'Publishing Schedule',
   vcs:        'Version Control',
@@ -1052,6 +1248,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadDashboard();
   loadStudioData();
   loadArchive();
+  refreshKeyStatus();  // pre-load key status so provider dots show immediately
 
   // Populate archive genre filter on section switch
   document.addEventListener('sectionChanged', function(e) {
@@ -1192,7 +1389,14 @@ function renderProviderGrid() {
   var el = document.getElementById('providerGrid');
   if (!el) return;
   el.innerHTML = _providers.map(function(p) {
-    return '<div class="provider-card" id="prov-' + p.id + '" onclick="selectProvider(\'' + p.id + '\')">'
+    // Map provider id → key id for dot
+    var keyMap = {anthropic: 'anthropic_api_key', openai: 'openai_api_key', gemini: 'gemini_api_key'};
+    var keyId  = keyMap[p.id];
+    var hasKey = keyId ? !!_keyStatus[keyId] : true;
+    var dotColor = hasKey ? '#75b798' : '#f87171';
+    var dotTitle = hasKey ? 'API key configured' : 'No API key — click to see setup guide in Settings';
+    return '<div class="provider-card" id="prov-' + p.id + '" onclick="selectProvider(\'' + p.id + '\')" style="position:relative;">'
+      + '<span id="keydot_' + p.id + '" title="' + dotTitle + '" style="position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:' + dotColor + ';"></span>'
       + '<i class="bi bi-' + p.icon + ' provider-icon"></i>'
       + '<div class="provider-name">' + escHtml(p.name) + '</div>'
       + '</div>';
@@ -1210,6 +1414,7 @@ function selectProvider(id) {
   _selModel = prov.default_model;
   renderModelSelector(prov);
   updateCostEstimate();
+  _checkProviderKeyWarning();
 }
 
 function renderModelSelector(prov) {
@@ -1437,7 +1642,19 @@ function onGenError(msg) {
   document.getElementById('btnGenerate').classList.remove('d-none');
   document.getElementById('btnCancel').classList.add('d-none');
   document.getElementById('genStatus').textContent = '';
-  showToast('Generation error: ' + msg, 'danger');
+
+  // If it's a missing API key error, show an actionable toast with link
+  if (msg && (msg.indexOf('API key') > -1 || msg.indexOf('api key') > -1)) {
+    showToastHtml(
+      '<i class="bi bi-key-fill me-2 text-warning"></i>'
+      + '<span><strong>No API key</strong> — '
+      + msg.replace(/Go to Settings.*/, '')
+      + ' <a href="#" class="text-warning fw-semibold" onclick="openSettings();return false;">Open Settings → API Keys</a></span>',
+      'warning', 10000
+    );
+  } else {
+    showToast('Generation error: ' + msg, 'danger');
+  }
   _genAbortCtrl = null;
 }
 
@@ -1597,20 +1814,160 @@ function deleteStory(id) {
 }
 
 // ── Settings: API keys ────────────────────────────────────────────────────────
+var _ALL_KEY_IDS = [
+  'anthropic_api_key','openai_api_key','gemini_api_key',
+  'elevenlabs_api_key','stability_api_key','ideogram_api_key'
+];
+
+// Map key → which provider buttons it affects in the studio
+var _KEY_PROVIDERS = {
+  anthropic_api_key:  ['anthropic'],
+  openai_api_key:     ['openai'],
+  gemini_api_key:     ['gemini'],
+};
+
+var _keyStatus = {};  // cached key status for provider button dots
+
 function saveApiKeys() {
-  var d = {
-    anthropic_api_key:  document.getElementById('cfg_anthropic_api_key')?.value.trim(),
-    openai_api_key:     document.getElementById('cfg_openai_api_key')?.value.trim(),
-    gemini_api_key:     document.getElementById('cfg_gemini_api_key')?.value.trim(),
-    elevenlabs_api_key: document.getElementById('cfg_elevenlabs_api_key')?.value.trim(),
-  };
+  var d = {};
+  _ALL_KEY_IDS.forEach(function(k) {
+    var el = document.getElementById('cfg_' + k);
+    if (el) d[k] = el.value.trim();
+  });
   fetch('/api/app-settings', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(d),
   }).then(function(r){ return r.json(); }).then(function(resp) {
-    if (resp.ok) showToast('API keys saved.', 'success');
+    if (resp.ok) { showToast('API keys saved.', 'success'); refreshKeyStatus(); }
     else showToast('Save failed: ' + resp.error, 'danger');
   });
+}
+
+function saveOneKey(keyId) {
+  var el  = document.getElementById('cfg_' + keyId);
+  var val = el ? el.value.trim() : '';
+  var d   = {}; d[keyId] = val;
+  fetch('/api/app-settings', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(d),
+  }).then(function(r){ return r.json(); }).then(function(resp) {
+    if (resp.ok) {
+      showToast('Key saved.', 'success');
+      refreshKeyStatus();
+    } else {
+      showToast('Save failed: ' + (resp.error||''), 'danger');
+    }
+  });
+}
+
+function onKeyInput(keyId) {
+  // Clear the status badge when user edits a key (needs re-test/re-save)
+  var badge = document.getElementById('keystatus_' + keyId);
+  if (badge) badge.innerHTML = '<span class="badge" style="background:rgba(255,193,7,.12);color:#ffc107;font-size:.62rem;">unsaved</span>';
+}
+
+function toggleKeyVis(keyId) {
+  var el  = document.getElementById('cfg_' + keyId);
+  var eye = document.getElementById('eye_' + keyId);
+  if (!el) return;
+  if (el.type === 'password') {
+    el.type = 'text';
+    if (eye) { eye.classList.remove('bi-eye'); eye.classList.add('bi-eye-slash'); }
+  } else {
+    el.type = 'password';
+    if (eye) { eye.classList.remove('bi-eye-slash'); eye.classList.add('bi-eye'); }
+  }
+}
+
+function testKey(keyId) {
+  var badge = document.getElementById('keystatus_' + keyId);
+  var btn   = document.getElementById('testbtn_' + keyId);
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  if (badge) badge.innerHTML = '<span class="badge" style="background:rgba(255,255,255,.08);color:#adb5bd;font-size:.62rem;">testing…</span>';
+  fetch('/api/settings/test-key', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({key_id: keyId})
+  }).then(function(r){ return r.json(); }).then(function(d) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Test'; }
+    if (d.ok) {
+      if (badge) badge.innerHTML = '<span class="badge" style="background:rgba(25,135,84,.2);color:#75b798;font-size:.62rem;"><i class="bi bi-check-circle me-1"></i>' + (d.message||'Valid') + '</span>';
+      _keyStatus[keyId] = true;
+      _updateStudioDots();
+    } else {
+      if (badge) badge.innerHTML = '<span class="badge" style="background:rgba(220,53,69,.2);color:#f87171;font-size:.62rem;"><i class="bi bi-x-circle me-1"></i>' + escHtml(d.error||'Invalid') + '</span>';
+    }
+  }).catch(function(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Test'; }
+    if (badge) badge.innerHTML = '<span class="badge" style="background:rgba(220,53,69,.2);color:#f87171;font-size:.62rem;">Error: ' + escHtml(e.message) + '</span>';
+  });
+}
+
+function refreshKeyStatus() {
+  fetch('/api/settings/key-status').then(function(r){ return r.json(); }).then(function(d) {
+    if (!d.ok) return;
+    _keyStatus = d.keys || {};
+    // Update each badge
+    _ALL_KEY_IDS.forEach(function(k) {
+      var badge = document.getElementById('keystatus_' + k);
+      if (!badge) return;
+      if (_keyStatus[k]) {
+        badge.innerHTML = '<span class="badge" style="background:rgba(25,135,84,.2);color:#75b798;font-size:.62rem;"><i class="bi bi-check-circle me-1"></i>Set</span>';
+      } else {
+        badge.innerHTML = '<span class="badge" style="background:rgba(220,53,69,.15);color:#f87171;font-size:.62rem;"><i class="bi bi-x-circle me-1"></i>Not set</span>';
+      }
+    });
+    // Summary
+    var total = _ALL_KEY_IDS.length;
+    var set   = _ALL_KEY_IDS.filter(function(k){ return _keyStatus[k]; }).length;
+    var sumEl = document.getElementById('keyStatusSummary');
+    if (sumEl) {
+      if (set === 0) {
+        sumEl.innerHTML = '<span style="color:#f87171;font-size:.75rem;"><i class="bi bi-exclamation-triangle me-1"></i>No keys set — add at least one to start</span>';
+      } else {
+        sumEl.innerHTML = '<span style="color:#75b798;font-size:.75rem;">' + set + ' of ' + total + ' keys configured</span>';
+      }
+    }
+    _updateStudioDots();
+  });
+}
+
+function _updateStudioDots() {
+  // Update dots on AI provider buttons in Story Studio
+  Object.keys(_KEY_PROVIDERS).forEach(function(keyId) {
+    var provIds = _KEY_PROVIDERS[keyId];
+    provIds.forEach(function(provId) {
+      var dotEl = document.getElementById('keydot_' + provId);
+      if (!dotEl) return;
+      if (_keyStatus[keyId]) {
+        dotEl.style.background = '#75b798';
+        dotEl.title = 'API key configured';
+      } else {
+        dotEl.style.background = '#f87171';
+        dotEl.title = 'No API key — go to Settings → API Keys';
+      }
+    });
+  });
+  // Check if currently selected provider has a key
+  _checkProviderKeyWarning();
+}
+
+function _checkProviderKeyWarning() {
+  var warn = document.getElementById('noKeyWarning');
+  if (!warn) return;
+  var pid = _selProvider;
+  if (!pid) { warn.classList.add('d-none'); return; }
+  // Find the key_id for this provider
+  var keyNeeded = Object.keys(_KEY_PROVIDERS).find(function(k){ return _KEY_PROVIDERS[k].indexOf(pid) > -1; });
+  if (!keyNeeded || _keyStatus[keyNeeded]) {
+    warn.classList.add('d-none');
+  } else {
+    warn.classList.remove('d-none');
+    var prov = _providers.find(function(p){ return p.id === pid; });
+    var provName = prov ? prov.name : pid;
+    warn.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>'
+      + '<span class="small">No API key for <strong>' + escHtml(provName) + '</strong>. '
+      + '<a href="#" onclick="openSettings();return false;" class="text-warning fw-semibold">Go to Settings → API Keys</a> to add it.</span>';
+  }
 }
 
 function browseStoriesDir() {
@@ -1621,11 +1978,27 @@ function browseStoriesDir() {
 
 // Settings load
 function loadCfg(s) {
-  var fields = ['anthropic_api_key','openai_api_key','gemini_api_key','elevenlabs_api_key'];
-  fields.forEach(function(k) {
+  _ALL_KEY_IDS.forEach(function(k) {
     var el = document.getElementById('cfg_' + k);
     if (el && s[k]) el.value = s[k];
   });
+  refreshKeyStatus();
+}
+
+// ── App helpers ────────────────────────────────────────────────────────────────
+function openSettings() {
+  showSection('settings');
+}
+
+function showToastHtml(htmlMsg, type, ms) {
+  type = type || 'info'; ms = ms || 5000;
+  var c = document.getElementById('toast-container');
+  if (!c) return;
+  var el = document.createElement('div');
+  el.className = 'app-toast toast-' + type;
+  el.innerHTML = htmlMsg;
+  c.appendChild(el);
+  setTimeout(function(){ el.remove(); }, ms);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

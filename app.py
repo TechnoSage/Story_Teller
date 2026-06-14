@@ -108,6 +108,88 @@ def create_app() -> Flask:
         _save_settings(s)
         return jsonify({"ok": True, "settings": s})
 
+    # ── API key status (which keys are set — no values exposed) ───────────────
+    _KEY_NAMES = [
+        "anthropic_api_key", "openai_api_key", "gemini_api_key",
+        "elevenlabs_api_key", "stability_api_key", "ideogram_api_key",
+    ]
+
+    @app.route("/api/settings/key-status")
+    def api_key_status():
+        s = _load_settings()
+        status = {k: bool(s.get(k, "").strip()) for k in _KEY_NAMES}
+        return jsonify({"ok": True, "keys": status})
+
+    # ── API key live test ──────────────────────────────────────────────────────
+    @app.route("/api/settings/test-key", methods=["POST"])
+    def api_test_key():
+        import urllib.request, urllib.error
+        d       = request.get_json(silent=True) or {}
+        key_id  = d.get("key_id", "")
+        s       = _load_settings()
+        api_key = s.get(key_id, "").strip()
+        if not api_key:
+            return jsonify({"ok": False, "error": "No key saved — enter and save a key first."})
+
+        def _req(url, headers=None, data=None, timeout=8):
+            req = urllib.request.Request(url, data=data, headers=headers or {})
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as r:
+                    return r.status, None
+            except urllib.error.HTTPError as e:
+                if e.code in (400, 401, 403):
+                    return e.code, None
+                return e.code, str(e)
+            except Exception as exc:
+                return None, str(exc)
+
+        try:
+            if key_id == "anthropic_api_key":
+                code, err = _req("https://api.anthropic.com/v1/models",
+                                 {"x-api-key": api_key, "anthropic-version": "2023-06-01"})
+                if err:     return jsonify({"ok": False, "error": f"Connection error: {err}"})
+                if code == 401: return jsonify({"ok": False, "error": "Key rejected — double-check you copied the full key."})
+                if code and code < 400: return jsonify({"ok": True, "message": "Anthropic key is valid."})
+                return jsonify({"ok": False, "error": f"Unexpected response: HTTP {code}"})
+
+            elif key_id == "openai_api_key":
+                code, err = _req("https://api.openai.com/v1/models",
+                                 {"Authorization": f"Bearer {api_key}"})
+                if err:     return jsonify({"ok": False, "error": f"Connection error: {err}"})
+                if code == 401: return jsonify({"ok": False, "error": "Key rejected — check you copied the full key starting with sk-."})
+                if code and code < 400: return jsonify({"ok": True, "message": "OpenAI key is valid."})
+                return jsonify({"ok": False, "error": f"Unexpected response: HTTP {code}"})
+
+            elif key_id == "gemini_api_key":
+                code, err = _req(
+                    f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}")
+                if err:     return jsonify({"ok": False, "error": f"Connection error: {err}"})
+                if code == 400: return jsonify({"ok": False, "error": "Key rejected — check the key starts with AIza."})
+                if code and code < 400: return jsonify({"ok": True, "message": "Google Gemini key is valid."})
+                return jsonify({"ok": False, "error": f"Unexpected response: HTTP {code}"})
+
+            elif key_id == "elevenlabs_api_key":
+                code, err = _req("https://api.elevenlabs.io/v1/voices",
+                                 {"xi-api-key": api_key})
+                if err:     return jsonify({"ok": False, "error": f"Connection error: {err}"})
+                if code == 401: return jsonify({"ok": False, "error": "Key rejected — check your ElevenLabs API key."})
+                if code and code < 400: return jsonify({"ok": True, "message": "ElevenLabs key is valid."})
+                return jsonify({"ok": False, "error": f"Unexpected response: HTTP {code}"})
+
+            elif key_id == "stability_api_key":
+                code, err = _req("https://api.stability.ai/v1/user/account",
+                                 {"Authorization": f"Bearer {api_key}"})
+                if err:     return jsonify({"ok": False, "error": f"Connection error: {err}"})
+                if code == 401: return jsonify({"ok": False, "error": "Key rejected — check your Stability AI API key."})
+                if code and code < 400: return jsonify({"ok": True, "message": "Stability AI key is valid."})
+                return jsonify({"ok": False, "error": f"Unexpected response: HTTP {code}"})
+
+            else:
+                return jsonify({"ok": False, "error": f"Testing not supported for '{key_id}'."})
+
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)})
+
     # ── Platform / OS ──────────────────────────────────────────────────────────
     import platform as _plt
     _OS_SYSTEM = _plt.system()
