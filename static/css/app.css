@@ -424,6 +424,12 @@
   border-radius: .3rem;
 }
 
+/* ── Settings key status badges ─────────────────────────────────────────────── */
+.key-status-badge {
+  display: inline-flex;
+  align-items: center;
+}
+
 /* ── Prompt Lab ─────────────────────────────────────────────────────────────── */
 .prompt-history-row {
   display: grid;
