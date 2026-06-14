@@ -39,6 +39,18 @@ def init_db() -> None:
                 updated_at   TEXT    DEFAULT (datetime('now')),
                 notes        TEXT    DEFAULT ''
             );
+
+            CREATE TABLE IF NOT EXISTS prompt_history (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                story_id    INTEGER,
+                genre_slug  TEXT    DEFAULT '',
+                section     TEXT    NOT NULL,
+                provider    TEXT    DEFAULT '',
+                model       TEXT    DEFAULT '',
+                voice       TEXT    DEFAULT '',
+                params      TEXT    DEFAULT '{}',
+                created_at  TEXT    DEFAULT (datetime('now'))
+            );
         """)
 
 
@@ -135,6 +147,70 @@ def story_backup(story: dict) -> str:
     with open(fpath, "w", encoding="utf-8") as f:
         json.dump(story, f, indent=2, ensure_ascii=False)
     return fpath
+
+
+# ── Prompt history CRUD ───────────────────────────────────────────────────────
+def prompt_save(
+    story_id: int | None,
+    genre_slug: str,
+    section: str,
+    provider: str = "",
+    model: str = "",
+    voice: str = "",
+    params: dict | None = None,
+) -> int:
+    """Record a generation event. section: 'story' | 'voice' | 'image'."""
+    with _conn() as c:
+        cur = c.execute(
+            """INSERT INTO prompt_history
+               (story_id, genre_slug, section, provider, model, voice, params)
+               VALUES (?,?,?,?,?,?,?)""",
+            (story_id, genre_slug or "", section,
+             provider or "", model or "", voice or "",
+             json.dumps(params or {})),
+        )
+        return cur.lastrowid
+
+
+def prompt_list(
+    genre_slug: str | None = None,
+    section: str | None = None,
+    limit: int = 150,
+) -> list[dict]:
+    sql  = "SELECT * FROM prompt_history"
+    conds: list[str] = []
+    args: list = []
+    if genre_slug:
+        conds.append("genre_slug=?"); args.append(genre_slug)
+    if section:
+        conds.append("section=?"); args.append(section)
+    if conds:
+        sql += " WHERE " + " AND ".join(conds)
+    sql += " ORDER BY created_at DESC LIMIT ?"
+    args.append(limit)
+    with _conn() as c:
+        rows = c.execute(sql, args).fetchall()
+    result = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["params"] = json.loads(d.get("params") or "{}")
+        except Exception:
+            d["params"] = {}
+        result.append(d)
+    return result
+
+
+def prompt_genre_stats() -> list[dict]:
+    """Return count of prompt_history records grouped by genre and section."""
+    with _conn() as c:
+        rows = c.execute(
+            """SELECT genre_slug, section, COUNT(*) n
+               FROM prompt_history
+               GROUP BY genre_slug, section
+               ORDER BY genre_slug, section"""
+        ).fetchall()
+    return [dict(r) for r in rows]
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────

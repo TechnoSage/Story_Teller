@@ -257,6 +257,13 @@ def create_app() -> Flask:
             _db.story_backup(story)
         except Exception:
             pass
+        # Record prompt history
+        try:
+            _db.prompt_save(sid, genre_slug, "story",
+                            provider=provider_id, model=model_id,
+                            params=parameters)
+        except Exception:
+            pass
         return jsonify({"ok": True, "story": story}), 201
 
     @app.route("/api/stories/<int:sid>", methods=["GET"])
@@ -357,11 +364,63 @@ def create_app() -> Flask:
         with open(audio_path, "wb") as f:
             f.write(audio_bytes)
 
+        # Record prompt history
+        try:
+            _db.prompt_save(sid, story.get("genre_slug", ""), "voice",
+                            provider=provider_id, model=model,
+                            voice=voice or prov.get("default_voice", ""),
+                            params={"stability": stability, "style": style})
+        except Exception:
+            pass
+
         buf = io.BytesIO(audio_bytes)
         buf.seek(0)
         return send_file(buf, mimetype="audio/mpeg",
                          as_attachment=True,
                          download_name=f"story_{sid}_narration.mp3")
+
+    # ── Voice preview (short cached clip per voice) ────────────────────────────
+    _PREVIEW_DIR = os.path.join(BASE_DIR, "instance", "voice_previews")
+
+    @app.route("/api/voice/preview", methods=["POST"])
+    def api_voice_preview():
+        d           = request.get_json(silent=True) or {}
+        provider_id = d.get("provider_id", "openai_tts")
+        voice_id    = d.get("voice_id", "")
+        model_id    = d.get("model_id", "")
+
+        settings = _load_settings()
+        prov     = _ve.VOICE_PROVIDERS_BY_ID.get(provider_id, {})
+        key_name = prov.get("setting_key", "")
+        api_key  = settings.get(key_name, "") or os.environ.get(key_name.upper(), "")
+
+        if not api_key and provider_id != "google_tts":
+            return jsonify({
+                "ok":    False,
+                "error": f"No API key for {prov.get('name','provider')}. Add it in Settings → API Keys.",
+            }), 400
+
+        try:
+            audio_bytes = _ve.generate_preview(
+                provider_id, voice_id, model_id, api_key, _PREVIEW_DIR
+            )
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+        buf = io.BytesIO(audio_bytes)
+        buf.seek(0)
+        return send_file(buf, mimetype="audio/mpeg",
+                         as_attachment=False)
+
+    @app.route("/api/voice/preview/clear", methods=["DELETE"])
+    def api_voice_preview_clear():
+        import shutil
+        try:
+            if os.path.isdir(_PREVIEW_DIR):
+                shutil.rmtree(_PREVIEW_DIR)
+            return jsonify({"ok": True})
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
 
     # ══════════════════════════════════════════════════════════════════════════
     # IMAGE GENERATION API  (Phase 3)
@@ -414,6 +473,15 @@ def create_app() -> Flask:
         img_path = os.path.join(img_dir, f"{sid:05d}_{safe}_scene.png")
         with open(img_path, "wb") as f:
             f.write(img_bytes)
+
+        # Record prompt history
+        try:
+            _db.prompt_save(sid, story.get("genre_slug", ""), "image",
+                            provider=provider_id,
+                            params={"size": size, "quality": quality,
+                                    "prompt": prompt[:400]})
+        except Exception:
+            pass
 
         buf = io.BytesIO(img_bytes)
         buf.seek(0)
@@ -615,6 +683,156 @@ def create_app() -> Flask:
         if not os.path.isfile(intro_path):
             return jsonify({"ok": False, "error": "Intro clip not found"}), 404
         return send_file(intro_path, mimetype="video/mp4")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # PROMPT HISTORY API
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route("/api/prompts")
+    def api_prompts_list():
+        genre   = request.args.get("genre") or None
+        section = request.args.get("section") or None
+        rows    = _db.prompt_list(genre_slug=genre, section=section)
+        stats   = _db.prompt_genre_stats()
+        return jsonify({"ok": True, "prompts": rows, "stats": stats})
+
+    @app.route("/api/prompts", methods=["POST"])
+    def api_prompts_save():
+        d = request.get_json(silent=True) or {}
+        rid = _db.prompt_save(
+            story_id   = d.get("story_id"),
+            genre_slug = d.get("genre_slug", ""),
+            section    = d.get("section", "story"),
+            provider   = d.get("provider", ""),
+            model      = d.get("model", ""),
+            voice      = d.get("voice", ""),
+            params     = d.get("params", {}),
+        )
+        return jsonify({"ok": True, "id": rid}), 201
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # AI PROMPT OPTIMIZER AGENT
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route("/api/agent/optimize", methods=["POST"])
+    def api_agent_optimize():
+        """Analyze prompt history for a genre and return AI improvement suggestions."""
+        d           = request.get_json(silent=True) or {}
+        genre_slug  = d.get("genre_slug", "")
+        provider_id = d.get("provider_id", "anthropic")
+        model_id    = d.get("model_id", "claude-haiku-4-5-20251001")
+
+        settings = _load_settings()
+        from story_engine import PROVIDERS_BY_ID, GENRES_BY_SLUG
+        prov     = PROVIDERS_BY_ID.get(provider_id, {})
+        key_name = prov.get("setting_key", "")
+        api_key  = settings.get(key_name, "") or os.environ.get(key_name.upper(), "")
+        if not api_key:
+            return jsonify({"ok": False,
+                            "error": f"No API key for {prov.get('name','provider')}. Add it in Settings → API Keys."}), 400
+
+        genre = GENRES_BY_SLUG.get(genre_slug, {})
+        if not genre:
+            return jsonify({"ok": False, "error": f"Unknown genre: {genre_slug}"}), 400
+
+        # Gather prompt history for this genre
+        story_prompts = _db.prompt_list(genre_slug=genre_slug, section="story", limit=30)
+        voice_prompts = _db.prompt_list(genre_slug=genre_slug, section="voice", limit=15)
+        image_prompts = _db.prompt_list(genre_slug=genre_slug, section="image", limit=15)
+
+        if not story_prompts:
+            return jsonify({
+                "ok": False,
+                "error": (f"No story data for '{genre['name']}' yet. "
+                          "Generate at least one story in this genre first.")
+            }), 400
+
+        # Build story summary lines
+        story_lines = []
+        for p in story_prompts:
+            params = p.get("params", {})
+            wc   = params.get("word_count", "?")
+            narr = params.get("narrative", "?")
+            tone = params.get("tone", "?")
+            hook = params.get("plot_hook", "")[:80]
+            line = (f"  • Story #{p['story_id']} | {p['provider']}/{p['model']} | "
+                    f"{wc} words | {narr} POV | {tone} tone")
+            if hook:
+                line += f" | Hook: \"{hook}\""
+            story_lines.append(line)
+
+        voice_lines = []
+        for p in voice_prompts:
+            params = p.get("params", {})
+            voice_lines.append(
+                f"  • {p['provider']} voice={p['voice']} "
+                f"stability={params.get('stability','?')} style={params.get('style','?')}"
+            )
+
+        image_lines = []
+        for p in image_prompts:
+            params = p.get("params", {})
+            image_lines.append(
+                f"  • {p['provider']} size={params.get('size','?')} quality={params.get('quality','?')}"
+            )
+
+        system = (
+            "You are an AI content optimization specialist for a YouTube story channel app called Story Teller. "
+            "Your job is to analyze past story generation data and provide specific, actionable improvements "
+            "to help create better YouTube storytelling content. Be concrete — name exact parameter values, "
+            "prompt additions, or voice settings. Do not be vague. Format your response as clearly separated "
+            "sections using markdown bold headers."
+        )
+
+        user = (
+            f"I've generated {len(story_prompts)} stories in the **{genre['name']}** genre "
+            f"for a YouTube narration channel.\n\n"
+            f"**Story generation history:**\n" + "\n".join(story_lines) + "\n\n"
+            + (f"**Voice narration history:**\n" + "\n".join(voice_lines) + "\n\n"
+               if voice_lines else "")
+            + (f"**Image generation history:**\n" + "\n".join(image_lines) + "\n\n"
+               if image_lines else "")
+            + f"**Genre description:** {genre.get('description','')}\n"
+            f"**Genre guidance hint:** {genre.get('hint','')}\n\n"
+            f"Based on this data, provide optimization suggestions in exactly these 4 sections:\n\n"
+            f"**1. STORY PROMPTS** — What specific words, phrases, or parameters should I add to my "
+            f"{genre['name']} story prompts to make them more compelling for YouTube audiences?\n\n"
+            f"**2. VOICE SETTINGS** — What voice provider, specific voice, and ElevenLabs "
+            f"stability/style values work best for {genre['name']} narration?\n\n"
+            f"**3. SCENE IMAGE** — What visual keywords and style descriptions should I add to "
+            f"image generation prompts for {genre['name']} to get better YouTube-worthy scenes?\n\n"
+            f"**4. YOUTUBE OPTIMIZATION** — What specific elements (hook phrasing, pacing, "
+            f"structural changes) would most improve viewer retention for {genre['name']} stories?\n\n"
+            f"Be specific and actionable. Include example prompt text where relevant."
+        )
+
+        # Call the AI provider
+        try:
+            from story_engine import _anthropic, _openai, _gemini  # type: ignore
+            chunks: list[str] = []
+            if provider_id == "anthropic":
+                for chunk in _anthropic(api_key, model_id, system, user, 1200):
+                    chunks.append(chunk)
+            elif provider_id == "openai":
+                for chunk in _openai(api_key, model_id, system, user, 1200):
+                    chunks.append(chunk)
+            elif provider_id == "gemini":
+                for chunk in _gemini(api_key, model_id, system, user, 1200):
+                    chunks.append(chunk)
+            else:
+                return jsonify({"ok": False, "error": f"Unknown provider: {provider_id}"}), 400
+            result_text = "".join(chunks)
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+        return jsonify({
+            "ok":        True,
+            "genre":     genre["name"],
+            "provider":  provider_id,
+            "model":     model_id,
+            "analysis":  result_text,
+            "story_count": len(story_prompts),
+        })
 
     # ══════════════════════════════════════════════════════════════════════════
     # GIT / VCS API  (repo = BASE_DIR — Story Teller's own directory)
