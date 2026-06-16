@@ -1186,7 +1186,7 @@
 </div>
 
 {# ── Story Backup Directory ───────────────────────────────────────────────── #}
-<div class="card">
+<div class="card mb-3">
   <div class="card-header bg-transparent border-0 pb-0">
     <h6 class="fw-bold mb-0"><i class="bi bi-folder-fill me-1 text-secondary"></i>Story Backup Directory</h6>
   </div>
@@ -1196,6 +1196,53 @@
       <input type="text" id="cfg_stories_dir" class="form-control form-control-sm"
              placeholder="stories/ (relative to app)" readonly>
       <button class="btn btn-outline-secondary" onclick="browseStoriesDir()">Browse</button>
+    </div>
+  </div>
+</div>
+
+{# ── VERSION CONTROL ──────────────────────────────────────────────────────── #}
+<div class="card mb-3" id="keycard_vcs">
+  <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+    <i class="bi bi-git me-1" style="color:#f05133"></i>
+    <h6 class="fw-bold mb-0 flex-grow-1">Version Control
+      <span class="badge ms-1" style="background:rgba(240,81,51,.15);color:#f05133;font-size:.62rem;">Git</span>
+    </h6>
+  </div>
+  <div class="card-body">
+    <div class="mb-3">
+      <label class="form-label small text-muted mb-1">VCS Method</label>
+      <select class="form-select form-select-sm" id="cfg_vcs_method" onchange="saveVcsSettings()">
+        <option value="git">Git</option>
+      </select>
+    </div>
+    <div class="mb-2">
+      <label class="form-label small text-muted mb-1">Remote Repository URL</label>
+      <div class="input-group input-group-sm">
+        <input type="text" id="cfg_vcs_remote" class="form-control form-control-sm"
+               placeholder="https://github.com/user/repo.git">
+        <button class="btn btn-outline-secondary" onclick="vcsAutoDetectRemote()" title="Detect current git remote">
+          <i class="bi bi-search me-1"></i>Auto-detect
+        </button>
+        <button class="btn btn-primary" onclick="saveVcsSettings()">Save</button>
+      </div>
+      <div class="small text-muted mt-1">Leave blank to keep existing remote. Click Auto-detect to read current git config.</div>
+    </div>
+    <div class="row g-2 mb-3">
+      <div class="col-6">
+        <label class="form-label small text-muted mb-1">Dev Branch</label>
+        <input type="text" id="cfg_vcs_dev_branch" class="form-control form-control-sm"
+               value="development" placeholder="development">
+      </div>
+      <div class="col-6">
+        <label class="form-label small text-muted mb-1">Prod Branch</label>
+        <input type="text" id="cfg_vcs_prod_branch" class="form-control form-control-sm"
+               value="main" placeholder="main">
+      </div>
+    </div>
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="cfg_vcs_show_tab" checked
+             onchange="saveVcsSettings()">
+      <label class="form-check-label small" for="cfg_vcs_show_tab">Show Version Control tab in sidebar</label>
     </div>
   </div>
 </div>
@@ -1209,6 +1256,16 @@ _allSections = _allSections || [];
 ['studio','archive','production','promptlab','channels','schedule','vcs'].forEach(function(s) {
   _allSections.push(s);
 });
+
+// base.html showSection() never dispatches sectionChanged — wrap it so all
+// per-section loaders (vcsRefresh, initPromptLab, etc.) fire correctly.
+(function() {
+  var _orig = window.showSection;
+  window.showSection = function(name) {
+    _orig(name);
+    document.dispatchEvent(new CustomEvent('sectionChanged', { detail: { section: name } }));
+  };
+})();
 
 // ── Title map ───────────────────────────────────────────────────────────────
 var _stTitleMap = {
@@ -1977,12 +2034,39 @@ function browseStoriesDir() {
 }
 
 // Settings load
-function loadCfg(s) {
-  _ALL_KEY_IDS.forEach(function(k) {
-    var el = document.getElementById('cfg_' + k);
-    if (el && s[k]) el.value = s[k];
-  });
-  refreshKeyStatus();
+// Full replacement of base.html loadCfg — fetches settings and applies everything
+// (base.html's loadCfg is shadowed once this script block loads)
+async function loadCfg() {
+  try {
+    var r = await fetch('/api/app-settings');
+    var d = await r.json();
+    var s = d.settings || {};
+    // Theme & hints (same as base.html version)
+    var thSel = document.getElementById('cfg_theme');
+    if (thSel) thSel.value = s.theme || localStorage.getItem('app-theme') || 'dark';
+    var hintsChk = document.getElementById('cfg_hints_on');
+    if (hintsChk) hintsChk.checked = !!(s.hints_on || localStorage.getItem('app-hints') === 'on');
+    // API keys
+    _ALL_KEY_IDS.forEach(function(k) {
+      var el = document.getElementById('cfg_' + k);
+      if (el && s[k]) el.value = s[k];
+    });
+    // VCS settings
+    var vcsRemote = document.getElementById('cfg_vcs_remote');
+    if (vcsRemote && s.vcs_remote) vcsRemote.value = s.vcs_remote;
+    var vcsDev = document.getElementById('cfg_vcs_dev_branch');
+    if (vcsDev && s.vcs_dev_branch) vcsDev.value = s.vcs_dev_branch;
+    var vcsProd = document.getElementById('cfg_vcs_prod_branch');
+    if (vcsProd && s.vcs_prod_branch) vcsProd.value = s.vcs_prod_branch;
+    var vcsTab = document.getElementById('cfg_vcs_show_tab');
+    if (vcsTab) vcsTab.checked = (s.vcs_show_tab !== false);
+    _applyVcsNavTab();
+    // Hidden settings cards
+    _settingsHiddenCards = s.settings_hidden_cards || [];
+    _initSettingsVisibility();
+    _applySettingsHiddenCards();
+    refreshKeyStatus();
+  } catch(e) { refreshKeyStatus(); }
 }
 
 // ── App helpers ────────────────────────────────────────────────────────────────
@@ -2029,6 +2113,52 @@ function escAttr(s) {
 }
 
 // ── VCS / Git ────────────────────────────────────────────────────────────────
+function _applyVcsNavTab() {
+  var showTab = document.getElementById('cfg_vcs_show_tab');
+  var navItem = document.getElementById('nav-vcs');
+  if (navItem) navItem.closest('.nav-item').style.display = (showTab && !showTab.checked) ? 'none' : '';
+}
+
+function vcsAutoDetectRemote() {
+  fetch('/api/git/status').then(function(r){ return r.json(); }).then(function(d) {
+    var el = document.getElementById('cfg_vcs_remote');
+    if (d.ok && d.remote && el) {
+      el.value = d.remote;
+      showToast('Remote URL detected: ' + d.remote, 'success');
+    } else {
+      showToast('No remote configured in git yet.', 'warning');
+    }
+  }).catch(function(){ showToast('Could not reach git status.', 'danger'); });
+}
+
+function saveVcsSettings() {
+  var remote  = (document.getElementById('cfg_vcs_remote')     ||{}).value || '';
+  var devBr   = (document.getElementById('cfg_vcs_dev_branch') ||{}).value || 'development';
+  var prodBr  = (document.getElementById('cfg_vcs_prod_branch')||{}).value || 'main';
+  var showTab = !!(document.getElementById('cfg_vcs_show_tab') ||{}).checked;
+  var d = { vcs_method: 'git', vcs_remote: remote.trim(),
+            vcs_dev_branch: devBr, vcs_prod_branch: prodBr, vcs_show_tab: showTab };
+  fetch('/api/app-settings', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(d),
+  }).then(function(r){ return r.json(); }).then(function(resp) {
+    if (!resp.ok) { showToast('Save failed: ' + (resp.error||''), 'danger'); return; }
+    // If a remote URL was given, also wire it up in git
+    if (remote.trim()) {
+      fetch('/api/git/set-remote', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({url: remote.trim()}),
+      }).then(function(r){ return r.json(); }).then(function(gr) {
+        if (gr.ok) showToast('VCS settings saved. Remote set to: ' + remote.trim(), 'success');
+        else showToast('Settings saved but git remote error: ' + (gr.error||''), 'warning');
+        _applyVcsNavTab();
+      });
+    } else {
+      showToast('VCS settings saved.', 'success');
+      _applyVcsNavTab();
+    }
+  }).catch(function(e){ showToast('Error: ' + e.message, 'danger'); });
+}
+
 function vcsRefresh() {
   var btn = document.getElementById('vcsBtnRefresh');
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-arrow-clockwise spin me-1"></i>Refreshing'; }
@@ -2633,7 +2763,7 @@ document.addEventListener('DOMContentLoaded', function() {
 var _masonryResizeTimer = null;
 var _MASONRY_GAP     = 12;
 var _MASONRY_MIN_COL = 320;
-function _onSettingsPaneShow() { _layoutSettingsMasonry(); }
+function _onSettingsPaneShow() { _initSettingsVisibility(); _layoutSettingsMasonry(); }
 function _layoutSettingsMasonry() {
   var activePane = document.getElementById('settingsActivePane');
   if (!activePane || activePane.style.display === 'none') return;
@@ -2685,6 +2815,7 @@ function _initSettingsVisibility() {
   var grid = document.querySelector('#pane-settings .settings-grid');
   if (!grid) return;
   grid.querySelectorAll(':scope > .card').forEach(function(card) {
+    if (card.hasAttribute('data-settings-card-id')) return; // idempotent
     var ch=card.querySelector('.card-header'), h6=ch?ch.querySelector('h6'):null;
     if(!ch||!h6) return;
     var text=(h6.textContent||'').trim().replace(/\s+/g,' ');

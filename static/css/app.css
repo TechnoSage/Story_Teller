@@ -424,6 +424,14 @@
   border-radius: .3rem;
 }
 
+/* ── Sidebar scrollbar fix & hints tooltip overflow ─────────────────────────── */
+/* CSS spec: overflow-y:auto + overflow-x:visible → x computes to auto (creates scrollbar).
+   Fix by clamping x to hidden; collapsed sidebar overrides this via higher specificity. */
+.sb-nav-scroll { overflow-x: hidden; }
+/* When hints are active in EXPANDED sidebar, let ::after tooltips escape the clipped area */
+body.hints-on #sidebar:not(.collapsed),
+body.hints-on #sidebar:not(.collapsed) .sb-nav-scroll { overflow: visible; }
+
 /* ── Settings key status badges ─────────────────────────────────────────────── */
 .key-status-badge {
   display: inline-flex;
