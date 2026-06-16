@@ -1007,4 +1007,20 @@ def create_app() -> Flask:
         branches = [b.strip().lstrip("* ") for b in out.splitlines() if b.strip()]
         return jsonify({"ok": True, "branches": branches})
 
+    @app.route("/api/git/set-remote", methods=["POST"])
+    def api_git_set_remote():
+        data = request.get_json(silent=True) or {}
+        url = (data.get("url") or "").strip()
+        if not url:
+            return jsonify({"ok": False, "error": "Remote URL is required."})
+        # Check if origin already exists
+        _, rc = _git("remote", "get-url", "origin")
+        if rc == 0:
+            out, rc = _git("remote", "set-url", "origin", url)
+        else:
+            out, rc = _git("remote", "add", "origin", url)
+        if rc != 0:
+            return jsonify({"ok": False, "error": out})
+        return jsonify({"ok": True, "remote": url})
+
     return app
