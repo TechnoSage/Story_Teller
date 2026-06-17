@@ -137,7 +137,8 @@
       <div class="row g-3">
 
         <div class="col-md-12">
-          <label class="form-label small text-muted">Story Title <span class="text-muted">(optional — auto-generated if blank)</span></label>
+          <label class="form-label small text-muted st-hint"
+                 data-st-hint="Leave blank to let the AI generate a title from your genre, tone, and plot hook. Enter a specific title to steer the story's theme and naming direction.">Story Title <span class="text-muted">(optional — auto-generated if blank)</span></label>
           <input type="text" id="storyTitle" class="form-control form-control-sm"
                  placeholder="Leave blank to auto-generate a title">
         </div>
@@ -157,23 +158,41 @@
         </div>
 
         <div class="col-md-3">
-          <label class="form-label small text-muted">Main Characters</label>
-          <select class="form-select form-select-sm" id="paramCharacters">
-            <option value="1">1 character</option>
-            <option value="2" selected>2 characters</option>
-            <option value="3">3 characters</option>
-            <option value="4">4 characters</option>
-            <option value="5">5+ characters</option>
-          </select>
+          <label class="form-label small text-muted st-hint"
+                 data-st-hint="How many distinct characters the AI develops in depth. More characters = richer ensemble, but each needs screen time — increase word count accordingly.">Main Characters</label>
+          <div class="btn-group w-100" role="group">
+            <input type="radio" class="btn-check" name="characters" id="char1" value="1">
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="char1"
+                   data-st-hint="Solo — one protagonist developed in full depth. Tight, intimate focus. Best for horror (lone survivor), mystery, or personal drama where the hero faces challenges alone.">1</label>
+            <input type="radio" class="btn-check" name="characters" id="char2" value="2" checked>
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="char2"
+                   data-st-hint="Duo — protagonist + one key ally, rival, or love interest. Natural dialogue, contrast, and tension. The most versatile count — works for any genre.">2</label>
+            <input type="radio" class="btn-check" name="characters" id="char3" value="3">
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="char3"
+                   data-st-hint="Trio — three characters with distinct roles. Adds a wildcard or secondary plot thread. Good for adventure, romance triangles, or thrillers with a hidden traitor.">3</label>
+            <input type="radio" class="btn-check" name="characters" id="char4" value="4">
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="char4"
+                   data-st-hint="Ensemble — four interweaving storylines. Each character needs meaningful screen time, so 5,000+ words is recommended. Suits epic fantasy or sci-fi with distinct factions.">4</label>
+            <input type="radio" class="btn-check" name="characters" id="char5" value="5">
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="char5"
+                   data-st-hint="Large cast — five or more characters with their own arcs. Best at 7,000–9,000 words. Suits epic stories with multiple factions, timelines, or POV chapters.">5+</label>
+          </div>
         </div>
 
         <div class="col-md-3">
-          <label class="form-label small text-muted">Age Rating</label>
-          <select class="form-select form-select-sm" id="paramAgeRating">
-            <option value="All Ages">All Ages</option>
-            <option value="PG">PG</option>
-            <option value="PG-13" selected>PG-13</option>
-          </select>
+          <label class="form-label small text-muted st-hint"
+                 data-st-hint="Sets the content maturity level the AI writes to. Genre defaults are pre-selected but you can override. Always use All Ages for Children's or Bedtime genres.">Age Rating</label>
+          <div class="btn-group w-100" role="group">
+            <input type="radio" class="btn-check" name="age_rating" id="age1" value="All Ages">
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="age1"
+                   data-st-hint="All Ages — no violence, scary scenes, or mature themes. Conflict is mild and resolution is cheerful. Required for Children's and Bedtime genres. Safe for all viewers of any age.">All Ages</label>
+            <input type="radio" class="btn-check" name="age_rating" id="age2" value="PG">
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="age2"
+                   data-st-hint="PG — mild peril and light conflict. Characters face real challenges but nothing is graphic. Suitable for young teens and family viewing. Works for Adventure, Fantasy, and lighter Sci-Fi.">PG</label>
+            <input type="radio" class="btn-check" name="age_rating" id="age3" value="PG-13" checked>
+            <label class="btn btn-outline-secondary btn-sm st-hint" for="age3"
+                   data-st-hint="PG-13 — moderate intensity. Villains can be genuinely menacing, horror can be scary, moral dilemmas can be ambiguous. Default for Thriller, Sci-Fi, Mystery, and adult Drama. Not suitable for Children's or Bedtime genres.">PG-13</label>
+          </div>
         </div>
 
         <div class="col-md-6">
@@ -207,13 +226,15 @@
         </div>
 
         <div class="col-md-6">
-          <label class="form-label small text-muted">Setting <span class="text-muted">(optional)</span></label>
+          <label class="form-label small text-muted st-hint"
+                 data-st-hint="Describe the world, time period, and location. Specific details produce far richer scenes — 'abandoned lighthouse on the Maine coast, 1920s' is much stronger than 'a spooky place'. Leave blank and the AI will choose a setting based on the genre.">Setting <span class="text-muted">(optional)</span></label>
           <input type="text" id="paramSetting" class="form-control form-control-sm"
                  placeholder="e.g. 'A space station orbiting Jupiter, year 2387'">
         </div>
 
         <div class="col-md-6">
-          <label class="form-label small text-muted">Plot Hook / Opening Premise <span class="text-muted">(optional)</span></label>
+          <label class="form-label small text-muted st-hint"
+                 data-st-hint="The central conflict or opening situation that drives the entire story. Include tension — 'A detective discovers the prime suspect is her own father' is far stronger than 'a detective solves a crime'. Leave blank and the AI will invent an original premise for the genre.">Plot Hook / Opening Premise <span class="text-muted">(optional)</span></label>
           <input type="text" id="paramHook" class="form-control form-control-sm"
                  placeholder="e.g. 'A lone human ambassador must negotiate peace with 12 alien species'">
         </div>
@@ -1435,8 +1456,8 @@ function selectGenre(slug) {
     if (narr) narr.checked = true;
     var tone = document.querySelector('input[name="tone"][value="' + g.default_tone + '"]');
     if (tone) tone.checked = true;
-    var age = document.getElementById('paramAgeRating');
-    if (age) age.value = g.age_rating;
+    var ageRad = document.querySelector('input[name="age_rating"][value="' + (g.age_rating || 'PG-13') + '"]');
+    if (ageRad) ageRad.checked = true;
   }
   updateCostEstimate();
 }
@@ -1550,8 +1571,8 @@ function startGeneration() {
 
   var params = {
     word_count: parseInt(document.getElementById('wordCountSlider').value),
-    characters: parseInt(document.getElementById('paramCharacters').value),
-    age_rating: document.getElementById('paramAgeRating').value,
+    characters: parseInt(document.querySelector('input[name="characters"]:checked')?.value || '2'),
+    age_rating: document.querySelector('input[name="age_rating"]:checked')?.value || 'PG-13',
     narrative:  document.querySelector('input[name="narrative"]:checked')?.value || 'third',
     tone:       document.querySelector('input[name="tone"]:checked')?.value || 'neutral',
     setting:    document.getElementById('paramSetting').value.trim(),
@@ -1739,8 +1760,8 @@ function saveStory() {
   var title = document.getElementById('outputTitle').value.trim();
   var params = {
     word_count: parseInt(document.getElementById('wordCountSlider').value),
-    characters: parseInt(document.getElementById('paramCharacters').value),
-    age_rating: document.getElementById('paramAgeRating').value,
+    characters: parseInt(document.querySelector('input[name="characters"]:checked')?.value || '2'),
+    age_rating: document.querySelector('input[name="age_rating"]:checked')?.value || 'PG-13',
     narrative:  document.querySelector('input[name="narrative"]:checked')?.value,
     tone:       document.querySelector('input[name="tone"]:checked')?.value,
     setting:    document.getElementById('paramSetting').value.trim(),
