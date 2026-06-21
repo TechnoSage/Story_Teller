@@ -6,6 +6,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import time as _time
 import threading as _th
 import time as _hbt
 
@@ -21,6 +22,7 @@ from story_engine import (GENRES, GENRES_BY_SLUG, PROVIDERS, PROVIDERS_BY_ID,
 import voice_engine   as _ve
 import image_engine   as _ie
 import caption_engine as _ce
+import youtube_engine as _yt
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -1013,7 +1015,6 @@ def create_app() -> Flask:
         url = (data.get("url") or "").strip()
         if not url:
             return jsonify({"ok": False, "error": "Remote URL is required."})
-        # Check if origin already exists
         _, rc = _git("remote", "get-url", "origin")
         if rc == 0:
             out, rc = _git("remote", "set-url", "origin", url)
@@ -1022,5 +1023,366 @@ def create_app() -> Flask:
         if rc != 0:
             return jsonify({"ok": False, "error": out})
         return jsonify({"ok": True, "remote": url})
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # YOUTUBE API  (Phase 5)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    _YT_CREDS_PATH = os.path.join(BASE_DIR, "instance", "youtube_credentials.json")
+
+    def _yt_creds() -> dict | None:
+        if not os.path.isfile(_YT_CREDS_PATH):
+            return None
+        try:
+            with open(_YT_CREDS_PATH) as f:
+                return json.load(f)
+        except Exception:
+            return None
+
+    def _yt_save_creds(creds: dict) -> None:
+        os.makedirs(os.path.dirname(_YT_CREDS_PATH), exist_ok=True)
+        with open(_YT_CREDS_PATH, "w") as f:
+            json.dump(creds, f, indent=2)
+
+    def _yt_redirect_uri() -> str:
+        s    = _load_settings()
+        port = int(s.get("app_port", 5005))
+        return f"http://127.0.0.1:{port}/api/youtube/callback"
+
+    @app.route("/api/youtube/status")
+    def api_yt_status():
+        s         = _load_settings()
+        client_id = s.get("yt_client_id", "").strip()
+        if not client_id:
+            return jsonify({"ok": True, "connected": False, "reason": "no_client_id"})
+        creds = _yt_creds()
+        if not creds or not creds.get("refresh_token"):
+            return jsonify({"ok": True, "connected": False, "reason": "not_connected"})
+        try:
+            client_secret = s.get("yt_client_secret", "").strip()
+            channel = _yt.get_channel_info(creds, client_id, client_secret)
+            _yt_save_creds(creds)
+            return jsonify({"ok": True, "connected": True, "channel": channel})
+        except Exception as exc:
+            return jsonify({"ok": True, "connected": False,
+                            "reason": "error", "error": str(exc)})
+
+    @app.route("/api/youtube/auth-url")
+    def api_yt_auth_url():
+        s         = _load_settings()
+        client_id = s.get("yt_client_id", "").strip()
+        if not client_id:
+            return jsonify({"ok": False,
+                            "error": "YouTube Client ID not set — add it in Settings → YouTube API."}), 400
+        url = _yt.build_auth_url(client_id, _yt_redirect_uri())
+        return jsonify({"ok": True, "url": url})
+
+    @app.route("/api/youtube/callback")
+    def api_yt_callback():
+        from flask import render_template
+        code  = request.args.get("code",  "")
+        error = request.args.get("error", "")
+        if error:
+            return render_template("youtube_callback.html",
+                                   success=False,
+                                   message=f"Authorization denied: {error}")
+        if not code:
+            return render_template("youtube_callback.html",
+                                   success=False,
+                                   message="No authorization code was returned.")
+        s             = _load_settings()
+        client_id     = s.get("yt_client_id", "").strip()
+        client_secret = s.get("yt_client_secret", "").strip()
+        try:
+            tok = _yt.exchange_code(code, client_id, client_secret, _yt_redirect_uri())
+            creds = {
+                "access_token":  tok["access_token"],
+                "refresh_token": tok.get("refresh_token", ""),
+                "expires_at":    _time.time() + tok.get("expires_in", 3600),
+                "scope":         tok.get("scope", ""),
+            }
+            _yt_save_creds(creds)
+            return render_template("youtube_callback.html",
+                                   success=True,
+                                   message="YouTube connected! You may close this tab.")
+        except Exception as exc:
+            return render_template("youtube_callback.html",
+                                   success=False,
+                                   message=f"Error: {exc}")
+
+    @app.route("/api/youtube/disconnect", methods=["POST"])
+    def api_yt_disconnect():
+        creds = _yt_creds()
+        if creds:
+            _yt.revoke_credentials(creds.get("access_token", ""))
+            try:
+                os.remove(_YT_CREDS_PATH)
+            except Exception:
+                pass
+        return jsonify({"ok": True})
+
+    @app.route("/api/youtube/videos")
+    def api_yt_videos():
+        s             = _load_settings()
+        client_id     = s.get("yt_client_id", "").strip()
+        client_secret = s.get("yt_client_secret", "").strip()
+        creds = _yt_creds()
+        if not creds or not client_id:
+            return jsonify({"ok": False, "error": "YouTube not connected."}), 400
+        try:
+            videos = _yt.list_uploads(creds, client_id, client_secret)
+            _yt_save_creds(creds)
+            return jsonify({"ok": True, "videos": videos})
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    @app.route("/api/youtube/upload/<int:sid>", methods=["POST"])
+    def api_yt_upload(sid):
+        story = _db.story_get(sid)
+        if not story:
+            return jsonify({"ok": False, "error": "Story not found"}), 404
+        s             = _load_settings()
+        client_id     = s.get("yt_client_id", "").strip()
+        client_secret = s.get("yt_client_secret", "").strip()
+        creds = _yt_creds()
+        if not creds or not client_id:
+            return jsonify({"ok": False, "error": "YouTube not connected."}), 400
+
+        d           = request.get_json(silent=True) or {}
+        title       = (d.get("title") or story.get("title", "Story")).strip()[:100]
+        description = (d.get("description") or
+                       f"AI-generated story: {story.get('title','')}\n\nCreated by Story Teller.").strip()
+        tags_str    = d.get("tags", "story,narration,ai story,audiobook")
+        tags        = [t.strip() for t in tags_str.split(",") if t.strip()]
+        cat_id      = str(d.get("category_id", "24"))
+        privacy     = d.get("privacy", "private")
+        sched_at    = d.get("scheduled_at")
+
+        genre_dir = os.path.join(BASE_DIR, "stories", story.get("genre_slug", ""))
+        safe = "".join(c if c.isalnum() or c in "-_ " else "_"
+                       for c in story.get("title", "story"))[:50].strip().replace(" ", "_")
+        vid_path   = os.path.join(genre_dir, f"{sid:05d}_{safe}_video.mp4")
+        final_path = os.path.join(genre_dir, f"{sid:05d}_{safe}_final.mp4")
+        if os.path.isfile(final_path):
+            vid_path = final_path
+        if not os.path.isfile(vid_path):
+            return jsonify({"ok": False,
+                            "error": "No video file found — assemble the video in Production first."}), 400
+
+        try:
+            result = _yt.upload_video(creds, client_id, client_secret,
+                                      vid_path, title, description, tags,
+                                      category_id=cat_id, privacy=privacy,
+                                      scheduled_at=sched_at)
+            _yt_save_creds(creds)
+            try:
+                _db.prompt_save(sid, story.get("genre_slug", ""), "youtube",
+                                provider="youtube",
+                                params={"privacy": privacy, "title": title,
+                                        "video_id": result["id"]})
+            except Exception:
+                pass
+            return jsonify({"ok": True, "video_id": result["id"],
+                            "url": result["url"]})
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SCHEDULER API  (Phase 6)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    import uuid as _uuid
+
+    @app.route("/api/scheduler/status")
+    def api_scheduler_status():
+        pid_file = os.path.join(BASE_DIR, "daemon.pid")
+        running  = False
+        pid      = None
+        if os.path.isfile(pid_file):
+            try:
+                pid = int(open(pid_file).read().strip())
+                import signal as _sig
+                os.kill(pid, 0)
+                running = True
+            except Exception:
+                running = False
+        return jsonify({"ok": True, "running": running, "pid": pid})
+
+    @app.route("/api/scheduler/jobs")
+    def api_scheduler_jobs():
+        return jsonify({"ok": True, "jobs": _db.job_list()})
+
+    @app.route("/api/scheduler/jobs", methods=["POST"])
+    def api_scheduler_create():
+        d      = request.get_json(silent=True) or {}
+        job_id = str(_uuid.uuid4())
+        _db.job_create(job_id, d)
+        return jsonify({"ok": True, "job": _db.job_get(job_id)}), 201
+
+    @app.route("/api/scheduler/jobs/<job_id>", methods=["PUT"])
+    def api_scheduler_update(job_id):
+        d = request.get_json(silent=True) or {}
+        _db.job_update(job_id, d)
+        return jsonify({"ok": True, "job": _db.job_get(job_id)})
+
+    @app.route("/api/scheduler/jobs/<job_id>", methods=["DELETE"])
+    def api_scheduler_delete(job_id):
+        _db.job_delete(job_id)
+        return jsonify({"ok": True})
+
+    @app.route("/api/scheduler/jobs/<job_id>/run-now", methods=["POST"])
+    def api_scheduler_run_now(job_id):
+        job = _db.job_get(job_id)
+        if not job:
+            return jsonify({"ok": False, "error": "Job not found"}), 404
+        from datetime import datetime
+        _db.job_update(job_id, {"next_run": datetime.utcnow().isoformat(),
+                                "status":   "pending"})
+        return jsonify({"ok": True})
+
+    @app.route("/api/scheduler/jobs/<job_id>/runs")
+    def api_scheduler_runs(job_id):
+        return jsonify({"ok": True, "runs": _db.job_run_list(job_id)})
+
+    @app.route("/api/scheduler/start", methods=["POST"])
+    def api_scheduler_start():
+        import subprocess as _subp
+        import sys
+        daemon_py = os.path.join(BASE_DIR, "daemon.py")
+        flags = 0x08000000 | 0x00000008  # CREATE_NO_WINDOW | DETACHED_PROCESS
+        try:
+            _subp.Popen(
+                [sys.executable, daemon_py],
+                creationflags=flags if os.name == "nt" else 0,
+                close_fds=True,
+                cwd=BASE_DIR,
+            )
+            return jsonify({"ok": True})
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    @app.route("/api/scheduler/stop", methods=["POST"])
+    def api_scheduler_stop():
+        pid_file = os.path.join(BASE_DIR, "daemon.pid")
+        if not os.path.isfile(pid_file):
+            return jsonify({"ok": True, "message": "Daemon not running."})
+        try:
+            pid = int(open(pid_file).read().strip())
+            import signal as _sig
+            os.kill(pid, _sig.SIGTERM)
+            return jsonify({"ok": True})
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # TESTS API  (verify each pipeline component)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    @app.route("/api/test/story", methods=["POST"])
+    def api_test_story():
+        """Generate a ~100-word mini test story to verify AI connectivity."""
+        d           = request.get_json(silent=True) or {}
+        provider_id = d.get("provider_id", "anthropic")
+        model_id    = d.get("model_id", "")
+        settings    = _load_settings()
+        provider    = PROVIDERS_BY_ID.get(provider_id, {})
+        key_name    = provider.get("setting_key", "")
+        api_key     = settings.get(key_name, "") or os.environ.get(key_name.upper(), "")
+        if not api_key:
+            return jsonify({
+                "ok":    False,
+                "error": f"No API key for {provider.get('name','provider')}. "
+                         "Add it in Settings → API Keys.",
+            }), 400
+        model_id = model_id or provider.get("default_model", "")
+        params   = {
+            "word_count": 100,
+            "narrative":  "third",
+            "tone":       "neutral",
+            "age_rating": "All Ages",
+            "characters": 1,
+            "setting":    "A quiet lighthouse at dusk",
+            "plot_hook":  "A keeper discovers a bottle with tomorrow's newspaper inside it",
+        }
+        try:
+            text = "".join(stream_story(provider_id, model_id, "mystery", params, api_key))
+            return jsonify({"ok": True, "text": text.strip(),
+                            "words": len(text.split()),
+                            "provider": provider_id, "model": model_id})
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    @app.route("/api/test/image", methods=["POST"])
+    def api_test_image():
+        """Generate a test scene image to verify image API connectivity."""
+        d           = request.get_json(silent=True) or {}
+        provider_id = d.get("provider_id", "dalle3")
+        settings    = _load_settings()
+        prov        = _ie.IMAGE_PROVIDERS_BY_ID.get(provider_id, {})
+        key_name    = prov.get("setting_key", "")
+        api_key     = settings.get(key_name, "") or os.environ.get(key_name.upper(), "")
+        if not api_key:
+            return jsonify({
+                "ok":    False,
+                "error": f"No API key for {prov.get('name','provider')}. "
+                         "Add it in Settings → API Keys.",
+            }), 400
+        prompt = (
+            "A lone lighthouse standing at the edge of a dramatic rocky cliff at stormy night. "
+            "Massive ocean waves crash below. A single beam of warm golden light sweeps the fog. "
+            "Cinematic, atmospheric, digital art, 4K, ultra-detailed."
+        )
+        try:
+            img_bytes = _ie.generate(provider_id, prompt, api_key)
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+        buf = io.BytesIO(img_bytes)
+        buf.seek(0)
+        return send_file(buf, mimetype="image/png", as_attachment=False)
+
+    @app.route("/api/test/captions", methods=["GET"])
+    def api_test_captions():
+        """Convert a short sample text to SRT to verify the caption engine."""
+        sample = (
+            "The lighthouse stood alone. Its beam cut through the darkness like a blade. "
+            "Inside, the keeper heard something unexpected. A knock at the iron door. "
+            "No ship should have been close enough. He opened it slowly."
+        )
+        try:
+            srt = _ce.text_to_srt(sample)
+            return jsonify({"ok": True, "srt": srt, "sample": sample})
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    @app.route("/api/test/video", methods=["POST"])
+    def api_test_video():
+        """Assemble a short test video from the first available story assets."""
+        if not _ce.ffmpeg_available():
+            return jsonify({"ok": False,
+                            "error": "ffmpeg not found. Install ffmpeg and restart the app."}), 400
+        # Find any story that has both an MP3 and a PNG
+        stories = _db.story_list(limit=50)
+        for s in stories:
+            sid  = s["id"]
+            gs   = s["genre_slug"]
+            safe = "".join(c if c.isalnum() or c in "-_ " else "_"
+                           for c in (s.get("title") or "story"))[:50].strip().replace(" ", "_")
+            gdir  = os.path.join(BASE_DIR, "stories", gs)
+            apath = os.path.join(gdir, f"{sid:05d}_{safe}.mp3")
+            ipath = os.path.join(gdir, f"{sid:05d}_{safe}_scene.png")
+            if os.path.isfile(apath) and os.path.isfile(ipath):
+                opath = os.path.join(gdir, f"{sid:05d}_{safe}_test.mp4")
+                srt_p = os.path.join(gdir, f"{sid:05d}_{safe}.srt")
+                log, rc = _ce.assemble_video(
+                    image_path=ipath, audio_path=apath, output_path=opath,
+                    srt_path=srt_p if os.path.isfile(srt_p) else None,
+                    burn_captions=True, caption_style="standard",
+                )
+                if rc == 0:
+                    return send_file(opath, mimetype="video/mp4", as_attachment=False)
+                return jsonify({"ok": False, "error": log[-400:]}), 500
+        return jsonify({"ok": False,
+                        "error": "No story with both narration audio and scene image found. "
+                                 "Generate a story in Production first (voice + image)."}), 400
 
     return app

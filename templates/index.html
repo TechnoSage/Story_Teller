@@ -46,6 +46,13 @@
   </a>
 </li>
 <li class="nav-item">
+  <a class="nav-link" href="#" id="nav-tests"
+     data-tooltip="System Tests — Verify APIs, audio, images &amp; video"
+     onclick="showSection('tests');return false;">
+    <i class="bi bi-check2-circle"></i><span class="nav-label">Tests</span>
+  </a>
+</li>
+<li class="nav-item">
   <a class="nav-link" href="#" id="nav-vcs"
      data-tooltip="Version Control — Git status, commit &amp; push"
      onclick="showSection('vcs');return false;">
@@ -781,79 +788,282 @@
 </div>
 
 {# ══════════════════════════════════════════════════════════════════════════════
-   CHANNELS (Phase 5 placeholder)
+   CHANNELS  (Phase 5)
 ══════════════════════════════════════════════════════════════════════════════ #}
 <div class="section-pane" id="pane-channels">
   <div class="page-header">
     <h4><i class="bi bi-youtube me-2" style="color:#ff0000"></i>YouTube Channels</h4>
-    <div class="page-desc">Connect your YouTube account, select or create channels, and configure upload settings per genre.</div>
+    <div class="page-desc">Connect your Google account and upload story videos directly to YouTube.</div>
   </div>
-  <div class="card">
-    <div class="card-body text-center py-5">
-      <i class="bi bi-youtube fs-1 mb-3 d-block" style="color:rgba(255,0,0,.4)"></i>
-      <h5 class="fw-bold mb-2">YouTube Integration</h5>
-      <p class="text-muted mb-4" style="max-width:500px;margin:0 auto;">
-        Phase 5 will add Google OAuth2 login, channel selection, new channel creation
-        (with AI-generated icon and banner), video upload with title/description/tags,
-        thumbnail auto-generation, and upload scheduling.
-      </p>
-      <div class="row g-3 justify-content-center mb-4" style="max-width:700px;margin:0 auto">
-        <div class="col-sm-6">
-          <div class="phase-feature-pill"><i class="bi bi-google me-2"></i>Google OAuth2 login</div>
+
+  <div class="row g-3 mb-3">
+
+    {# ── Account card ── #}
+    <div class="col-lg-4">
+      <div class="card h-100">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h6 class="fw-bold mb-0"><i class="bi bi-person-circle me-1 text-secondary"></i>Google Account</h6>
         </div>
-        <div class="col-sm-6">
-          <div class="phase-feature-pill"><i class="bi bi-collection-play me-2"></i>Channel selector</div>
-        </div>
-        <div class="col-sm-6">
-          <div class="phase-feature-pill"><i class="bi bi-plus-circle me-2"></i>New channel wizard</div>
-        </div>
-        <div class="col-sm-6">
-          <div class="phase-feature-pill"><i class="bi bi-upload me-2"></i>Scheduled video upload</div>
-        </div>
-        <div class="col-sm-6">
-          <div class="phase-feature-pill"><i class="bi bi-card-image me-2"></i>AI thumbnail generation</div>
-        </div>
-        <div class="col-sm-6">
-          <div class="phase-feature-pill"><i class="bi bi-badge-cc me-2"></i>Caption file upload</div>
+        <div class="card-body">
+
+          {# Connected #}
+          <div id="ytConnectedState" style="display:none">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <img id="ytChannelThumb" src="" alt="" width="48" height="48"
+                   style="border-radius:50%;object-fit:cover;border:2px solid rgba(255,0,0,.4);"
+                   onerror="this.style.display='none'">
+              <div>
+                <div class="fw-bold small" id="ytChannelTitle">—</div>
+                <div style="font-size:.72rem;color:#adb5bd;" id="ytChannelUrl">—</div>
+              </div>
+            </div>
+            <div class="row g-2 text-center mb-3">
+              <div class="col-4">
+                <div class="fw-bold" style="color:#6ea8fe;" id="ytSubCount">0</div>
+                <div style="font-size:.68rem;color:#adb5bd;">Subscribers</div>
+              </div>
+              <div class="col-4">
+                <div class="fw-bold" style="color:#75b798;" id="ytVideoCount">0</div>
+                <div style="font-size:.68rem;color:#adb5bd;">Videos</div>
+              </div>
+              <div class="col-4">
+                <div class="fw-bold" style="color:#ffc107;" id="ytViewCount">0</div>
+                <div style="font-size:.68rem;color:#adb5bd;">Views</div>
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-secondary flex-grow-1" onclick="ytLoadVideos()">
+                <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="ytDisconnect()">
+                <i class="bi bi-box-arrow-left me-1"></i>Disconnect
+              </button>
+            </div>
+          </div>
+
+          {# Not connected #}
+          <div id="ytDisconnectedState">
+            <p class="text-muted small mb-3">Connect your Google account to upload story videos to YouTube directly from Story Teller.</p>
+            <button class="btn btn-danger w-100 mb-2" onclick="ytStartAuth()">
+              <i class="bi bi-youtube me-2"></i>Connect with Google
+            </button>
+            <div class="text-muted" style="font-size:.7rem;line-height:1.5;">
+              Requires a Google Cloud project with YouTube Data API v3.<br>
+              Add your OAuth2 credentials in <strong class="text-white">Settings → YouTube API</strong>.
+            </div>
+          </div>
+
+          {# No client ID configured #}
+          <div id="ytNoCredsState" style="display:none">
+            <div class="alert alert-warning p-2 mb-2" style="font-size:.78rem;">
+              <i class="bi bi-exclamation-triangle me-1"></i>
+              YouTube API credentials not configured.
+            </div>
+            <button class="btn btn-sm btn-outline-warning w-100" onclick="showSection('settings')">
+              <i class="bi bi-gear me-1"></i>Open Settings → YouTube API
+            </button>
+          </div>
+
+          <div id="ytConnectStatus" class="mt-2 small"></div>
         </div>
       </div>
-      <span class="badge" style="background:rgba(108,117,125,.2);color:#adb5bd;font-size:.85rem;padding:.4rem .8rem;">Coming in Phase 5</span>
+    </div>
+
+    {# ── Upload card ── #}
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-header bg-transparent border-0 pb-0">
+          <h6 class="fw-bold mb-0"><i class="bi bi-cloud-upload me-1 text-secondary"></i>Upload Story Video</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <label class="form-label small text-muted mb-1">Story</label>
+            <select id="ytStorySelect" class="form-select form-select-sm">
+              <option value="">— Select a story from Archive —</option>
+            </select>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-8">
+              <label class="form-label small text-muted mb-1">Video Title <span class="text-muted">(blank = story title)</span></label>
+              <input type="text" id="ytVideoTitle" class="form-control form-control-sm"
+                     placeholder="Leave blank to use story title">
+            </div>
+            <div class="col-4">
+              <label class="form-label small text-muted mb-1">Privacy</label>
+              <select id="ytPrivacy" class="form-select form-select-sm">
+                <option value="private" selected>Private</option>
+                <option value="unlisted">Unlisted</option>
+                <option value="public">Public</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small text-muted mb-1">Description</label>
+            <textarea id="ytDescription" class="form-control form-control-sm" rows="2"
+              placeholder="Leave blank for auto-generated description…"></textarea>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-8">
+              <label class="form-label small text-muted mb-1">Tags <span class="text-muted">(comma-separated)</span></label>
+              <input type="text" id="ytTags" class="form-control form-control-sm"
+                     value="story,narration,ai story,audiobook">
+            </div>
+            <div class="col-4">
+              <label class="form-label small text-muted mb-1">Category</label>
+              <select id="ytCategory" class="form-select form-select-sm">
+                <option value="24" selected>Entertainment</option>
+                <option value="27">Education</option>
+                <option value="1">Film &amp; Animation</option>
+                <option value="22">People &amp; Blogs</option>
+                <option value="28">Science &amp; Technology</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-danger" onclick="ytUpload()" id="ytUploadBtn" disabled>
+            <i class="bi bi-cloud-upload me-1"></i>Upload to YouTube
+          </button>
+          <div id="ytUploadStatus" class="mt-2 small"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Recent uploads ── #}
+  <div class="card" id="ytUploadsCard" style="display:none">
+    <div class="card-header bg-transparent border-0 pb-0">
+      <h6 class="fw-bold mb-0"><i class="bi bi-collection-play me-1 text-secondary"></i>Recent Uploads</h6>
+    </div>
+    <div class="card-body p-0">
+      <div id="ytVideosList" class="p-3 text-muted small">Loading…</div>
     </div>
   </div>
 </div>
 
 {# ══════════════════════════════════════════════════════════════════════════════
-   SCHEDULE (Phase 6 placeholder)
+   SCHEDULE  (Phase 6)
 ══════════════════════════════════════════════════════════════════════════════ #}
 <div class="section-pane" id="pane-schedule">
-  <div class="page-header">
-    <h4><i class="bi bi-calendar-check-fill me-2 text-primary"></i>Publishing Schedule</h4>
-    <div class="page-desc">Set a schedule per genre and channel. The daemon runs automatically: generate → produce → upload.</div>
+  <div class="page-header d-flex align-items-center gap-3 flex-wrap">
+    <div>
+      <h4><i class="bi bi-calendar-check-fill me-2 text-primary"></i>Publishing Schedule</h4>
+      <div class="page-desc">Automated pipeline: generate story → narrate → render image → assemble video → upload to YouTube.</div>
+    </div>
+    <div class="ms-auto d-flex gap-2 align-items-center">
+      <span id="schedDaemonBadge" class="badge bg-secondary" style="font-size:.75rem;">Checking…</span>
+      <button class="btn btn-sm btn-outline-success" onclick="schedStartDaemon()" id="schedBtnStart" style="display:none">
+        <i class="bi bi-play-fill me-1"></i>Start Daemon
+      </button>
+      <button class="btn btn-sm btn-outline-danger" onclick="schedStopDaemon()" id="schedBtnStop" style="display:none">
+        <i class="bi bi-stop-fill me-1"></i>Stop Daemon
+      </button>
+      <button class="btn btn-sm btn-primary" onclick="schedOpenNew()">
+        <i class="bi bi-plus-lg me-1"></i>New Job
+      </button>
+    </div>
   </div>
-  <div class="card">
-    <div class="card-body text-center py-5">
-      <i class="bi bi-calendar-check-fill fs-1 mb-3 d-block" style="color:rgba(13,110,253,.4)"></i>
-      <h5 class="fw-bold mb-2">Automated Publishing</h5>
-      <p class="text-muted mb-4" style="max-width:500px;margin:0 auto;">
-        Phase 6 will add a full scheduling system: set how often each genre runs,
-        view the upcoming queue, monitor in-progress jobs, and get notified when
-        a new story is live on YouTube.
-      </p>
-      <div class="row g-3 justify-content-center mb-4" style="max-width:700px;margin:0 auto">
-        <div class="col-sm-6">
-          <div class="phase-feature-pill"><i class="bi bi-calendar-week me-2"></i>Per-genre publish schedule</div>
-        </div>
-        <div class="col-sm-6">
-          <div class="phase-feature-pill"><i class="bi bi-list-check me-2"></i>Job queue with retry</div>
-        </div>
-        <div class="col-sm-6">
-          <div class="phase-feature-pill"><i class="bi bi-bell-fill me-2"></i>Publish notifications</div>
-        </div>
-        <div class="col-sm-6">
-          <div class="phase-feature-pill"><i class="bi bi-activity me-2"></i>Live cost tracking per run</div>
+
+  {# ── Job list ── #}
+  <div class="card mb-3">
+    <div class="card-header bg-transparent border-0 pb-0">
+      <h6 class="fw-bold mb-0"><i class="bi bi-list-check me-1 text-secondary"></i>Scheduled Jobs</h6>
+    </div>
+    <div class="card-body p-0">
+      <div id="schedJobList" class="p-3 text-muted small">Loading…</div>
+    </div>
+  </div>
+</div>
+
+{# ── New/Edit Job modal ── #}
+<div class="modal fade" id="schedJobModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content bg-dark border-0" style="background:#1c1f24 !important">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="schedJobModalTitle">New Scheduled Job</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="schedJobId">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label small text-muted">Job Name</label>
+            <input type="text" id="schedJobName" class="form-control form-control-sm" placeholder="e.g. Daily Horror Story">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small text-muted">Genre</label>
+            <select id="schedJobGenre" class="form-select form-select-sm"></select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small text-muted">Schedule</label>
+            <select id="schedJobSchedule" class="form-select form-select-sm" onchange="schedToggleDays()">
+              <option value="manual">Manual only (Run Now button)</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly (select days)</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-muted">Time (UTC)</label>
+            <input type="time" id="schedJobTime" class="form-control form-control-sm" value="02:00">
+          </div>
+          <div class="col-md-8" id="schedDaysRow" style="display:none">
+            <label class="form-label small text-muted">Days</label>
+            <div class="d-flex gap-2 flex-wrap pt-1">
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="sched_day" value="mon"><span class="form-check-label small">Mon</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="sched_day" value="tue"><span class="form-check-label small">Tue</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="sched_day" value="wed"><span class="form-check-label small">Wed</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="sched_day" value="thu"><span class="form-check-label small">Thu</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="sched_day" value="fri"><span class="form-check-label small">Fri</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="sched_day" value="sat"><span class="form-check-label small">Sat</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="sched_day" value="sun"><span class="form-check-label small">Sun</span></label>
+            </div>
+          </div>
+          <div class="col-12"><hr class="border-secondary my-1"></div>
+          <div class="col-md-4">
+            <label class="form-label small text-muted">AI Provider</label>
+            <select id="schedJobProvider" class="form-select form-select-sm" onchange="schedUpdateModels()"></select>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label small text-muted">Model</label>
+            <select id="schedJobModel" class="form-select form-select-sm"></select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-muted">Voice Provider</label>
+            <select id="schedJobVoiceProv" class="form-select form-select-sm" onchange="schedUpdateVoices()"></select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-muted">Voice</label>
+            <select id="schedJobVoice" class="form-select form-select-sm"></select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-muted">Image Provider</label>
+            <select id="schedJobImgProv" class="form-select form-select-sm"></select>
+          </div>
+          <div class="col-12"><hr class="border-secondary my-1"></div>
+          <div class="col-md-4">
+            <div class="form-check form-switch pt-1">
+              <input class="form-check-input" type="checkbox" id="schedJobYtUpload" onchange="schedToggleYt()">
+              <label class="form-check-label small" for="schedJobYtUpload">Upload to YouTube</label>
+            </div>
+          </div>
+          <div class="col-md-4" id="schedYtPrivacyRow" style="display:none">
+            <label class="form-label small text-muted">Privacy</label>
+            <select id="schedJobYtPrivacy" class="form-select form-select-sm">
+              <option value="private">Private</option>
+              <option value="unlisted">Unlisted</option>
+              <option value="public">Public</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="schedJobEnabled" checked>
+              <label class="form-check-label small" for="schedJobEnabled">Enabled</label>
+            </div>
+          </div>
         </div>
       </div>
-      <span class="badge" style="background:rgba(108,117,125,.2);color:#adb5bd;font-size:.85rem;padding:.4rem .8rem;">Coming in Phase 6</span>
+      <div class="modal-footer border-0">
+        <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="schedSaveJob()">Save Job</button>
+      </div>
     </div>
   </div>
 </div>
@@ -948,6 +1158,143 @@
     </div>
 
   </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   TESTS  — Verify each pipeline component end-to-end
+══════════════════════════════════════════════════════════════════════════════ #}
+<div class="section-pane" id="pane-tests">
+  <div class="page-header d-flex align-items-center gap-3 flex-wrap">
+    <div>
+      <h4><i class="bi bi-check2-circle me-2 text-success"></i>System Tests</h4>
+      <div class="page-desc">Verify each part of the story pipeline — AI, voice, images, video, and YouTube.</div>
+    </div>
+    <button class="btn btn-sm btn-success ms-auto" onclick="runAllTests()">
+      <i class="bi bi-play-fill me-1"></i>Run All Tests
+    </button>
+  </div>
+
+  <div class="row g-3" id="testCards">
+
+    {# ── 1. Claude / AI connectivity ── #}
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+          <h6 class="fw-bold mb-0 flex-grow-1"><i class="bi bi-cpu me-1" style="color:#e87c6e"></i>AI Story Generation</h6>
+          <span id="testBadge_story" class="badge bg-secondary test-badge">Not run</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <select id="testStoryProvider" class="form-select form-select-sm"></select>
+            </div>
+            <div class="col-6">
+              <select id="testStoryModel" class="form-select form-select-sm"></select>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline-primary" onclick="testStory()" id="testBtn_story">
+            <i class="bi bi-play-fill me-1"></i>Generate 100-word test story
+          </button>
+          <div id="testResult_story" class="mt-3 test-result"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── 2. Voice narration ── #}
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+          <h6 class="fw-bold mb-0 flex-grow-1"><i class="bi bi-soundwave me-1" style="color:#6ea8fe"></i>Voice Narration</h6>
+          <span id="testBadge_voice" class="badge bg-secondary test-badge">Not run</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <select id="testVoiceProv" class="form-select form-select-sm" onchange="testUpdateVoices()"></select>
+            </div>
+            <div class="col-6">
+              <select id="testVoiceId" class="form-select form-select-sm"></select>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline-primary" onclick="testVoice()" id="testBtn_voice">
+            <i class="bi bi-play-fill me-1"></i>Generate voice preview
+          </button>
+          <div id="testResult_voice" class="mt-3 test-result"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── 3. Image generation ── #}
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+          <h6 class="fw-bold mb-0 flex-grow-1"><i class="bi bi-card-image me-1" style="color:#75b798"></i>Scene Image Generation</h6>
+          <span id="testBadge_image" class="badge bg-secondary test-badge">Not run</span>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <select id="testImageProv" class="form-select form-select-sm"></select>
+          </div>
+          <button class="btn btn-sm btn-outline-primary" onclick="testImage()" id="testBtn_image">
+            <i class="bi bi-play-fill me-1"></i>Generate test scene image
+          </button>
+          <div id="testResult_image" class="mt-3 test-result"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── 4. Captions ── #}
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+          <h6 class="fw-bold mb-0 flex-grow-1"><i class="bi bi-badge-cc me-1" style="color:#ffc107"></i>Closed Captions (SRT)</h6>
+          <span id="testBadge_captions" class="badge bg-secondary test-badge">Not run</span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">Converts story text to an SRT caption file using timing estimation — no API cost.</p>
+          <button class="btn btn-sm btn-outline-primary" onclick="testCaptions()" id="testBtn_captions">
+            <i class="bi bi-play-fill me-1"></i>Test caption generation
+          </button>
+          <div id="testResult_captions" class="mt-3 test-result"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── 5. Video assembly ── #}
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+          <h6 class="fw-bold mb-0 flex-grow-1"><i class="bi bi-film me-1" style="color:#e083ff"></i>Video Assembly (ffmpeg)</h6>
+          <span id="testBadge_video" class="badge bg-secondary test-badge">Not run</span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">Assembles the first available story (with audio + image) into an MP4. Requires ffmpeg installed and at least one produced story.</p>
+          <button class="btn btn-sm btn-outline-primary" onclick="testVideo()" id="testBtn_video">
+            <i class="bi bi-play-fill me-1"></i>Test video assembly
+          </button>
+          <div id="testResult_video" class="mt-3 test-result"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── 6. YouTube connectivity ── #}
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+          <h6 class="fw-bold mb-0 flex-grow-1"><i class="bi bi-youtube me-1" style="color:#ff0000"></i>YouTube Connection</h6>
+          <span id="testBadge_youtube" class="badge bg-secondary test-badge">Not run</span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">Verifies your Google OAuth2 credentials and fetches channel info from YouTube.</p>
+          <button class="btn btn-sm btn-outline-primary" onclick="testYouTube()" id="testBtn_youtube">
+            <i class="bi bi-play-fill me-1"></i>Test YouTube connection
+          </button>
+          <div id="testResult_youtube" class="mt-3 test-result"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>{# /row #}
 </div>
 
 {% endblock %}
@@ -1206,6 +1553,49 @@
   </div>
 </div>
 
+{# ── YOUTUBE API ───────────────────────────────────────────────────────────── #}
+<div class="card mb-3" id="keycard_youtube">
+  <div class="card-header bg-transparent border-0 pb-0 d-flex align-items-center gap-2">
+    <i class="bi bi-youtube me-1" style="color:#ff0000"></i>
+    <h6 class="fw-bold mb-0 flex-grow-1">YouTube API
+      <span class="badge ms-1" style="background:rgba(255,0,0,.15);color:#ff7979;font-size:.62rem;">Channel Upload</span>
+    </h6>
+  </div>
+  <div class="card-body">
+    <div class="mb-2">
+      <label class="form-label small text-muted mb-1">OAuth2 Client ID</label>
+      <div class="input-group input-group-sm">
+        <input type="password" id="cfg_yt_client_id" class="form-control form-control-sm"
+               placeholder="….apps.googleusercontent.com" autocomplete="off">
+        <button class="btn btn-outline-secondary" onclick="toggleKeyVis('yt_client_id')" title="Show/hide"><i class="bi bi-eye" id="eye_yt_client_id"></i></button>
+        <button class="btn btn-primary" onclick="saveYtCredentials()">Save</button>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label small text-muted mb-1">OAuth2 Client Secret</label>
+      <div class="input-group input-group-sm">
+        <input type="password" id="cfg_yt_client_secret" class="form-control form-control-sm"
+               placeholder="GOCSPX-…" autocomplete="off">
+        <button class="btn btn-outline-secondary" onclick="toggleKeyVis('yt_client_secret')" title="Show/hide"><i class="bi bi-eye" id="eye_yt_client_secret"></i></button>
+      </div>
+    </div>
+    <details class="mt-1">
+      <summary class="small text-info" style="cursor:pointer;user-select:none;">
+        <i class="bi bi-info-circle me-1"></i>How to set up YouTube API access
+      </summary>
+      <ol class="small text-muted mt-2 mb-1" style="padding-left:1.2rem;line-height:1.9;">
+        <li>Go to <a href="https://console.cloud.google.com" target="_blank" class="text-info">console.cloud.google.com</a></li>
+        <li>Create a project → <strong class="text-white">APIs &amp; Services → Enable APIs</strong> → enable <strong class="text-white">YouTube Data API v3</strong></li>
+        <li><strong class="text-white">Credentials → Create Credentials → OAuth 2.0 Client IDs</strong></li>
+        <li>Type: <strong class="text-white">Web application</strong> — add redirect URI: <code>http://127.0.0.1:5005/api/youtube/callback</code></li>
+        <li>Copy <strong class="text-white">Client ID</strong> and <strong class="text-white">Client Secret</strong> above → <strong class="text-white">Save</strong></li>
+        <li>Then go to <strong class="text-white">Channels</strong> and click <strong class="text-white">Connect with Google</strong></li>
+      </ol>
+      <div class="small" style="color:rgba(255,255,255,.4);">Free API — YouTube does not charge for uploads via API</div>
+    </details>
+  </div>
+</div>
+
 {# ── Story Backup Directory ───────────────────────────────────────────────── #}
 <div class="card mb-3">
   <div class="card-header bg-transparent border-0 pb-0">
@@ -1274,7 +1664,7 @@
 <script>
 // ── Section registration ────────────────────────────────────────────────────
 _allSections = _allSections || [];
-['studio','archive','production','promptlab','channels','schedule','vcs'].forEach(function(s) {
+['studio','archive','production','promptlab','channels','schedule','tests','vcs'].forEach(function(s) {
   _allSections.push(s);
 });
 
@@ -1296,6 +1686,7 @@ var _stTitleMap = {
   promptlab:  'Prompt Lab',
   channels:   'YouTube Channels',
   schedule:   'Publishing Schedule',
+  tests:      'System Tests',
   vcs:        'Version Control',
 };
 document.addEventListener('sectionChanged', function(e) {
@@ -1328,9 +1719,13 @@ document.addEventListener('DOMContentLoaded', function() {
   loadArchive();
   refreshKeyStatus();  // pre-load key status so provider dots show immediately
 
-  // Populate archive genre filter on section switch
+  // Per-section loaders
   document.addEventListener('sectionChanged', function(e) {
-    if (e.detail && e.detail.section === 'archive') loadArchive();
+    var s = e.detail && e.detail.section;
+    if (s === 'archive')  loadArchive();
+    if (s === 'channels') ytInit();
+    if (s === 'schedule') schedInit();
+    if (s === 'tests')    testsInit();
   });
 });
 
@@ -2985,13 +3380,662 @@ function runOptimizer() {
 }
 
 function _renderMarkdownBasic(text) {
-  // Very lightweight markdown-ish renderer for the optimizer output
   if (!text) return '';
   return text
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/\n/g, '<br>');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// YOUTUBE SETTINGS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function saveYtCredentials() {
+  var cid = (document.getElementById('cfg_yt_client_id')?.value || '').trim();
+  var cs  = (document.getElementById('cfg_yt_client_secret')?.value || '').trim();
+  fetch('/api/app-settings', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({yt_client_id: cid, yt_client_secret: cs}),
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.ok) showToast('YouTube credentials saved.', 'success');
+    else      showToast('Save failed: ' + d.error, 'danger');
+  }).catch(function(e){ showToast('Error: ' + e.message, 'danger'); });
+}
+
+// Also load YT credentials into settings fields
+var _origLoadCfg = window.loadCfg;
+// Extend the existing loadCfg to also populate YT fields
+document.addEventListener('DOMContentLoaded', function(){
+  // Extend after existing loadCfg runs on settings open
+  var _existing = window._onSettingsPaneShow;
+  window._onSettingsPaneShow = function() {
+    if (_existing) _existing();
+    fetch('/api/app-settings').then(function(r){ return r.json(); }).then(function(d){
+      var s = d.settings || {};
+      if (s.yt_client_id)     { var e = document.getElementById('cfg_yt_client_id');     if(e) e.value = s.yt_client_id; }
+      if (s.yt_client_secret) { var e = document.getElementById('cfg_yt_client_secret'); if(e) e.value = s.yt_client_secret; }
+    }).catch(function(){});
+  };
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHANNELS — YouTube Phase 5
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ytInit() {
+  ytCheckStatus();
+  ytLoadStorySelect();
+}
+
+function ytCheckStatus() {
+  fetch('/api/youtube/status').then(function(r){ return r.json(); }).then(function(d){
+    if (!d.ok) return;
+    var connEl   = document.getElementById('ytConnectedState');
+    var discEl   = document.getElementById('ytDisconnectedState');
+    var noCredsEl= document.getElementById('ytNoCredsState');
+    [connEl, discEl, noCredsEl].forEach(function(e){ if(e) e.style.display='none'; });
+
+    if (d.reason === 'no_client_id') {
+      if (noCredsEl) noCredsEl.style.display = '';
+    } else if (d.connected && d.channel) {
+      if (connEl) connEl.style.display = '';
+      var ch = d.channel;
+      var el;
+      if ((el = document.getElementById('ytChannelTitle'))) el.textContent = ch.title || '(no name)';
+      if ((el = document.getElementById('ytChannelUrl')))   el.textContent = ch.custom_url ? 'youtube.com/' + ch.custom_url : 'youtube.com/channel/' + ch.id;
+      if ((el = document.getElementById('ytChannelThumb'))) el.src = ch.thumbnail || '';
+      if ((el = document.getElementById('ytSubCount')))   el.textContent = fmtNum(ch.subscribers);
+      if ((el = document.getElementById('ytVideoCount'))) el.textContent = fmtNum(ch.video_count);
+      if ((el = document.getElementById('ytViewCount')))  el.textContent = fmtNum(ch.view_count);
+      var card = document.getElementById('ytUploadsCard');
+      if (card) card.style.display = '';
+      ytLoadVideos();
+      var btn = document.getElementById('ytUploadBtn');
+      if (btn) btn.disabled = false;
+    } else {
+      if (discEl) discEl.style.display = '';
+    }
+  }).catch(function(){});
+}
+
+function ytStartAuth() {
+  fetch('/api/youtube/auth-url').then(function(r){ return r.json(); }).then(function(d){
+    if (!d.ok) { showToast(d.error, 'danger'); return; }
+    window.open(d.url, '_blank', 'width=600,height=700,noopener');
+    var st = document.getElementById('ytConnectStatus');
+    if (st) st.innerHTML = '<span class="text-info"><i class="bi bi-info-circle me-1"></i>Complete sign-in in the opened tab. This page will refresh when connected.</span>';
+    // Poll for connection
+    var poll = setInterval(function(){
+      fetch('/api/youtube/status').then(function(r){ return r.json(); }).then(function(d2){
+        if (d2.connected) { clearInterval(poll); ytInit(); }
+      }).catch(function(){});
+    }, 3000);
+    setTimeout(function(){ clearInterval(poll); }, 120000);
+  }).catch(function(e){ showToast('Error: ' + e.message, 'danger'); });
+}
+
+function ytDisconnect() {
+  if (!confirm('Disconnect YouTube? You can reconnect any time.')) return;
+  fetch('/api/youtube/disconnect', {method:'POST'}).then(function(){ ytInit(); });
+}
+
+function ytLoadVideos() {
+  var listEl = document.getElementById('ytVideosList');
+  if (!listEl) return;
+  listEl.textContent = 'Loading uploads…';
+  fetch('/api/youtube/videos').then(function(r){ return r.json(); }).then(function(d){
+    if (!d.ok || !d.videos.length) {
+      listEl.innerHTML = '<span class="text-muted">No uploads found.</span>';
+      return;
+    }
+    listEl.innerHTML = '<div class="yt-thumb-grid">'
+      + d.videos.map(function(v){
+          return '<a class="yt-thumb-item" href="' + escHtml(v.url) + '" target="_blank" rel="noopener">'
+            + (v.thumbnail ? '<img src="' + escHtml(v.thumbnail) + '" alt="" loading="lazy">' : '')
+            + '<div class="yt-thumb-caption">' + escHtml(v.title) + '</div>'
+            + '</a>';
+        }).join('')
+      + '</div>';
+  }).catch(function(e){
+    if (listEl) listEl.innerHTML = '<span class="text-danger small">' + escHtml(e.message) + '</span>';
+  });
+}
+
+function ytLoadStorySelect() {
+  var sel = document.getElementById('ytStorySelect');
+  if (!sel) return;
+  fetch('/api/stories').then(function(r){ return r.json(); }).then(function(d){
+    if (!d.ok) return;
+    sel.innerHTML = '<option value="">— Select a story —</option>'
+      + d.stories.map(function(s){
+          return '<option value="' + s.id + '">' + escHtml(s.title || 'Story #' + s.id)
+               + ' (' + s.genre_slug + ', ' + fmtNum(s.word_count) + ' words)</option>';
+        }).join('');
+  }).catch(function(){});
+}
+
+function ytUpload() {
+  var sid  = document.getElementById('ytStorySelect')?.value;
+  if (!sid) { showToast('Select a story to upload.', 'warning'); return; }
+  var btn  = document.getElementById('ytUploadBtn');
+  var stEl = document.getElementById('ytUploadStatus');
+  if (btn)  btn.disabled = true;
+  if (stEl) stEl.innerHTML = '<span class="text-info"><i class="bi bi-upload me-1"></i>Uploading… this may take a minute.</span>';
+
+  var payload = {
+    title:       document.getElementById('ytVideoTitle')?.value?.trim() || '',
+    description: document.getElementById('ytDescription')?.value?.trim() || '',
+    tags:        document.getElementById('ytTags')?.value?.trim() || '',
+    category_id: document.getElementById('ytCategory')?.value || '24',
+    privacy:     document.getElementById('ytPrivacy')?.value || 'private',
+  };
+
+  fetch('/api/youtube/upload/' + sid, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload),
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (btn) btn.disabled = false;
+    if (d.ok) {
+      if (stEl) stEl.innerHTML = '<span class="text-success"><i class="bi bi-check2-circle me-1"></i>Uploaded! <a href="' + escHtml(d.url) + '" target="_blank" class="text-success">' + escHtml(d.url) + '</a></span>';
+      ytLoadVideos();
+    } else {
+      if (stEl) stEl.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>' + escHtml(d.error) + '</span>';
+    }
+  }).catch(function(e){
+    if (btn) btn.disabled = false;
+    if (stEl) stEl.innerHTML = '<span class="text-danger">' + escHtml(e.message) + '</span>';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCHEDULER — Phase 6
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _schedGenres    = [];
+var _schedProviders = [];
+var _schedVoiceProvs = [];
+var _schedImageProvs = [];
+
+function schedInit() {
+  // Load all provider data for form selects
+  if (!_schedProviders.length) {
+    fetch('/api/providers').then(function(r){ return r.json(); }).then(function(d){
+      if (!d.ok) return;
+      _schedGenres     = d.providers ? _genres : _genres;   // reuse global
+      _schedProviders  = d.providers  || [];
+      _schedVoiceProvs = d.voice_providers || [];
+      _schedImageProvs = d.image_providers || [];
+      _schedGenres     = _genres;   // always use global genres already loaded
+      _populateSchedSelects();
+    }).catch(function(){});
+  }
+  schedRefresh();
+}
+
+function _populateSchedSelects() {
+  var gSel = document.getElementById('schedJobGenre');
+  if (gSel) gSel.innerHTML = _genres.map(function(g){
+    return '<option value="' + g.slug + '">' + escHtml(g.name) + '</option>';
+  }).join('');
+
+  var pSel = document.getElementById('schedJobProvider');
+  if (pSel) {
+    pSel.innerHTML = _schedProviders.map(function(p){
+      return '<option value="' + p.id + '">' + escHtml(p.name) + '</option>';
+    }).join('');
+    schedUpdateModels();
+  }
+
+  var vpSel = document.getElementById('schedJobVoiceProv');
+  if (vpSel) {
+    // Use global _voiceProvs from voice_engine
+    fetch('/api/voice/providers').then(function(r){ return r.json(); }).then(function(d){
+      if (!d.ok) return;
+      vpSel.innerHTML = d.providers.map(function(p){
+        return '<option value="' + p.id + '">' + escHtml(p.name) + '</option>';
+      }).join('');
+      schedUpdateVoices();
+    });
+  }
+
+  var ipSel = document.getElementById('schedJobImgProv');
+  if (ipSel) ipSel.innerHTML = _schedImageProvs.map(function(p){
+    return '<option value="' + p.id + '">' + escHtml(p.name) + '</option>';
+  }).join('');
+}
+
+function schedUpdateModels() {
+  var pid  = document.getElementById('schedJobProvider')?.value;
+  var mSel = document.getElementById('schedJobModel');
+  if (!mSel) return;
+  var prov = _schedProviders.find(function(p){ return p.id === pid; });
+  mSel.innerHTML = (prov ? prov.models : []).map(function(m){
+    return '<option value="' + m.id + '">' + escHtml(m.name) + '</option>';
+  }).join('');
+}
+
+function schedUpdateVoices() {
+  var vpid = document.getElementById('schedJobVoiceProv')?.value;
+  var vSel = document.getElementById('schedJobVoice');
+  if (!vSel) return;
+  // Fetch voices for chosen provider
+  fetch('/api/voice/providers').then(function(r){ return r.json(); }).then(function(d){
+    if (!d.ok) return;
+    var prov = d.providers.find(function(p){ return p.id === vpid; });
+    var voices = prov ? (prov.voices || []) : [];
+    vSel.innerHTML = voices.map(function(v){
+      var id   = typeof v === 'object' ? v.id   : v;
+      var name = typeof v === 'object' ? v.name : v;
+      return '<option value="' + id + '">' + escHtml(name) + '</option>';
+    }).join('');
+  }).catch(function(){});
+}
+
+function schedToggleDays() {
+  var val = document.getElementById('schedJobSchedule')?.value;
+  var row = document.getElementById('schedDaysRow');
+  if (row) row.style.display = val === 'weekly' ? '' : 'none';
+}
+
+function schedToggleYt() {
+  var chk = document.getElementById('schedJobYtUpload');
+  var row = document.getElementById('schedYtPrivacyRow');
+  if (row) row.style.display = (chk && chk.checked) ? '' : 'none';
+}
+
+function schedRefresh() {
+  // Daemon status
+  fetch('/api/scheduler/status').then(function(r){ return r.json(); }).then(function(d){
+    var badge = document.getElementById('schedDaemonBadge');
+    var btnStart = document.getElementById('schedBtnStart');
+    var btnStop  = document.getElementById('schedBtnStop');
+    if (badge) {
+      badge.textContent = d.running ? 'Daemon running' : 'Daemon stopped';
+      badge.className   = 'badge ' + (d.running ? 'bg-success' : 'bg-secondary');
+    }
+    if (btnStart) btnStart.style.display = d.running ? 'none' : '';
+    if (btnStop)  btnStop.style.display  = d.running ? ''     : 'none';
+  }).catch(function(){});
+
+  // Job list
+  fetch('/api/scheduler/jobs').then(function(r){ return r.json(); }).then(function(d){
+    var el = document.getElementById('schedJobList');
+    if (!el) return;
+    if (!d.ok || !d.jobs.length) {
+      el.innerHTML = '<div class="text-muted p-1">No scheduled jobs yet. Click <strong>New Job</strong> to create one.</div>';
+      return;
+    }
+    el.innerHTML = d.jobs.map(function(j){
+      var statusClass = 'sched-status-' + (j.status || 'idle');
+      var nextRun = j.next_run ? fmtDate(j.next_run) + ' UTC' : (j.schedule_type === 'manual' ? 'Manual only' : 'Not scheduled');
+      var lastRun = j.last_run ? fmtDate(j.last_run) : 'Never';
+      var errHtml = j.last_error ? '<span class="text-danger ms-2" title="' + escHtml(j.last_error) + '"><i class="bi bi-exclamation-circle"></i></span>' : '';
+      var enBadge = j.enabled ? '' : '<span class="badge bg-secondary ms-2" style="font-size:.65rem;">disabled</span>';
+      return '<div class="sched-job-row">'
+        + '<span class="sched-job-status ' + statusClass + '"></span>'
+        + '<span class="fw-semibold flex-grow-1">' + escHtml(j.name || j.id) + enBadge + errHtml + '</span>'
+        + '<span class="text-muted" style="font-size:.75rem;">' + escHtml(j.genre_slug) + ' / ' + escHtml(j.ai_provider) + '</span>'
+        + '<span class="text-muted ms-2" style="font-size:.75rem;" title="Next run">&#128197; ' + escHtml(nextRun) + '</span>'
+        + '<span class="text-muted ms-2" style="font-size:.75rem;" title="Last run">&#9654; ' + escHtml(lastRun) + '</span>'
+        + '<div class="d-flex gap-1 ms-2">'
+        + '<button class="btn btn-xs btn-outline-primary" style="font-size:.68rem;padding:1px 6px;" onclick="schedRunNow(\'' + j.id + '\')" title="Run Now"><i class="bi bi-play-fill"></i></button>'
+        + '<button class="btn btn-xs btn-outline-secondary" style="font-size:.68rem;padding:1px 6px;" onclick="schedEditJob(\'' + j.id + '\')" title="Edit"><i class="bi bi-pencil"></i></button>'
+        + '<button class="btn btn-xs btn-outline-danger" style="font-size:.68rem;padding:1px 6px;" onclick="schedDeleteJob(\'' + j.id + '\')" title="Delete"><i class="bi bi-trash"></i></button>'
+        + '</div></div>';
+    }).join('');
+  }).catch(function(){});
+}
+
+function schedStartDaemon() {
+  fetch('/api/scheduler/start', {method:'POST'}).then(function(){ setTimeout(schedRefresh, 2000); });
+}
+function schedStopDaemon() {
+  fetch('/api/scheduler/stop', {method:'POST'}).then(function(){ setTimeout(schedRefresh, 2000); });
+}
+
+function schedOpenNew() {
+  document.getElementById('schedJobId').value = '';
+  document.getElementById('schedJobModalTitle').textContent = 'New Scheduled Job';
+  document.getElementById('schedJobName').value = '';
+  document.getElementById('schedJobSchedule').value = 'manual';
+  document.getElementById('schedJobTime').value = '02:00';
+  document.getElementById('schedJobEnabled').checked = true;
+  document.getElementById('schedJobYtUpload').checked = false;
+  schedToggleDays();
+  schedToggleYt();
+  _populateSchedSelects();
+  new bootstrap.Modal(document.getElementById('schedJobModal')).show();
+}
+
+function schedEditJob(jobId) {
+  fetch('/api/scheduler/jobs').then(function(r){ return r.json(); }).then(function(d){
+    var job = (d.jobs || []).find(function(j){ return j.id === jobId; });
+    if (!job) return;
+    document.getElementById('schedJobId').value = job.id;
+    document.getElementById('schedJobModalTitle').textContent = 'Edit Job';
+    document.getElementById('schedJobName').value = job.name || '';
+    document.getElementById('schedJobEnabled').checked = !!job.enabled;
+    document.getElementById('schedJobSchedule').value = job.schedule_type || 'manual';
+    document.getElementById('schedJobTime').value     = job.schedule_time  || '02:00';
+    document.getElementById('schedJobYtUpload').checked = !!job.yt_upload;
+    if (document.getElementById('schedJobYtPrivacy'))
+      document.getElementById('schedJobYtPrivacy').value = job.yt_privacy || 'private';
+    schedToggleDays();
+    schedToggleYt();
+    _populateSchedSelects();
+    // Set days checkboxes
+    var days = (job.schedule_days || '').split(',');
+    document.querySelectorAll('input[name="sched_day"]').forEach(function(cb){
+      cb.checked = days.includes(cb.value);
+    });
+    setTimeout(function(){
+      if (document.getElementById('schedJobGenre'))    document.getElementById('schedJobGenre').value = job.genre_slug || 'scifi';
+      if (document.getElementById('schedJobProvider')) document.getElementById('schedJobProvider').value = job.ai_provider || 'anthropic';
+      if (document.getElementById('schedJobImgProv'))  document.getElementById('schedJobImgProv').value = job.image_provider || 'dalle3';
+      schedUpdateModels();
+      setTimeout(function(){
+        if (document.getElementById('schedJobModel')) document.getElementById('schedJobModel').value = job.ai_model || '';
+      }, 100);
+    }, 100);
+    new bootstrap.Modal(document.getElementById('schedJobModal')).show();
+  });
+}
+
+function schedSaveJob() {
+  var jobId = document.getElementById('schedJobId').value;
+  var days  = Array.from(document.querySelectorAll('input[name="sched_day"]:checked')).map(function(c){ return c.value; }).join(',');
+  var data  = {
+    name:           document.getElementById('schedJobName')?.value?.trim() || 'Untitled Job',
+    enabled:        document.getElementById('schedJobEnabled')?.checked ? 1 : 0,
+    genre_slug:     document.getElementById('schedJobGenre')?.value     || 'scifi',
+    ai_provider:    document.getElementById('schedJobProvider')?.value  || 'anthropic',
+    ai_model:       document.getElementById('schedJobModel')?.value     || '',
+    voice_provider: document.getElementById('schedJobVoiceProv')?.value || 'openai_tts',
+    voice_id:       document.getElementById('schedJobVoice')?.value     || '',
+    image_provider: document.getElementById('schedJobImgProv')?.value   || 'dalle3',
+    yt_upload:      document.getElementById('schedJobYtUpload')?.checked ? 1 : 0,
+    yt_privacy:     document.getElementById('schedJobYtPrivacy')?.value || 'private',
+    schedule_type:  document.getElementById('schedJobSchedule')?.value  || 'manual',
+    schedule_time:  document.getElementById('schedJobTime')?.value      || '02:00',
+    schedule_days:  days,
+  };
+
+  var url    = jobId ? '/api/scheduler/jobs/' + jobId : '/api/scheduler/jobs';
+  var method = jobId ? 'PUT' : 'POST';
+
+  fetch(url, { method: method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) })
+    .then(function(r){ return r.json(); }).then(function(d){
+      if (d.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('schedJobModal'))?.hide();
+        schedRefresh();
+      } else {
+        showToast('Save failed: ' + (d.error || 'unknown'), 'danger');
+      }
+    }).catch(function(e){ showToast('Error: ' + e.message, 'danger'); });
+}
+
+function schedDeleteJob(jobId) {
+  if (!confirm('Delete this scheduled job?')) return;
+  fetch('/api/scheduler/jobs/' + jobId, {method:'DELETE'}).then(function(){ schedRefresh(); });
+}
+
+function schedRunNow(jobId) {
+  fetch('/api/scheduler/jobs/' + jobId + '/run-now', {method:'POST'})
+    .then(function(r){ return r.json(); }).then(function(d){
+      if (d.ok) {
+        showToast('Job queued — daemon will pick it up on its next cycle.', 'info');
+        setTimeout(schedRefresh, 1500);
+      } else {
+        showToast('Error: ' + (d.error || 'unknown'), 'danger');
+      }
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TESTS — System verification (Phase 5+6 + existing)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function testsInit() {
+  // Populate provider selects in test cards
+  var stProv = document.getElementById('testStoryProvider');
+  if (stProv && !stProv.options.length) {
+    stProv.innerHTML = _providers.map(function(p){
+      return '<option value="' + p.id + '">' + escHtml(p.name) + '</option>';
+    }).join('');
+    testUpdateStoryModels();
+  }
+
+  var vpSel = document.getElementById('testVoiceProv');
+  if (vpSel && !vpSel.options.length) {
+    fetch('/api/voice/providers').then(function(r){ return r.json(); }).then(function(d){
+      if (!d.ok) return;
+      vpSel.innerHTML = d.providers.map(function(p){
+        return '<option value="' + p.id + '">' + escHtml(p.name) + '</option>';
+      }).join('');
+      testUpdateVoices();
+    });
+  }
+
+  var ipSel = document.getElementById('testImageProv');
+  if (ipSel && !ipSel.options.length) {
+    ipSel.innerHTML = _imageProvs.map(function(p){
+      return '<option value="' + p.id + '">' + escHtml(p.name) + '</option>';
+    }).join('');
+  }
+}
+
+function testUpdateStoryModels() {
+  var pid  = document.getElementById('testStoryProvider')?.value;
+  var mSel = document.getElementById('testStoryModel');
+  if (!mSel) return;
+  var prov = _providers.find(function(p){ return p.id === pid; });
+  mSel.innerHTML = (prov ? prov.models : []).map(function(m){
+    return '<option value="' + m.id + '">' + escHtml(m.name) + '</option>';
+  }).join('');
+}
+document.addEventListener('change', function(e){
+  if (e.target && e.target.id === 'testStoryProvider') testUpdateStoryModels();
+});
+
+function testUpdateVoices() {
+  var vpid = document.getElementById('testVoiceProv')?.value;
+  var vSel = document.getElementById('testVoiceId');
+  if (!vSel) return;
+  fetch('/api/voice/providers').then(function(r){ return r.json(); }).then(function(d){
+    if (!d.ok) return;
+    var prov = d.providers.find(function(p){ return p.id === vpid; });
+    vSel.innerHTML = (prov ? (prov.voices||[]) : []).map(function(v){
+      var id   = typeof v === 'object' ? v.id   : v;
+      var name = typeof v === 'object' ? v.name : v;
+      return '<option value="' + id + '">' + escHtml(name) + '</option>';
+    }).join('');
+  }).catch(function(){});
+}
+
+function _setBadge(key, state, label) {
+  var el = document.getElementById('testBadge_' + key);
+  if (!el) return;
+  var cls = {pass:'bg-success', fail:'bg-danger', running:'bg-warning text-dark', skip:'bg-secondary'}[state] || 'bg-secondary';
+  el.className = 'badge ' + cls + ' test-badge';
+  el.textContent = label || state;
+}
+
+function _setBtn(key, disabled) {
+  var el = document.getElementById('testBtn_' + key);
+  if (el) el.disabled = disabled;
+}
+
+function _setResult(key, html) {
+  var el = document.getElementById('testResult_' + key);
+  if (el) el.innerHTML = html;
+}
+
+function testStory() {
+  var pid = document.getElementById('testStoryProvider')?.value || 'anthropic';
+  var mid = document.getElementById('testStoryModel')?.value   || '';
+  _setBadge('story', 'running', 'Running…');
+  _setBtn('story', true);
+  _setResult('story', '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Generating a 100-word test story…</span>');
+
+  fetch('/api/test/story', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({provider_id: pid, model_id: mid}),
+  }).then(function(r){ return r.json(); }).then(function(d){
+    _setBtn('story', false);
+    if (d.ok) {
+      _setBadge('story', 'pass', 'Passed ✓');
+      _setResult('story',
+        '<div class="text-success small mb-1"><i class="bi bi-check2-circle me-1"></i>' + escHtml(d.provider) + ' / ' + escHtml(d.model) + ' — ' + d.words + ' words</div>'
+        + '<div class="test-story-text">' + escHtml(d.text) + '</div>');
+    } else {
+      _setBadge('story', 'fail', 'Failed ✗');
+      _setResult('story', '<span class="text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>' + escHtml(d.error) + '</span>');
+    }
+  }).catch(function(e){
+    _setBtn('story', false);
+    _setBadge('story', 'fail', 'Error');
+    _setResult('story', '<span class="text-danger small">' + escHtml(e.message) + '</span>');
+  });
+}
+
+function testVoice() {
+  var pid = document.getElementById('testVoiceProv')?.value || 'openai_tts';
+  var vid = document.getElementById('testVoiceId')?.value   || '';
+  _setBadge('voice', 'running', 'Running…');
+  _setBtn('voice', true);
+  _setResult('voice', '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Generating voice preview clip…</span>');
+
+  fetch('/api/voice/preview', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({provider_id: pid, voice_id: vid, model_id: ''}),
+  }).then(function(r){
+    _setBtn('voice', false);
+    if (!r.ok) {
+      return r.json().then(function(d){ throw new Error(d.error || 'HTTP ' + r.status); });
+    }
+    return r.blob();
+  }).then(function(blob){
+    var url = URL.createObjectURL(blob);
+    _setBadge('voice', 'pass', 'Passed ✓');
+    _setResult('voice',
+      '<div class="text-success small mb-1"><i class="bi bi-check2-circle me-1"></i>Audio generated — click play to hear it</div>'
+      + '<audio controls src="' + url + '" style="width:100%;margin-top:.5rem;border-radius:.5rem;"></audio>');
+  }).catch(function(e){
+    _setBtn('voice', false);
+    _setBadge('voice', 'fail', 'Failed ✗');
+    _setResult('voice', '<span class="text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>' + escHtml(e.message) + '</span>');
+  });
+}
+
+function testImage() {
+  var pid = document.getElementById('testImageProv')?.value || 'dalle3';
+  _setBadge('image', 'running', 'Running…');
+  _setBtn('image', true);
+  _setResult('image', '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Generating test scene image (10-20 s)…</span>');
+
+  fetch('/api/test/image', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({provider_id: pid}),
+  }).then(function(r){
+    _setBtn('image', false);
+    if (!r.ok) return r.json().then(function(d){ throw new Error(d.error || 'HTTP ' + r.status); });
+    return r.blob();
+  }).then(function(blob){
+    var url = URL.createObjectURL(blob);
+    _setBadge('image', 'pass', 'Passed ✓');
+    _setResult('image',
+      '<div class="text-success small mb-1"><i class="bi bi-check2-circle me-1"></i>Image generated — lighthouse test scene</div>'
+      + '<img src="' + url + '" alt="test scene" style="width:100%;border-radius:.6rem;margin-top:.4rem;max-height:280px;object-fit:cover;">');
+  }).catch(function(e){
+    _setBadge('image', 'fail', 'Failed ✗');
+    _setResult('image', '<span class="text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>' + escHtml(e.message) + '</span>');
+  });
+}
+
+function testCaptions() {
+  _setBadge('captions', 'running', 'Running…');
+  _setBtn('captions', true);
+  fetch('/api/test/captions').then(function(r){ return r.json(); }).then(function(d){
+    _setBtn('captions', false);
+    if (d.ok) {
+      _setBadge('captions', 'pass', 'Passed ✓');
+      _setResult('captions',
+        '<div class="text-success small mb-1"><i class="bi bi-check2-circle me-1"></i>SRT generated successfully</div>'
+        + '<div class="test-story-text">' + escHtml(d.srt.slice(0, 400)) + (d.srt.length > 400 ? '…' : '') + '</div>');
+    } else {
+      _setBadge('captions', 'fail', 'Failed ✗');
+      _setResult('captions', '<span class="text-danger small">' + escHtml(d.error) + '</span>');
+    }
+  }).catch(function(e){
+    _setBtn('captions', false);
+    _setBadge('captions', 'fail', 'Error');
+    _setResult('captions', '<span class="text-danger small">' + escHtml(e.message) + '</span>');
+  });
+}
+
+function testVideo() {
+  _setBadge('video', 'running', 'Running…');
+  _setBtn('video', true);
+  _setResult('video', '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Assembling test video with ffmpeg… (may take 30-60 s)</span>');
+
+  fetch('/api/test/video', {method:'POST'}).then(function(r){
+    _setBtn('video', false);
+    if (!r.ok) return r.json().then(function(d){ throw new Error(d.error || 'HTTP ' + r.status); });
+    return r.blob();
+  }).then(function(blob){
+    var url = URL.createObjectURL(blob);
+    _setBadge('video', 'pass', 'Passed ✓');
+    _setResult('video',
+      '<div class="text-success small mb-1"><i class="bi bi-check2-circle me-1"></i>Video assembled — click play to verify</div>'
+      + '<video controls src="' + url + '" style="width:100%;border-radius:.6rem;margin-top:.4rem;max-height:240px;"></video>');
+  }).catch(function(e){
+    _setBadge('video', 'fail', 'Failed ✗');
+    _setResult('video', '<span class="text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>' + escHtml(e.message) + '</span>');
+  });
+}
+
+function testYouTube() {
+  _setBadge('youtube', 'running', 'Running…');
+  _setBtn('youtube', true);
+  fetch('/api/youtube/status').then(function(r){ return r.json(); }).then(function(d){
+    _setBtn('youtube', false);
+    if (d.connected && d.channel) {
+      _setBadge('youtube', 'pass', 'Passed ✓');
+      _setResult('youtube',
+        '<div class="text-success small mb-1"><i class="bi bi-check2-circle me-1"></i>Connected to YouTube</div>'
+        + '<div class="small mt-1">'
+        + (d.channel.thumbnail ? '<img src="' + escHtml(d.channel.thumbnail) + '" style="width:32px;height:32px;border-radius:50%;vertical-align:middle;margin-right:8px;">' : '')
+        + '<strong>' + escHtml(d.channel.title) + '</strong>'
+        + ' &bull; ' + fmtNum(d.channel.subscribers) + ' subscribers'
+        + ' &bull; ' + fmtNum(d.channel.video_count) + ' videos'
+        + '</div>');
+    } else if (d.reason === 'no_client_id') {
+      _setBadge('youtube', 'skip', 'Not configured');
+      _setResult('youtube', '<span class="text-muted small"><i class="bi bi-info-circle me-1"></i>YouTube API credentials not set. Add them in Settings → YouTube API.</span>');
+    } else {
+      _setBadge('youtube', 'fail', 'Not connected');
+      _setResult('youtube', '<span class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i>Not connected. Go to <strong>Channels</strong> and click Connect with Google.' + (d.error ? '<br>' + escHtml(d.error) : '') + '</span>');
+    }
+  }).catch(function(e){
+    _setBtn('youtube', false);
+    _setBadge('youtube', 'fail', 'Error');
+    _setResult('youtube', '<span class="text-danger small">' + escHtml(e.message) + '</span>');
+  });
+}
+
+function runAllTests() {
+  testsInit();
+  testStory();
+  testCaptions();
+  testYouTube();
+  // Voice, Image, Video require API keys — run them a beat later
+  setTimeout(function(){
+    testVoice();
+    testImage();
+  }, 200);
+  setTimeout(function(){ testVideo(); }, 500);
 }
 </script>
 {% endblock %}

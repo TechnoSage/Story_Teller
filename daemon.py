@@ -43,11 +43,10 @@ import time
 from datetime import datetime
 
 # ---------------------------------------------------------------------------
-# ── CUSTOMISE THESE ──────────────────────────────────────────────────────────
-APP_NAME    = "My App"       # Human-readable app name
-APP_PORT    = 5000           # Default Flask port
-ICON_TEXT   = "MA"           # 2-letter tray icon fallback
-ICON_COLOUR = (0, 102, 204, 255)  # (R, G, B, A) for fallback circle
+APP_NAME    = "Story Teller"
+APP_PORT    = 5005
+ICON_TEXT   = "ST"
+ICON_COLOUR = (108, 92, 231, 255)   # purple
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ---------------------------------------------------------------------------
@@ -203,27 +202,238 @@ def _restart_self(reason: str, restart_count: int) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Background task — CUSTOMISE THIS
+# Background task — Story Teller scheduled job runner
 # ---------------------------------------------------------------------------
 
-def _run_background_task() -> None:
-    """Override this function with the daemon's actual work."""
-    logger.info("Running background task…")
+def _next_run_iso(job: dict) -> str | None:
+    """Calculate the next run time (UTC ISO string) for a job after it completes."""
+    import datetime as _dt
+    stype = job.get("schedule_type", "manual")
+    stime = job.get("schedule_time", "02:00")
     try:
-        from app import create_app   # type: ignore
-        flask_app = create_app()
-        with flask_app.app_context():
-            # ── do your work here ──────────────────────────────────────────
-            pass
-        logger.info("Background task complete.")
+        h, m = int(stime.split(":")[0]), int(stime.split(":")[1])
+    except Exception:
+        h, m = 2, 0
+
+    now   = _dt.datetime.utcnow()
+    today = now.replace(hour=h, minute=m, second=0, microsecond=0)
+
+    if stype == "daily":
+        nxt = today if today > now else today + _dt.timedelta(days=1)
+        return nxt.isoformat()
+
+    if stype == "weekly":
+        # schedule_days: comma-separated day names "mon,wed,fri"
+        day_map = {"mon":0,"tue":1,"wed":2,"thu":3,"fri":4,"sat":5,"sun":6}
+        days    = [day_map[d.strip().lower()[:3]]
+                   for d in job.get("schedule_days","").split(",")
+                   if d.strip().lower()[:3] in day_map]
+        if not days:
+            return None
+        curr_wd = now.weekday()
+        for d in sorted(days):
+            delta = (d - curr_wd) % 7
+            candidate = today + _dt.timedelta(days=delta)
+            if candidate > now:
+                return candidate.isoformat()
+        # Wrap to next week
+        delta = (min(days) - curr_wd) % 7 or 7
+        return (today + _dt.timedelta(days=delta)).isoformat()
+
+    return None   # manual jobs don't auto-schedule
+
+
+def _run_scheduled_job(job: dict) -> None:
+    """Execute the full pipeline for one scheduled job."""
+    import models as _m
+    from story_engine import stream_story, PROVIDERS_BY_ID
+    import voice_engine   as _ve
+    import image_engine   as _ie
+    import caption_engine as _ce
+
+    job_id    = job["id"]
+    job_name  = job.get("name", job_id)
+    logger.info("Starting scheduled job '%s'", job_name)
+
+    from datetime import datetime
+    started_at = datetime.utcnow().isoformat()
+    run_id     = _m.job_run_start(job_id, started_at)
+    _m.job_update(job_id, {"status": "running", "last_error": ""})
+
+    s = _read_settings()
+    story_id  = None
+    error_msg = ""
+    vid_path  = ""
+    yt_vid_id = ""
+
+    try:
+        # ── 1. Generate story ────────────────────────────────────────────────
+        provider_id = job.get("ai_provider", "anthropic")
+        model_id    = job.get("ai_model", "claude-sonnet-4-6")
+        genre_slug  = job.get("genre_slug", "scifi")
+        params      = dict(job.get("params") or {})
+
+        prov     = PROVIDERS_BY_ID.get(provider_id, {})
+        key_name = prov.get("setting_key", "")
+        api_key  = s.get(key_name, "") or os.environ.get(key_name.upper(), "")
+        if not api_key:
+            raise RuntimeError(f"No API key for {prov.get('name', provider_id)}")
+
+        logger.info("  → Generating story (%s / %s)", provider_id, model_id)
+        chunks = list(stream_story(provider_id, model_id, genre_slug, params, api_key))
+        content = "".join(chunks).strip()
+        if not content:
+            raise RuntimeError("Story generation produced no content")
+
+        # Save story to DB
+        import re as _re
+        first_line = _re.split(r'\n', content)[0][:80].strip()
+        title = params.get("title") or first_line or f"{genre_slug.title()} Story"
+        story_id = _m.story_create(genre_slug, title, content, params,
+                                   provider_id, model_id)
+        _m.story_backup(_m.story_get(story_id))
+        _m.prompt_save(story_id, genre_slug, "story",
+                       provider=provider_id, model=model_id, params=params)
+
+        safe = "".join(c if c.isalnum() or c in "-_ " else "_" for c in title)[:50].strip().replace(" ", "_")
+        genre_dir = os.path.join(PROJECT_DIR, "stories", genre_slug)
+        os.makedirs(genre_dir, exist_ok=True)
+
+        # ── 2. Voice narration ───────────────────────────────────────────────
+        vp_id    = job.get("voice_provider", "openai_tts")
+        voice_id = job.get("voice_id", "")
+        voice_m  = job.get("voice_model", "")
+        vprov    = _ve.VOICE_PROVIDERS_BY_ID.get(vp_id, {})
+        vkey     = vprov.get("setting_key", "")
+        vapi     = s.get(vkey, "") or os.environ.get(vkey.upper(), "")
+        if not vapi and vp_id != "google_tts":
+            raise RuntimeError(f"No API key for voice provider {vp_id}")
+
+        logger.info("  → Narrating with %s", vp_id)
+        audio_bytes = _ve.narrate(vp_id, content, vapi,
+                                  voice=voice_id, model=voice_m)
+        audio_path  = os.path.join(genre_dir, f"{story_id:05d}_{safe}.mp3")
+        with open(audio_path, "wb") as f:
+            f.write(audio_bytes)
+        _m.prompt_save(story_id, genre_slug, "voice",
+                       provider=vp_id, voice=voice_id or vprov.get("default_voice",""))
+
+        # ── 3. Scene image ───────────────────────────────────────────────────
+        img_prov = job.get("image_provider", "dalle3")
+        iprov    = _ie.IMAGE_PROVIDERS_BY_ID.get(img_prov, {})
+        ikey     = s.get(iprov.get("setting_key",""), "") or os.environ.get(
+            iprov.get("setting_key","").upper(), "")
+        if not ikey:
+            raise RuntimeError(f"No API key for image provider {img_prov}")
+
+        logger.info("  → Generating scene image (%s)", img_prov)
+        prompt    = _ie.build_image_prompt(genre_slug, title, content[:600])
+        img_bytes = _ie.generate(img_prov, prompt, ikey)
+        img_path  = os.path.join(genre_dir, f"{story_id:05d}_{safe}_scene.png")
+        with open(img_path, "wb") as f:
+            f.write(img_bytes)
+        _m.prompt_save(story_id, genre_slug, "image", provider=img_prov)
+
+        # ── 4. Captions (text estimate — free, no extra API call) ────────────
+        logger.info("  → Generating captions")
+        srt      = _ce.text_to_srt(content)
+        srt_path = os.path.join(genre_dir, f"{story_id:05d}_{safe}.srt")
+        with open(srt_path, "w", encoding="utf-8") as f:
+            f.write(srt)
+
+        # ── 5. Assemble video ────────────────────────────────────────────────
+        if _ce.ffmpeg_available():
+            logger.info("  → Assembling video")
+            vid_path = os.path.join(genre_dir, f"{story_id:05d}_{safe}_video.mp4")
+            log, rc  = _ce.assemble_video(
+                image_path=img_path,
+                audio_path=audio_path,
+                output_path=vid_path,
+                srt_path=srt_path,
+                burn_captions=True,
+                caption_style="standard",
+            )
+            if rc != 0:
+                logger.warning("  ffmpeg error: %s", log[-300:])
+                vid_path = ""
+        else:
+            logger.warning("  ffmpeg not found — skipping video assembly")
+            vid_path = ""
+
+        # ── 6. YouTube upload (if configured) ────────────────────────────────
+        if job.get("yt_upload") and vid_path and os.path.isfile(vid_path):
+            import youtube_engine as _yt
+            creds_path = os.path.join(PROJECT_DIR, "instance", "youtube_credentials.json")
+            if os.path.isfile(creds_path):
+                with open(creds_path) as f:
+                    creds = json.load(f)
+                client_id     = s.get("yt_client_id", "")
+                client_secret = s.get("yt_client_secret", "")
+                if client_id and client_secret and creds.get("refresh_token"):
+                    logger.info("  → Uploading to YouTube")
+                    desc = (f"AI-generated {genre_slug} story: {title}\n\n"
+                            f"Generated by Story Teller.\n"
+                            f"Genre: {genre_slug.title()} | Words: {len(content.split())}")
+                    tags = [genre_slug, "story", "narration", "ai story", "audiobook"]
+                    result = _yt.upload_video(
+                        creds, client_id, client_secret,
+                        vid_path, title, desc, tags,
+                        privacy=job.get("yt_privacy", "private"),
+                    )
+                    yt_vid_id = result.get("id", "")
+                    with open(creds_path, "w") as f:
+                        json.dump(creds, f, indent=2)
+                    logger.info("  YouTube video ID: %s", yt_vid_id)
+                    _m.prompt_save(story_id, genre_slug, "youtube",
+                                   provider="youtube",
+                                   params={"video_id": yt_vid_id})
+
+        _m.job_update(job_id, {
+            "status":    "idle",
+            "last_run":  datetime.utcnow().isoformat(),
+            "next_run":  _next_run_iso(job),
+            "run_count": job.get("run_count", 0) + 1,
+            "last_error": "",
+        })
+        _m.job_run_finish(run_id, "success",
+                          story_id=story_id, video_path=vid_path,
+                          yt_video_id=yt_vid_id)
+        logger.info("Job '%s' completed — story #%s", job_name, story_id)
+
+    except Exception as exc:
+        error_msg = str(exc)
+        logger.error("Job '%s' failed: %s", job_name, error_msg, exc_info=True)
+        from datetime import datetime as _dt2
+        _m.job_update(job_id, {
+            "status":     "idle",
+            "last_run":   _dt2.utcnow().isoformat(),
+            "next_run":   _next_run_iso(job),
+            "last_error": error_msg,
+        })
+        _m.job_run_finish(run_id, "failed", story_id=story_id, error=error_msg)
+
+
+def _run_background_task() -> None:
+    """Check for due scheduled jobs and execute them."""
+    logger.info("Checking for due scheduled jobs…")
+    try:
+        import models as _m
+        _m.init_db()
+        due = _m.job_due_list()
+        if not due:
+            logger.info("No jobs due.")
+            return
+        logger.info("%d job(s) due.", len(due))
+        for job in due:
+            _run_scheduled_job(job)
     except Exception as exc:
         logger.error("Background task error: %s", exc, exc_info=True)
 
 
 def _task_interval_secs() -> float:
-    """Return seconds between task runs. Read from settings or use a default."""
-    hours = float(_get("task_interval_hours", 1))
-    return max(60.0, hours * 3600)
+    """Return seconds between task check cycles. Default: 15 minutes."""
+    mins = float(_get("scheduler_check_minutes", 15))
+    return max(60.0, mins * 60)
 
 
 def _task_due() -> bool:
