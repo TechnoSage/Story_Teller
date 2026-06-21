@@ -51,6 +51,44 @@ def init_db() -> None:
                 params      TEXT    DEFAULT '{}',
                 created_at  TEXT    DEFAULT (datetime('now'))
             );
+
+            CREATE TABLE IF NOT EXISTS scheduled_jobs (
+                id              TEXT PRIMARY KEY,
+                name            TEXT NOT NULL DEFAULT '',
+                enabled         INTEGER NOT NULL DEFAULT 1,
+                genre_slug      TEXT NOT NULL DEFAULT 'scifi',
+                params          TEXT NOT NULL DEFAULT '{}',
+                ai_provider     TEXT NOT NULL DEFAULT 'anthropic',
+                ai_model        TEXT NOT NULL DEFAULT 'claude-sonnet-4-6',
+                voice_provider  TEXT NOT NULL DEFAULT 'openai_tts',
+                voice_id        TEXT NOT NULL DEFAULT '',
+                voice_model     TEXT NOT NULL DEFAULT '',
+                image_provider  TEXT NOT NULL DEFAULT 'dalle3',
+                yt_upload       INTEGER NOT NULL DEFAULT 0,
+                yt_privacy      TEXT NOT NULL DEFAULT 'private',
+                schedule_type   TEXT NOT NULL DEFAULT 'manual',
+                schedule_time   TEXT NOT NULL DEFAULT '02:00',
+                schedule_days   TEXT NOT NULL DEFAULT '',
+                next_run        TEXT,
+                last_run        TEXT,
+                status          TEXT NOT NULL DEFAULT 'idle',
+                last_error      TEXT NOT NULL DEFAULT '',
+                run_count       INTEGER NOT NULL DEFAULT 0,
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS job_runs (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id          TEXT NOT NULL,
+                story_id        INTEGER,
+                started_at      TEXT NOT NULL,
+                completed_at    TEXT,
+                status          TEXT NOT NULL DEFAULT 'running',
+                error           TEXT NOT NULL DEFAULT '',
+                video_path      TEXT NOT NULL DEFAULT '',
+                yt_video_id     TEXT NOT NULL DEFAULT '',
+                cost_estimate   REAL NOT NULL DEFAULT 0.0
+            );
         """)
 
 
@@ -209,6 +247,113 @@ def prompt_genre_stats() -> list[dict]:
                FROM prompt_history
                GROUP BY genre_slug, section
                ORDER BY genre_slug, section"""
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+# ── Scheduled jobs CRUD ───────────────────────────────────────────────────────
+
+_JOB_FIELDS = {
+    "name", "enabled", "genre_slug", "params", "ai_provider", "ai_model",
+    "voice_provider", "voice_id", "voice_model", "image_provider",
+    "yt_upload", "yt_privacy", "schedule_type", "schedule_time",
+    "schedule_days", "next_run", "last_run", "status", "last_error", "run_count",
+}
+
+
+def job_create(job_id: str, data: dict) -> None:
+    cols, vals = ["id"], [job_id]
+    for k, v in data.items():
+        if k in _JOB_FIELDS:
+            cols.append(k)
+            vals.append(json.dumps(v) if isinstance(v, dict) else v)
+    sql = f"INSERT OR REPLACE INTO scheduled_jobs ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})"
+    with _conn() as c:
+        c.execute(sql, vals)
+
+
+def job_list() -> list[dict]:
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT * FROM scheduled_jobs ORDER BY created_at DESC"
+        ).fetchall()
+    return [_job_row(r) for r in rows]
+
+
+def job_get(job_id: str) -> dict | None:
+    with _conn() as c:
+        row = c.execute("SELECT * FROM scheduled_jobs WHERE id=?", (job_id,)).fetchone()
+    return _job_row(row) if row else None
+
+
+def job_update(job_id: str, data: dict) -> None:
+    upd = {k: v for k, v in data.items() if k in _JOB_FIELDS}
+    if not upd:
+        return
+    sql = "UPDATE scheduled_jobs SET " + ", ".join(f"{k}=?" for k in upd) + " WHERE id=?"
+    vals = [json.dumps(v) if isinstance(v, dict) else v for v in upd.values()]
+    vals.append(job_id)
+    with _conn() as c:
+        c.execute(sql, vals)
+
+
+def job_delete(job_id: str) -> None:
+    with _conn() as c:
+        c.execute("DELETE FROM scheduled_jobs WHERE id=?", (job_id,))
+
+
+def job_due_list() -> list[dict]:
+    """Return all enabled jobs whose next_run is <= now (or null with manual=no)."""
+    now = datetime.utcnow().isoformat()
+    with _conn() as c:
+        rows = c.execute(
+            """SELECT * FROM scheduled_jobs
+               WHERE enabled=1 AND status NOT IN ('running')
+               AND schedule_type != 'manual'
+               AND (next_run IS NULL OR next_run <= ?)
+               ORDER BY next_run ASC""",
+            (now,)
+        ).fetchall()
+    return [_job_row(r) for r in rows]
+
+
+def _job_row(row) -> dict:
+    d = dict(row)
+    try:
+        d["params"] = json.loads(d.get("params") or "{}")
+    except Exception:
+        d["params"] = {}
+    return d
+
+
+# ── Job run log ───────────────────────────────────────────────────────────────
+
+def job_run_start(job_id: str, started_at: str) -> int:
+    with _conn() as c:
+        cur = c.execute(
+            "INSERT INTO job_runs (job_id, started_at) VALUES (?,?)",
+            (job_id, started_at),
+        )
+        return cur.lastrowid
+
+
+def job_run_finish(run_id: int, status: str, story_id: int | None = None,
+                   error: str = "", video_path: str = "",
+                   yt_video_id: str = "", cost: float = 0.0) -> None:
+    with _conn() as c:
+        c.execute(
+            """UPDATE job_runs SET completed_at=datetime('now'), status=?,
+               story_id=?, error=?, video_path=?, yt_video_id=?, cost_estimate=?
+               WHERE id=?""",
+            (status, story_id, error, video_path, yt_video_id, cost, run_id),
+        )
+
+
+def job_run_list(job_id: str, limit: int = 20) -> list[dict]:
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT * FROM job_runs WHERE job_id=? ORDER BY started_at DESC LIMIT ?",
+            (job_id, limit),
         ).fetchall()
     return [dict(r) for r in rows]
 
