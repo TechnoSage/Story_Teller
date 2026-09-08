@@ -3,331 +3,442 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ app_name }} — Documentation</title>
+<title>Story Teller — Documentation</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
-html { scroll-behavior: smooth; }
-
-/* ── Top navbar ─────────────────────────────────────────────────────────────── */
-#docsNav {
-  background: var(--bs-body-bg);
-  border-bottom: 1px solid var(--bs-border-color);
-  z-index: 1030;
-  height: 57px;
-}
-
-/* ── TOC sidebar ─────────────────────────────────────────────────────────────── */
-#tocSidebar {
-  position: sticky;
-  top: 57px;
-  height: calc(100vh - 57px);
-  overflow-y: auto;
-  border-right: 1px solid var(--bs-border-color);
-  padding: 1.25rem 0.75rem;
-  scrollbar-width: thin;
-  width: 230px;
-  flex-shrink: 0;
-}
-#tocSidebar .toc-section {
-  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .06em; color: var(--bs-secondary-color);
-  margin: 1rem 0 0.25rem 0;
-  display: flex; align-items: center; gap: .3rem;
-}
-#tocSidebar .nav-link {
-  font-size: 0.8rem; padding: 0.2rem 0.5rem; color: var(--bs-body-color);
-  border-radius: 4px; line-height: 1.4;
-}
-#tocSidebar .nav-link:hover  { background: rgba(255,255,255,.06); color: var(--bs-body-color); }
-#tocSidebar .nav-link.active { background: rgba(13,110,253,.18); color: #6ea8fe; font-weight: 600; }
-#tocSidebar .nav-link.sub   { padding-left: 1.1rem; }
-#tocSidebar .nav-link.sub2  { padding-left: 1.9rem; }
-#tocSidebar .nav-link.sub3  { padding-left: 2.7rem; }
-
-/* ── Main content ────────────────────────────────────────────────────────────── */
-#docsContent {
-  max-width: 860px;
-  padding: 2rem 2.5rem 4rem;
-  flex: 1;
-}
-#docsContent h2 {
-  font-size: 1.45rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 0.5rem;
-  padding-top: 0.5rem; border-bottom: 1px solid var(--bs-border-color); padding-bottom: 0.5rem;
-}
-#docsContent h3 { font-size: 1.05rem; font-weight: 600; margin-top: 1.75rem; margin-bottom: 0.4rem; }
-#docsContent h4 {
-  font-size: 0.875rem; font-weight: 600; margin-top: 1.25rem; text-transform: uppercase;
-  letter-spacing: .05em; color: var(--bs-secondary-color);
-}
-#docsContent p   { line-height: 1.7; }
-#docsContent ul li { line-height: 1.7; margin-bottom: 0.2rem; }
-#docsContent code {
-  font-size: .85em; padding: .15em .35em;
-  background: rgba(255,255,255,.07); border-radius: 3px;
-}
-[data-bs-theme="light"] #docsContent code { background: rgba(0,0,0,.06); }
-
-/* ── Mockup / screenshot containers ─────────────────────────────────────────── */
-.mockup {
-  background: rgba(255,255,255,.03);
-  border: 1px solid var(--bs-border-color);
-  border-radius: 0.75rem;
-  padding: 1rem 1.25rem;
-  margin: 0.75rem 0 1.25rem;
-  font-size: 0.82rem;
-}
-[data-bs-theme="light"] .mockup { background: rgba(0,0,0,.03); }
-.mockup-label {
-  font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
-  color: var(--bs-secondary-color); margin-bottom: 0.6rem;
-}
-.mockup img { max-width: 100%; border-radius: .5rem; border: 1px solid var(--bs-border-color); }
-
-/* ── Callout / key-term box ──────────────────────────────────────────────────── */
-.key-term {
-  background: rgba(13,110,253,.08);
-  border-left: 3px solid #0d6efd;
-  border-radius: 0 .5rem .5rem 0;
-  padding: .75rem 1rem;
-  font-size: .875rem;
-  line-height: 1.6;
-  margin: 1rem 0 1.25rem;
-}
-.key-term.warning {
-  background: rgba(255,193,7,.08);
-  border-left-color: #ffc107;
-}
-.key-term.danger {
-  background: rgba(220,53,69,.08);
-  border-left-color: #dc3545;
-}
-.key-term.success {
-  background: rgba(25,135,84,.08);
-  border-left-color: #198754;
-}
-
-/* ── Feature badge for new/updated items ────────────────────────────────────── */
-.badge-new     { background: #0d6efd; color: #fff; font-size: .6rem; vertical-align: middle; }
-.badge-updated { background: #198754; color: #fff; font-size: .6rem; vertical-align: middle; }
-
-/* ── Light mode overrides ────────────────────────────────────────────────────── */
-[data-bs-theme="light"] #tocSidebar .nav-link.active { background: rgba(13,110,253,.12); }
+html{scroll-behavior:smooth;}body{font-size:15px;margin:0;}
+#docsNav{background:#16191d;border-bottom:1px solid rgba(255,255,255,.07);z-index:1040;height:58px;}
+[data-bs-theme="light"] #docsNav{background:#f8f9fa;border-bottom-color:rgba(0,0,0,.10);}
+#docsSearch{max-width:320px;font-size:.85rem;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:inherit;}
+[data-bs-theme="light"] #docsSearch{background:#fff;border-color:#ced4da;}
+.search-highlight{background:rgba(255,193,7,.32);border-radius:2px;padding:0 2px;}
+.search-hidden{display:none!important;}
+#searchCount{font-size:.72rem;color:var(--bs-secondary-color);min-width:80px;}
+#tocSidebar{position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto;border-right:1px solid rgba(255,255,255,.06);padding:1.25rem .75rem 3rem;scrollbar-width:thin;width:230px;min-width:230px;flex-shrink:0;background:#13161a;}
+[data-bs-theme="light"] #tocSidebar{background:#f5f6f8;border-right-color:rgba(0,0,0,.08);}
+.toc-section{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--bs-secondary-color);margin:1.1rem 0 .3rem;padding-left:.25rem;display:flex;align-items:center;gap:.3rem;}
+#tocSidebar .nav-link{font-size:.8rem;padding:.22rem .5rem;color:var(--bs-body-color);border-radius:5px;line-height:1.35;}
+#tocSidebar .nav-link:hover{background:rgba(255,255,255,.06);color:var(--bs-body-color);}
+#tocSidebar .nav-link.active{background:rgba(13,110,253,.18);color:#6ea8fe;font-weight:600;}
+#tocSidebar .nav-link.sub{padding-left:1.2rem;font-size:.77rem;}
+[data-bs-theme="light"] #tocSidebar .nav-link.active{background:rgba(13,110,253,.10);color:#0d6efd;}
+#docsContent{max-width:900px;padding:2rem 2.5rem 5rem;flex:1;min-width:0;}
+#docsContent h2{font-size:1.45rem;font-weight:700;margin-top:2.75rem;margin-bottom:.6rem;padding-bottom:.5rem;border-bottom:1px solid rgba(255,255,255,.08);}
+[data-bs-theme="light"] #docsContent h2{border-bottom-color:rgba(0,0,0,.1);}
+#docsContent h2:first-of-type{margin-top:0;}
+#docsContent h3{font-size:1.05rem;font-weight:600;margin-top:1.75rem;margin-bottom:.4rem;}
+#docsContent p{line-height:1.72;margin-bottom:.9rem;}
+#docsContent li{line-height:1.72;margin-bottom:.25rem;}
+#docsContent code{font-size:.84em;padding:.15em .38em;background:rgba(255,255,255,.07);border-radius:3px;font-family:'Cascadia Code','Consolas',monospace;}
+[data-bs-theme="light"] #docsContent code{background:rgba(0,0,0,.06);}
+#docsContent pre{background:#0d1117;border:1px solid rgba(255,255,255,.08);border-radius:.6rem;padding:1rem 1.2rem;font-size:.82rem;overflow-x:auto;}
+[data-bs-theme="light"] #docsContent pre{background:#f6f8fa;border-color:rgba(0,0,0,.1);}
+#docsContent pre code{background:transparent;padding:0;}
+.screenshot-wrap{margin:1rem 0 1.75rem;border-radius:.8rem;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:#0d1117;box-shadow:0 4px 16px rgba(0,0,0,.4);cursor:zoom-in;transition:box-shadow .15s;}
+.screenshot-wrap:hover{box-shadow:0 6px 24px rgba(0,0,0,.55);}
+.screenshot-wrap img{display:block;width:100%;}
+.screenshot-caption{font-size:.72rem;color:var(--bs-secondary-color);padding:.45rem .85rem;background:rgba(0,0,0,.25);border-top:1px solid rgba(255,255,255,.06);}
+[data-bs-theme="light"] .screenshot-wrap{background:#f8f9fa;border-color:rgba(0,0,0,.1);}
+[data-bs-theme="light"] .screenshot-caption{background:rgba(0,0,0,.04);border-top-color:rgba(0,0,0,.08);}
+#screenshotLightbox{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);align-items:center;justify-content:center;cursor:zoom-out;}
+#screenshotLightbox.open{display:flex;}
+#lightboxImg{max-width:96vw;max-height:92vh;border-radius:.6rem;box-shadow:0 12px 48px rgba(0,0,0,.8);}
+#lightboxClose{position:fixed;top:1.2rem;right:1.5rem;color:#fff;font-size:1.8rem;cursor:pointer;z-index:10000;}
+.callout{border-left:3px solid #0d6efd;border-radius:0 .5rem .5rem 0;padding:.75rem 1rem;font-size:.875rem;line-height:1.65;margin:1rem 0 1.25rem;background:rgba(13,110,253,.08);}
+.callout.warning{border-color:#ffc107;background:rgba(255,193,7,.08);}
+.callout.tip{border-color:#6ea8fe;background:rgba(110,168,254,.07);}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.85rem;margin:1rem 0 1.5rem;}
+.feature-card{border:1px solid rgba(255,255,255,.07);border-radius:.75rem;padding:.9rem 1rem;background:rgba(255,255,255,.025);display:flex;flex-direction:column;gap:.3rem;}
+[data-bs-theme="light"] .feature-card{border-color:rgba(0,0,0,.1);background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.feature-card .fi{font-size:1.3rem;margin-bottom:.2rem;}
+.feature-card .ft{font-size:.88rem;font-weight:600;}
+.feature-card .fd{font-size:.78rem;color:var(--bs-secondary-color);line-height:1.5;}
+.api-table{font-size:.82rem;}
+.api-table th{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;border-bottom-width:2px;}
+.api-table td{vertical-align:middle;}
+.method{font-weight:700;font-family:monospace;font-size:.78rem;}
+.method.GET{color:#4dabf7;}.method.POST{color:#69db7c;}
+.api-path{font-family:'Cascadia Code','Consolas',monospace;}
+#faqAccordion .accordion-item{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.08);margin-bottom:.4rem;border-radius:.5rem!important;overflow:hidden;}
+#faqAccordion .accordion-button{background:rgba(255,255,255,.035);color:var(--bs-body-color);font-size:.9rem;font-weight:500;border-radius:.5rem!important;}
+#faqAccordion .accordion-button:not(.collapsed){background:rgba(13,110,253,.12);color:#6ea8fe;box-shadow:none;}
+#faqAccordion .accordion-button::after{filter:invert(80%);}
+#faqAccordion .accordion-body{font-size:.875rem;line-height:1.68;}
+[data-bs-theme="light"] #faqAccordion .accordion-item{background:#fff;border-color:rgba(0,0,0,.1);}
+[data-bs-theme="light"] #faqAccordion .accordion-button{background:#f8f9fa;color:inherit;}
+[data-bs-theme="light"] #faqAccordion .accordion-button:not(.collapsed){background:rgba(13,110,253,.08);color:#0d6efd;}
+[data-bs-theme="light"] #faqAccordion .accordion-button::after{filter:none;}
+.docs-hero{padding:1.6rem 0 .8rem;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:1.5rem;}
+[data-bs-theme="light"] .docs-hero{border-bottom-color:rgba(0,0,0,.1);}
+.docs-hero h1{font-size:2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.35rem;}
+.docs-hero .tagline{font-size:1rem;color:var(--bs-secondary-color);margin-bottom:.8rem;}
+.meta-pill{display:inline-flex;align-items:center;gap:.35rem;font-size:.73rem;padding:.2rem .65rem;border:1px solid rgba(255,255,255,.1);border-radius:99px;color:var(--bs-secondary-color);margin-right:.3rem;margin-bottom:.3rem;}
+[data-bs-theme="light"] .meta-pill{border-color:rgba(0,0,0,.12);}
+.quicknav{display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0 .25rem;}
+.quicknav a{font-size:.78rem;padding:.25rem .7rem;border:1px solid rgba(255,255,255,.1);border-radius:99px;color:var(--bs-secondary-color);text-decoration:none;transition:background .12s,color .12s;}
+.quicknav a:hover{background:rgba(13,110,253,.15);color:#6ea8fe;border-color:transparent;}
+[data-bs-theme="light"] .quicknav a{border-color:rgba(0,0,0,.12);}
+.phase-badge{font-size:.7rem;padding:.15rem .45rem;border-radius:99px;font-weight:600;vertical-align:middle;}
 </style>
 </head>
 <body>
 
-<!-- ── Top navbar ──────────────────────────────────────────────────────────── -->
-<nav class="navbar navbar-expand-sm navbar-dark sticky-top" id="docsNav">
-  <div class="container-fluid px-3">
-    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
-      <i class="bi bi-book text-primary"></i>
-      <span>{{ app_name }}</span>
-      <span class="badge bg-secondary fw-normal" style="font-size:.7rem;">Docs</span>
-    </a>
-    <div class="ms-auto d-flex align-items-center gap-2">
-      <span class="text-secondary small d-none d-sm-block">v{{ app_version }}</span>
-      <a href="/" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Back to App
-      </a>
-      <button class="btn btn-sm btn-outline-secondary" onclick="toggleDocsTheme()" title="Toggle theme">
-        <i class="bi bi-circle-half" id="docsThemeIcon"></i>
-      </button>
-    </div>
+<nav class="navbar sticky-top d-flex align-items-center px-3 gap-3" id="docsNav">
+  <a class="fw-bold d-flex align-items-center gap-2 text-decoration-none" href="/" style="color:inherit;white-space:nowrap;">
+    <i class="bi bi-camera-reels text-warning"></i>
+    <span>Story Teller</span>
+    <span class="badge bg-secondary fw-normal" style="font-size:.68rem;">Docs</span>
+    <span class="text-secondary small d-none d-sm-block fw-normal ms-1">v{{ app_version }}</span>
+  </a>
+  <div class="flex-grow-1 position-relative">
+    <i class="bi bi-search position-absolute" style="left:.65rem;top:50%;transform:translateY(-50%);font-size:.8rem;opacity:.45;pointer-events:none;"></i>
+    <input type="search" id="docsSearch" class="form-control form-control-sm ps-4" placeholder="Search documentation…" oninput="docsSearchRun(this.value)" autocomplete="off">
+  </div>
+  <span id="searchCount" class="d-none d-sm-block text-end" style="white-space:nowrap;"></span>
+  <div class="d-flex gap-1 flex-shrink-0">
+    <a href="/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>App</a>
+    <button class="btn btn-sm btn-outline-secondary" onclick="toggleDocsTheme()"><i id="docsThemeIcon" class="bi bi-sun-fill"></i></button>
   </div>
 </nav>
 
-<!-- ── Layout: sidebar + main ──────────────────────────────────────────────── -->
-<div class="d-flex">
-
-  <!-- TOC sidebar -->
-  <nav id="tocSidebar">
-
-    <!--
-      Standard TOC structure (copy this pattern for all app docs):
-
-      <div class="toc-section"><i class="bi bi-ICON me-1"></i>Section Name</div>
-      <a class="nav-link" href="#anchor">Page/Feature Title</a>
-      <a class="nav-link sub"  href="#sub-anchor">Sub-section</a>
-      <a class="nav-link sub2" href="#sub2-anchor">Nested sub-section</a>
-
-      Rules:
-      - Use .toc-section for top-level chapter headings (no href)
-      - Use .nav-link (no sub) for primary h2 sections
-      - Use .nav-link.sub for h3 subsections
-      - Use .nav-link.sub2 for h4 sub-subsections
-      - Use .nav-link.sub3 sparingly (deep nesting)
-      - Add <span class="badge badge-new ms-1">New</span> for new sections
-      - Mirror the section id= anchors exactly
-    -->
-
+<div class="d-flex" style="min-height:calc(100vh - 58px)">
+  <nav id="tocSidebar" class="d-none d-lg-block">
     <div class="toc-section"><i class="bi bi-play-circle me-1"></i>Getting Started</div>
     <a class="nav-link" href="#overview">Overview</a>
     <a class="nav-link" href="#install">Installation</a>
-    <a class="nav-link sub" href="#install-requirements">Requirements</a>
-    <a class="nav-link sub" href="#install-steps">Setup Steps</a>
     <a class="nav-link" href="#quickstart">Quick Start</a>
 
-    <div class="toc-section"><i class="bi bi-layout-sidebar me-1"></i>Navigation</div>
-    <!--
-      Add one nav-link per sidebar tab / page in the app.
-      Example:
-      <a class="nav-link" href="#page-dashboard">Dashboard</a>
-      <a class="nav-link" href="#page-settings">Settings</a>
-    -->
+    <div class="toc-section"><i class="bi bi-layout-sidebar me-1"></i>Sections</div>
+    <a class="nav-link" href="#studio">Story Studio</a>
+    <a class="nav-link" href="#archive">Archive</a>
+    <a class="nav-link" href="#production">Production</a>
+    <a class="nav-link" href="#seo">SEO &amp; Thumbnails</a>
+    <a class="nav-link" href="#schedule">Scheduler</a>
+    <a class="nav-link" href="#youtube">YouTube Channel</a>
+    <a class="nav-link" href="#tests">Tests</a>
 
-    <div class="toc-section"><i class="bi bi-gear me-1"></i>Settings</div>
-    <a class="nav-link" href="#settings">All Settings</a>
+    <div class="toc-section"><i class="bi bi-terminal me-1"></i>API Reference</div>
+    <a class="nav-link" href="#api">Endpoints</a>
 
-    <div class="toc-section">Other</div>
+    <div class="toc-section"><i class="bi bi-sliders me-1"></i>Config</div>
+    <a class="nav-link" href="#settings">Settings</a>
+
+    <div class="toc-section"><i class="bi bi-question-circle me-1"></i>Help</div>
     <a class="nav-link" href="#faq">FAQ</a>
     <a class="nav-link" href="#changelog">Changelog</a>
+  </nav>
 
-  </nav><!-- /tocSidebar -->
-
-  <!-- Main documentation content -->
   <main id="docsContent">
+    <div class="docs-hero">
+      <h1><i class="bi bi-camera-reels me-2" style="color:#ffd43b"></i>Story Teller</h1>
+      <p class="tagline">AI-powered YouTube story channel automation — from story generation to upload, fully automated.</p>
+      <div>
+        <span class="meta-pill"><i class="bi bi-ethernet"></i>Port 5000</span>
+        <span class="meta-pill"><i class="bi bi-stack"></i>Flask · SQLite · ffmpeg · Python 3.11+</span>
+        <span class="meta-pill"><i class="bi bi-github"></i><a href="https://github.com/TechnoSage/Story_Teller" target="_blank" class="text-decoration-none" style="color:inherit;">GitHub</a></span>
+        <span class="meta-pill"><i class="bi bi-tag"></i>v{{ app_version }}</span>
+      </div>
+      <div class="quicknav mt-2">
+        <a href="#studio">Studio</a>
+        <a href="#archive">Archive</a>
+        <a href="#production">Production</a>
+        <a href="#seo">SEO</a>
+        <a href="#schedule">Schedule</a>
+        <a href="#youtube">YouTube</a>
+        <a href="#faq">FAQ</a>
+      </div>
+    </div>
 
-    <!-- ══════════════════════════════════════════════════ OVERVIEW -->
     <section id="overview">
       <h2><i class="bi bi-info-circle me-2 text-primary"></i>Overview</h2>
-      <p>
-        <!-- App description goes here -->
-        {{ app_description }}
-      </p>
-      <div class="key-term">
-        <i class="bi bi-lightbulb me-2"></i>
-        <!-- Key concept or quick-start tip -->
+      <p>Story Teller automates the full YouTube story channel pipeline: AI writes the story → TTS voices it → AI generates scene images → captions are created → video is assembled → it uploads to YouTube. All 6 phases run end-to-end from a single browser dashboard.</p>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="fi"><i class="bi bi-pen text-primary"></i></div>
+          <div class="ft">Story Studio</div>
+          <div class="fd">Generate stories in 10 genres using Claude, OpenAI, or Gemini. Streams output live.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fi"><i class="bi bi-mic text-info"></i></div>
+          <div class="ft">Voice Narration</div>
+          <div class="fd">Convert stories to MP3 narration using OpenAI TTS, Google TTS, or ElevenLabs.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fi"><i class="bi bi-image text-success"></i></div>
+          <div class="ft">Scene Images</div>
+          <div class="fd">Generate scene images per story paragraph using DALL-E 3, Stability AI, or Ideogram.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fi"><i class="bi bi-film text-warning"></i></div>
+          <div class="ft">Video Assembly</div>
+          <div class="fd">Assemble narration + images + captions into MP4 using ffmpeg.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fi"><i class="bi bi-youtube text-danger"></i></div>
+          <div class="ft">YouTube Upload</div>
+          <div class="fd">OAuth2 upload to YouTube with title, description, tags, thumbnail, and visibility.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fi"><i class="bi bi-search text-secondary"></i></div>
+          <div class="ft">SEO &amp; Thumbnails</div>
+          <div class="fd">Claude generates optimized titles, descriptions, tags, and thumbnail text options.</div>
+        </div>
       </div>
-      <div style="height:2rem"></div>
+      <div class="screenshot-wrap">
+        <img src="/static/docs_screenshots/overview.png" alt="Story Teller">
+        <div class="screenshot-caption">Story Teller dashboard — full pipeline from generation to upload</div>
+      </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════ INSTALLATION -->
     <section id="install">
       <h2><i class="bi bi-box-seam me-2 text-secondary"></i>Installation</h2>
-
-      <h3 id="install-requirements">Requirements</h3>
+      <h3>Requirements</h3>
       <ul>
-        <!-- List requirements: Python version, OS, etc. -->
-        <li>Python 3.11 or later</li>
-        <li>Windows 10/11, macOS 12+, or Linux (Ubuntu 22.04+)</li>
+        <li>Python 3.11+, pip</li>
+        <li>ffmpeg installed and in PATH (for video assembly)</li>
+        <li>At least one AI API key: Anthropic, OpenAI, or Google Gemini</li>
+        <li>At least one TTS key: OpenAI, Google Cloud TTS, or ElevenLabs</li>
+        <li>Optional: Stability AI or Ideogram for scene images</li>
+        <li>Optional: Google Cloud OAuth2 credentials for YouTube upload</li>
       </ul>
-
-      <h3 id="install-steps">Setup Steps</h3>
+      <h3>Steps</h3>
       <ol>
-        <!-- Step-by-step install instructions -->
-        <li>Clone or download the repository.</li>
-        <li>Create a virtual environment: <code>python -m venv .venv</code></li>
-        <li>Install dependencies: <code>pip install -r requirements.txt</code></li>
-        <li>Run the application: <code>python run.py</code></li>
+        <li><code>git clone https://github.com/TechnoSage/Story_Teller.git</code></li>
+        <li><code>python -m venv .venv &amp;&amp; .venv\Scripts\activate</code></li>
+        <li><code>pip install -r requirements.txt</code></li>
+        <li>Install ffmpeg: <a href="https://ffmpeg.org/download.html" target="_blank">ffmpeg.org</a> → add to PATH</li>
+        <li><code>python run.py</code></li>
+        <li>Open <code>http://127.0.0.1:5000</code> and add API keys in Settings</li>
       </ol>
-      <div style="height:2rem"></div>
     </section>
 
-    <!-- ═══════════════════════════════════════════════ QUICK START -->
     <section id="quickstart">
       <h2><i class="bi bi-lightning me-2 text-warning"></i>Quick Start</h2>
-      <p>
-        <!-- 60-second guide to the most common workflow -->
-      </p>
-      <div class="mockup">
-        <div class="mockup-label">Main application screen</div>
-        <!-- <img src="/docs/screenshots/main.png" alt="Main screen" class="img-fluid"> -->
-        <p class="text-secondary small mb-0">Screenshot: main application view</p>
-      </div>
-      <div style="height:2rem"></div>
+      <ol>
+        <li>Go to <strong>Settings</strong> and add your Anthropic (or OpenAI/Gemini) API key.</li>
+        <li>Go to <strong>Story Studio</strong>, choose a genre and provider, and click <strong>Generate Story</strong>.</li>
+        <li>The story streams in live. When complete, it's saved to the Archive automatically.</li>
+        <li>Open <strong>Production</strong> to generate voice, images, captions, and assemble the video.</li>
+        <li>Connect YouTube in <strong>YouTube Channel</strong>, then upload from Production.</li>
+      </ol>
     </section>
 
-    <!-- ═══════════════════════════════════════════════════ SETTINGS -->
+    <section id="studio">
+      <h2><i class="bi bi-pen me-2 text-primary"></i>Story Studio</h2>
+      <p>The Story Studio is where you generate new stories. Choose a genre (Horror, Fantasy, Romance, Mystery, Sci-Fi, Thriller, Adventure, Comedy, True Crime, or Inspirational), an AI provider (Claude, OpenAI GPT-4o, or Google Gemini), and click Generate.</p>
+      <div class="screenshot-wrap">
+        <img src="/static/docs_screenshots/studio.png" alt="Story Studio">
+        <div class="screenshot-caption">Story Studio — pick a genre, AI provider, and stream the story live</div>
+      </div>
+      <p>Stories are streamed to the browser in real time via Server-Sent Events (SSE). Once complete, they're saved to the Archive and linked to their production assets.</p>
+    </section>
+
+    <section id="archive">
+      <h2><i class="bi bi-archive me-2 text-info"></i>Archive</h2>
+      <p>The Archive holds every generated story with its full production status (voice ✓, images ✓, video ✓, uploaded ✓). Click any story to open its production panel.</p>
+      <div class="screenshot-wrap">
+        <img src="/static/docs_screenshots/archive.png" alt="Archive">
+        <div class="screenshot-caption">Archive — all stories with production status badges</div>
+      </div>
+    </section>
+
+    <section id="production">
+      <h2><i class="bi bi-film me-2 text-warning"></i>Production</h2>
+      <p>The Production panel takes a story through all remaining pipeline phases:</p>
+      <ol>
+        <li><strong>Voice</strong> — choose TTS provider, generate MP3 narration</li>
+        <li><strong>Images</strong> — generate scene images (one per paragraph)</li>
+        <li><strong>Captions</strong> — generate SRT via Whisper or text estimation</li>
+        <li><strong>Video</strong> — assemble MP4 with ffmpeg (narration + images + captions)</li>
+        <li><strong>Upload</strong> — push to YouTube with OAuth2</li>
+      </ol>
+      <div class="callout tip"><i class="bi bi-info-circle"></i> Each phase can be run individually or in sequence. The pipeline remembers which phases are complete so you can resume after any failure.</div>
+    </section>
+
+    <section id="seo">
+      <h2><i class="bi bi-search me-2 text-secondary"></i>SEO &amp; Thumbnails</h2>
+      <p>The SEO section uses Claude AI to generate optimized YouTube metadata for any archived story.</p>
+      <div class="screenshot-wrap">
+        <img src="/static/docs_screenshots/seo.png" alt="SEO and Thumbnails">
+        <div class="screenshot-caption">SEO &amp; Thumbnails — AI-generated titles, descriptions, tags, and thumbnail options</div>
+      </div>
+      <ul>
+        <li><strong>5 title options</strong> — click-optimized YouTube titles</li>
+        <li><strong>Description</strong> — YouTube-formatted description with hook and call-to-action</li>
+        <li><strong>15 tags</strong> — searchable tags in a copyable list</li>
+        <li><strong>5 thumbnail options</strong> — each with headline, subtext, and visual style suggestions</li>
+      </ul>
+      <div class="callout tip"><i class="bi bi-cpu"></i> SEO uses Claude Haiku via your own Anthropic API key — extremely low cost per generation.</div>
+    </section>
+
+    <section id="schedule">
+      <h2><i class="bi bi-calendar3 me-2 text-success"></i>Scheduler</h2>
+      <p>The Scheduler runs the full pipeline automatically — story → voice → images → captions → video → upload — on a configurable schedule (manual trigger, daily, or weekly).</p>
+      <ul>
+        <li>Create a job with a genre, AI provider, and TTS provider</li>
+        <li>Set schedule: manual, daily at a time, or weekly on a day/time</li>
+        <li>View run history: status, start time, duration, and output</li>
+        <li>The scheduler daemon runs in the background — start/stop from the Scheduler section</li>
+      </ul>
+    </section>
+
+    <section id="youtube">
+      <h2><i class="bi bi-youtube me-2 text-danger"></i>YouTube Channel</h2>
+      <p>The YouTube Channel section connects to your YouTube channel via Google OAuth2 and lets you view channel info and recent uploads.</p>
+      <ul>
+        <li>Enter your Google Cloud OAuth2 Client ID and Secret in Settings → YouTube API</li>
+        <li>Click <strong>Connect YouTube</strong> to authorize via the OAuth2 flow</li>
+        <li>Once connected, channel info and recent uploads appear in this section</li>
+        <li>Videos are uploaded directly from the Production panel</li>
+      </ul>
+      <div class="callout warning"><i class="bi bi-exclamation-triangle"></i> Your OAuth credentials are stored in <code>instance/youtube_credentials.json</code> (gitignored). Never commit this file.</div>
+    </section>
+
+    <section id="tests">
+      <h2><i class="bi bi-check2-circle me-2 text-success"></i>Tests</h2>
+      <p>The Tests section has 6 live test cards you can run individually or all at once:</p>
+      <ul>
+        <li><strong>Story</strong> — generates a short story and displays it inline</li>
+        <li><strong>Voice</strong> — generates audio and embeds a player</li>
+        <li><strong>Image</strong> — generates one scene image and displays it inline</li>
+        <li><strong>Captions</strong> — generates SRT captions and shows the text</li>
+        <li><strong>Video</strong> — assembles a test MP4 and embeds a video player</li>
+        <li><strong>YouTube</strong> — verifies OAuth connection and shows channel info</li>
+      </ul>
+    </section>
+
+    <section id="api">
+      <h2><i class="bi bi-terminal me-2 text-success"></i>API Reference</h2>
+      <p>Base URL: <code>http://127.0.0.1:5000</code></p>
+      <div class="table-responsive">
+      <table class="table table-sm api-table">
+        <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method GET">GET</span></td><td class="api-path">/</td><td>Main SPA</td></tr>
+          <tr><td><span class="method GET">GET</span></td><td class="api-path">/docs</td><td>This page</td></tr>
+          <tr><td><span class="method POST">POST</span></td><td class="api-path">/api/heartbeat</td><td>Browser keep-alive</td></tr>
+          <tr><td><span class="method GET">GET</span></td><td class="api-path">/api/stories</td><td>List archived stories</td></tr>
+          <tr><td><span class="method POST">POST</span></td><td class="api-path">/api/story/generate</td><td>Generate a story (SSE stream)</td></tr>
+          <tr><td><span class="method POST">POST</span></td><td class="api-path">/api/voice/&lt;sid&gt;</td><td>Generate voice narration</td></tr>
+          <tr><td><span class="method POST">POST</span></td><td class="api-path">/api/images/&lt;sid&gt;</td><td>Generate scene images</td></tr>
+          <tr><td><span class="method POST">POST</span></td><td class="api-path">/api/captions/&lt;sid&gt;</td><td>Generate SRT captions</td></tr>
+          <tr><td><span class="method POST">POST</span></td><td class="api-path">/api/video/&lt;sid&gt;</td><td>Assemble MP4 video</td></tr>
+          <tr><td><span class="method POST">POST</span></td><td class="api-path">/api/youtube/upload/&lt;sid&gt;</td><td>Upload to YouTube</td></tr>
+          <tr><td><span class="method POST">POST</span></td><td class="api-path">/api/seo-optimize/&lt;sid&gt;</td><td>Generate SEO metadata (Claude)</td></tr>
+          <tr><td><span class="method POST">POST</span></td><td class="api-path">/api/thumbnail-text/&lt;sid&gt;</td><td>Generate thumbnail options (Claude)</td></tr>
+          <tr><td><span class="method GET">GET</span></td><td class="api-path">/api/schedule/jobs</td><td>List scheduled jobs</td></tr>
+          <tr><td><span class="method POST">POST</span></td><td class="api-path">/api/schedule/jobs</td><td>Create scheduled job</td></tr>
+          <tr><td><span class="method GET">GET</span></td><td class="api-path">/api/youtube/status</td><td>OAuth connection status</td></tr>
+          <tr><td><span class="method GET">GET</span></td><td class="api-path">/api/app-settings</td><td>Get settings</td></tr>
+          <tr><td><span class="method POST">POST</span></td><td class="api-path">/api/app-settings</td><td>Save settings</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
     <section id="settings">
       <h2><i class="bi bi-sliders me-2 text-secondary"></i>Settings</h2>
-      <p>
-        <!-- Describe the settings page -->
-      </p>
-      <div style="height:2rem"></div>
+      <p>Access Settings via the gear icon. All settings stored in <code>instance/app_settings.json</code> (gitignored).</p>
+      <ul>
+        <li><strong>Anthropic API Key</strong> — for Claude story generation and SEO</li>
+        <li><strong>OpenAI API Key</strong> — for GPT-4o stories and TTS voice</li>
+        <li><strong>Google AI API Key</strong> — for Gemini story generation</li>
+        <li><strong>ElevenLabs API Key</strong> — for ElevenLabs TTS voice</li>
+        <li><strong>Stability AI Key</strong> — for Stability AI scene images</li>
+        <li><strong>Ideogram API Key</strong> — for Ideogram scene images</li>
+        <li><strong>YouTube API Client ID / Secret</strong> — for YouTube OAuth2 upload</li>
+        <li><strong>Stories Directory</strong> — where generated MP3/MP4/SRT files are saved</li>
+      </ul>
     </section>
 
-    <!-- ════════════════════════════════════════════════════════ FAQ -->
     <section id="faq">
       <h2><i class="bi bi-question-circle me-2 text-info"></i>FAQ</h2>
-      <h3>Where is my data stored?</h3>
-      <p><!-- Answer --></p>
-      <h3>How do I reset settings?</h3>
-      <p><!-- Answer --></p>
-      <div style="height:2rem"></div>
+      <div class="accordion" id="faqAccordion">
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+              Which AI providers do I need?
+            </button>
+          </h2>
+          <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">You need at least one story AI provider (Anthropic, OpenAI, or Google) and at least one TTS provider (OpenAI TTS, Google Cloud TTS, or ElevenLabs). For images you need DALL-E 3 (OpenAI), Stability AI, or Ideogram. YouTube upload requires Google Cloud OAuth2 credentials.</div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+              Where are generated videos stored?
+            </button>
+          </h2>
+          <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">By default, all generated files (MP3, PNG, SRT, MP4) are stored in the <code>stories/</code> directory inside the project folder, organized by story ID. You can change this path in Settings → Stories Directory.</div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+              ffmpeg is not found — how do I install it?
+            </button>
+          </h2>
+          <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">On Windows: download from <a href="https://ffmpeg.org/download.html" target="_blank">ffmpeg.org</a> or install via <code>winget install ffmpeg</code>. Make sure the <code>bin/</code> folder is in your PATH. On Linux: <code>sudo apt install ffmpeg</code>. On Mac: <code>brew install ffmpeg</code>.</div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+              How does YouTube OAuth2 work?
+            </button>
+          </h2>
+          <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">Create a Google Cloud project, enable the YouTube Data API v3, and create OAuth2 credentials (Desktop app type). Add the Client ID and Secret to Settings → YouTube API, then click <strong>Connect YouTube</strong>. A browser window opens for you to authorize. Credentials are saved locally in <code>instance/youtube_credentials.json</code>.</div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+              Why does the app shut down when I close the browser?
+            </button>
+          </h2>
+          <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">A heartbeat watchdog monitors browser activity. When all tabs close, the server shuts down after ~120 seconds. Keep at least one tab open if you have a long-running pipeline in progress (the scheduled daemon continues regardless).</div>
+          </div>
+        </div>
+
+      </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════ CHANGELOG -->
     <section id="changelog">
       <h2><i class="bi bi-journal-text me-2 text-secondary"></i>Changelog</h2>
-      <p>See <a href="/changelog" target="_blank">the in-app changelog</a> for version history.</p>
+      <p>Browse the <a href="https://github.com/TechnoSage/Story_Teller/commits/main" target="_blank">commit history on GitHub</a>.</p>
       <div style="height:3rem"></div>
     </section>
+  </main>
+</div>
 
-  </main><!-- /docsContent -->
-</div><!-- /d-flex -->
+<div id="screenshotLightbox">
+  <span id="lightboxClose" onclick="closeLightbox()"><i class="bi bi-x-lg"></i></span>
+  <img id="lightboxImg" src="" alt="">
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-/* ── Theme toggle ─────────────────────────────────────────────────────────── */
-(function () {
-  var saved = localStorage.getItem('app-docs-theme') || 'dark';
-  document.getElementById('htmlRoot').setAttribute('data-bs-theme', saved);
-  updateThemeIcon(saved);
-})();
-function toggleDocsTheme() {
-  var next = document.getElementById('htmlRoot').getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-  document.getElementById('htmlRoot').setAttribute('data-bs-theme', next);
-  localStorage.setItem('app-docs-theme', next);
-  updateThemeIcon(next);
-}
-function updateThemeIcon(theme) {
-  var el = document.getElementById('docsThemeIcon');
-  if (el) el.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
-}
-
-/* ── TOC scroll tracking (IntersectionObserver) ──────────────────────────── */
-(function () {
-  var tocLinks = document.querySelectorAll('#tocSidebar .nav-link[href^="#"]');
-  if (!tocLinks.length) return;
-
-  var _activeId = null;
-
-  function _activate(id) {
-    if (_activeId === id) return;
-    _activeId = id;
-    tocLinks.forEach(function (a) { a.classList.remove('active'); });
-    if (!id) return;
-    var link = document.querySelector('#tocSidebar .nav-link[href="#' + id + '"]');
-    if (link) {
-      link.classList.add('active');
-      link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-  }
-
-  // Only observe elements that have a matching TOC link (document order = reading order)
-  var _targets = Array.from(
-    document.querySelectorAll('section[id], h2[id], h3[id]')
-  ).filter(function (el) {
-    return !!document.querySelector('#tocSidebar .nav-link[href="#' + el.id + '"]');
-  });
-
-  var _visible = new Set();
-
-  var observer = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (e.isIntersecting) _visible.add(e.target.id);
-      else                   _visible.delete(e.target.id);
-    });
-    // Highlight the topmost visible target (document order)
-    for (var i = 0; i < _targets.length; i++) {
-      if (_visible.has(_targets[i].id)) { _activate(_targets[i].id); return; }
-    }
-  }, { rootMargin: '-8% 0px -72% 0px' });
-
-  _targets.forEach(function (el) { observer.observe(el); });
-  if (_targets.length) _activate(_targets[0].id);
-}());
+(function(){var saved=localStorage.getItem('st-docs-theme')||'dark';document.getElementById('htmlRoot').setAttribute('data-bs-theme',saved);updateThemeIcon(saved);})();
+function toggleDocsTheme(){var root=document.getElementById('htmlRoot');var next=root.getAttribute('data-bs-theme')==='dark'?'light':'dark';root.setAttribute('data-bs-theme',next);localStorage.setItem('st-docs-theme',next);updateThemeIcon(next);}
+function updateThemeIcon(t){var el=document.getElementById('docsThemeIcon');if(el)el.className=t==='dark'?'bi bi-sun-fill':'bi bi-moon-fill';}
+function docsSearchRun(q){q=(q||'').trim().toLowerCase();var count=document.getElementById('searchCount');document.querySelectorAll('.search-highlight').forEach(function(el){el.outerHTML=el.textContent;});var sections=document.querySelectorAll('#docsContent section,#docsContent .accordion-item');if(!q){sections.forEach(function(s){s.classList.remove('search-hidden');});if(count)count.textContent='';return;}var hits=0;sections.forEach(function(sec){if(sec.textContent.toLowerCase().includes(q)){sec.classList.remove('search-hidden');hits++;_highlight(sec,q);}else{sec.classList.add('search-hidden');}});if(count)count.textContent=hits+' section'+(hits!==1?'s':'');}
+function _highlight(node,q){if(node.nodeType===3){var idx=node.textContent.toLowerCase().indexOf(q);if(idx===-1)return;var span=document.createElement('mark');span.className='search-highlight';span.textContent=node.textContent.slice(idx,idx+q.length);var frag=document.createDocumentFragment();frag.appendChild(document.createTextNode(node.textContent.slice(0,idx)));frag.appendChild(span);frag.appendChild(document.createTextNode(node.textContent.slice(idx+q.length)));node.parentNode.replaceChild(frag,node);return;}if(['SCRIPT','STYLE','INPUT','TEXTAREA'].includes(node.nodeName))return;Array.from(node.childNodes).forEach(function(c){_highlight(c,q);});}
+document.querySelectorAll('.screenshot-wrap img').forEach(function(img){img.addEventListener('click',function(){document.getElementById('lightboxImg').src=img.src;document.getElementById('screenshotLightbox').classList.add('open');});});
+function closeLightbox(){document.getElementById('screenshotLightbox').classList.remove('open');}
+document.getElementById('screenshotLightbox').addEventListener('click',function(e){if(e.target!==document.getElementById('lightboxImg'))closeLightbox();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLightbox();});
+(function(){var tocLinks=document.querySelectorAll('#tocSidebar .nav-link[href^="#"]');if(!tocLinks.length)return;var _activeId=null;function _activate(id){if(_activeId===id)return;_activeId=id;tocLinks.forEach(function(a){a.classList.remove('active');});if(!id)return;var link=document.querySelector('#tocSidebar .nav-link[href="#'+id+'"]');if(link){link.classList.add('active');link.scrollIntoView({block:'nearest'});}}var _targets=Array.from(document.querySelectorAll('section[id],h2[id],h3[id]')).filter(function(el){return!!document.querySelector('#tocSidebar .nav-link[href="#'+el.id+'"]');});var _visible=new Set();var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)_visible.add(e.target.id);else _visible.delete(e.target.id);});for(var i=0;i<_targets.length;i++){if(_visible.has(_targets[i].id)){_activate(_targets[i].id);return;}}},{rootMargin:'-5% 0px -70% 0px'});_targets.forEach(function(el){obs.observe(el);});if(_targets.length)_activate(_targets[0].id);}());
 </script>
 </body>
 </html>
