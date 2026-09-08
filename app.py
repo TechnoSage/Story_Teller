@@ -1385,4 +1385,162 @@ def create_app() -> Flask:
                         "error": "No story with both narration audio and scene image found. "
                                  "Generate a story in Production first (voice + image)."}), 400
 
+    # ── SEO Optimizer ─────────────────────────────────────────────────────────
+
+    @app.route("/api/seo-optimize/<int:sid>", methods=["POST"])
+    def api_seo_optimize(sid):
+        story = _db.Story.query.get(sid)
+        if not story:
+            return jsonify({"ok": False, "error": "Story not found"}), 404
+        settings = _load_settings()
+        api_key  = settings.get("anthropic_api_key", "") or os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return jsonify({"ok": False,
+                            "error": "No Anthropic API key — add it in Settings → API Keys."}), 400
+
+        excerpt = (story.content or "")[:1500]
+        genre   = story.genre or "general"
+        prompt  = f"""You are a YouTube SEO expert helping optimize a story video for maximum organic discovery.
+
+Story Genre: {genre}
+Story Title: {story.title or 'Untitled'}
+Story Excerpt:
+{excerpt}
+
+Generate YouTube SEO metadata as JSON with exactly these keys:
+{{
+  "titles": [
+    "Catchy Title Option 1 (under 70 chars)",
+    "Catchy Title Option 2 (under 70 chars)",
+    "Catchy Title Option 3 (under 70 chars)",
+    "Catchy Title Option 4 (under 70 chars)",
+    "Catchy Title Option 5 (under 70 chars)"
+  ],
+  "description": "A compelling 150-250 word video description optimized for YouTube search. Include the story genre and key themes. End with a call to action.",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7", "tag8", "tag9", "tag10", "tag11", "tag12", "tag13", "tag14", "tag15"]
+}}
+
+Return ONLY valid JSON. No markdown, no commentary. Tags must be relevant YouTube search terms."""
+
+        try:
+            import urllib.request as _ur
+            req_data = json.dumps({
+                "model": "claude-haiku-4-5-20251001",
+                "max_tokens": 1200,
+                "messages": [{"role": "user", "content": prompt}],
+            }).encode()
+            req = _ur.Request(
+                "https://api.anthropic.com/v1/messages",
+                data=req_data,
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                method="POST",
+            )
+            with _ur.urlopen(req, timeout=30) as resp:
+                raw_resp = json.loads(resp.read())
+            raw = raw_resp["content"][0]["text"].strip()
+            if raw.startswith("```"):
+                raw = "\n".join(raw.split("\n")[1:])
+            if raw.endswith("```"):
+                raw = "\n".join(raw.split("\n")[:-1])
+            parsed = json.loads(raw)
+        except Exception as exc:
+            return jsonify({"ok": False, "error": f"AI generation failed: {exc}"}), 500
+
+        # Store SEO data in story metadata column if it exists, else return only
+        seo_result = {
+            "titles": parsed.get("titles", []),
+            "description": parsed.get("description", ""),
+            "tags": parsed.get("tags", []),
+        }
+        # Save to story seo_data if column exists
+        if hasattr(story, "seo_data"):
+            story.seo_data = json.dumps(seo_result)
+            _db.db.session.commit()
+
+        return jsonify({"ok": True, "seo": seo_result, "story_id": sid})
+
+    @app.route("/api/seo-optimize/<int:sid>", methods=["GET"])
+    def api_seo_get(sid):
+        story = _db.Story.query.get(sid)
+        if not story:
+            return jsonify({"ok": False, "error": "Not found"}), 404
+        if hasattr(story, "seo_data") and story.seo_data:
+            try:
+                return jsonify({"ok": True, "seo": json.loads(story.seo_data)})
+            except Exception:
+                pass
+        return jsonify({"ok": True, "seo": None})
+
+    # ── Thumbnail Text Generator ───────────────────────────────────────────────
+
+    @app.route("/api/thumbnail-text/<int:sid>", methods=["POST"])
+    def api_thumbnail_text(sid):
+        story = _db.Story.query.get(sid)
+        if not story:
+            return jsonify({"ok": False, "error": "Story not found"}), 404
+        settings = _load_settings()
+        api_key  = settings.get("anthropic_api_key", "") or os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return jsonify({"ok": False,
+                            "error": "No Anthropic API key — add it in Settings → API Keys."}), 400
+
+        excerpt = (story.content or "")[:800]
+        genre   = story.genre or "general"
+        prompt  = f"""You are designing YouTube video thumbnails. Generate compelling thumbnail text options for this story video.
+
+Genre: {genre}
+Title: {story.title or 'Untitled'}
+Story excerpt: {excerpt}
+
+Generate 5 thumbnail text options as JSON:
+{{
+  "options": [
+    {{
+      "headline": "SHORT BOLD TEXT (max 4 words, ALL CAPS for impact)",
+      "subtext": "Supporting line (6-8 words, title case)",
+      "style": "dramatic|mysterious|emotional|shocking|inspiring"
+    }}
+  ]
+}}
+
+Rules:
+- Headlines must be 1-4 words MAX (viewers have 2 seconds)
+- Make each option feel distinct in tone
+- No clickbait — must match the actual story content
+- Return ONLY valid JSON, no markdown"""
+
+        try:
+            import urllib.request as _ur
+            req_data = json.dumps({
+                "model": "claude-haiku-4-5-20251001",
+                "max_tokens": 800,
+                "messages": [{"role": "user", "content": prompt}],
+            }).encode()
+            req = _ur.Request(
+                "https://api.anthropic.com/v1/messages",
+                data=req_data,
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                method="POST",
+            )
+            with _ur.urlopen(req, timeout=20) as resp:
+                raw_resp = json.loads(resp.read())
+            raw = raw_resp["content"][0]["text"].strip()
+            if raw.startswith("```"):
+                raw = "\n".join(raw.split("\n")[1:])
+            if raw.endswith("```"):
+                raw = "\n".join(raw.split("\n")[:-1])
+            parsed = json.loads(raw)
+        except Exception as exc:
+            return jsonify({"ok": False, "error": f"Generation failed: {exc}"}), 500
+
+        return jsonify({"ok": True, "options": parsed.get("options", []), "story_id": sid})
+
     return app

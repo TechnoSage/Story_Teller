@@ -46,6 +46,13 @@
   </a>
 </li>
 <li class="nav-item">
+  <a class="nav-link" href="#" id="nav-seo"
+     data-tooltip="SEO &amp; Thumbnails — Optimize videos for YouTube discovery"
+     onclick="showSection('seo');return false;">
+    <i class="bi bi-search-heart"></i><span class="nav-label">SEO &amp; Thumbnails</span>
+  </a>
+</li>
+<li class="nav-item">
   <a class="nav-link" href="#" id="nav-tests"
      data-tooltip="System Tests — Verify APIs, audio, images &amp; video"
      onclick="showSection('tests');return false;">
@@ -1296,6 +1303,100 @@
 
   </div>{# /row #}
 </div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   SEO & THUMBNAILS
+══════════════════════════════════════════════════════════════════════════════ #}
+<div class="section-pane" id="pane-seo">
+  <div class="page-header">
+    <h4><i class="bi bi-search-heart me-2 text-info"></i>SEO &amp; Thumbnails</h4>
+    <div class="page-desc">Optimize your story videos for YouTube discovery. Generate titles, descriptions, tags, and thumbnail text.</div>
+  </div>
+
+  <!-- Story picker -->
+  <div class="card mb-3">
+    <div class="card-header bg-transparent border-0 pb-0">
+      <h6 class="fw-bold mb-0"><i class="bi bi-cursor me-1 text-secondary"></i>Select Story</h6>
+    </div>
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-8">
+          <select id="seoStorySelect" class="form-select" onchange="clearSeoResults()">
+            <option value="">— choose a story from your archive —</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-info text-white" onclick="generateSEO()">
+            <i class="bi bi-search me-1"></i>Generate SEO
+          </button>
+          <button class="btn btn-outline-secondary ms-1" onclick="generateThumbnailText()">
+            <i class="bi bi-card-image me-1"></i>Thumbnail Text
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEO results -->
+  <div id="seoResults" style="display:none">
+
+    <!-- Titles -->
+    <div class="card mb-3">
+      <div class="card-header bg-transparent border-0 pb-0">
+        <h6 class="fw-bold mb-0"><i class="bi bi-type-h1 me-1 text-warning"></i>Title Options <span class="text-muted fw-normal small">(click to copy)</span></h6>
+      </div>
+      <div class="card-body">
+        <div id="seoTitlesList" class="d-grid gap-2"></div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="card mb-3">
+      <div class="card-header bg-transparent border-0 pb-0 d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0"><i class="bi bi-card-text me-1 text-primary"></i>Description</h6>
+        <button class="btn btn-sm btn-outline-secondary py-0" onclick="copyText('seoDescription')">
+          <i class="bi bi-clipboard me-1"></i>Copy
+        </button>
+      </div>
+      <div class="card-body">
+        <textarea id="seoDescription" class="form-control" rows="6" readonly></textarea>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="card mb-3">
+      <div class="card-header bg-transparent border-0 pb-0 d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0"><i class="bi bi-tags me-1 text-success"></i>Tags <span class="text-muted fw-normal small">(15 tags)</span></h6>
+        <button class="btn btn-sm btn-outline-secondary py-0" onclick="copyTagsText()">
+          <i class="bi bi-clipboard me-1"></i>Copy All
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="seoTagsList" class="d-flex flex-wrap gap-2"></div>
+      </div>
+    </div>
+
+  </div>{# /seoResults #}
+
+  <!-- Thumbnail text results -->
+  <div id="thumbResults" style="display:none">
+    <div class="card mb-3">
+      <div class="card-header bg-transparent border-0 pb-0">
+        <h6 class="fw-bold mb-0"><i class="bi bi-card-image me-1 text-info"></i>Thumbnail Text Options <span class="text-muted fw-normal small">(click to select)</span></h6>
+      </div>
+      <div class="card-body">
+        <div id="thumbOptionsList" class="row g-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading spinner -->
+  <div id="seoSpinner" style="display:none" class="text-center py-4">
+    <div class="spinner-border text-info" role="status"></div>
+    <div class="text-muted mt-2" id="seoSpinnerLabel">Generating…</div>
+  </div>
+
+</div>{# /pane-seo #}
 
 {% endblock %}
 
@@ -4024,6 +4125,106 @@ function testYouTube() {
     _setResult('youtube', '<span class="text-danger small">' + escHtml(e.message) + '</span>');
   });
 }
+
+// ── SEO & Thumbnails ─────────────────────────────────────────────────────────
+function _seoShowSpinner(label) {
+  document.getElementById('seoSpinner').style.display = '';
+  document.getElementById('seoSpinnerLabel').textContent = label || 'Generating…';
+  document.getElementById('seoResults').style.display   = 'none';
+  document.getElementById('thumbResults').style.display = 'none';
+}
+function _seoHideSpinner() {
+  document.getElementById('seoSpinner').style.display = 'none';
+}
+function clearSeoResults() {
+  document.getElementById('seoResults').style.display   = 'none';
+  document.getElementById('thumbResults').style.display = 'none';
+}
+function copyText(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.value || el.textContent)
+    .then(() => { el.classList.add('border-success'); setTimeout(() => el.classList.remove('border-success'), 1200); });
+}
+function copyTagsText() {
+  const tags = Array.from(document.querySelectorAll('#seoTagsList .badge')).map(b => b.textContent.trim());
+  navigator.clipboard.writeText(tags.join(', ')).then(() => alert('Tags copied!'));
+}
+
+function _populateSeoStorySelect(stories) {
+  const sel = document.getElementById('seoStorySelect');
+  sel.innerHTML = '<option value="">— choose a story from your archive —</option>';
+  (stories || []).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.title || ('Story #' + s.id);
+    sel.appendChild(opt);
+  });
+}
+
+function generateSEO() {
+  const sid = document.getElementById('seoStorySelect').value;
+  if (!sid) { alert('Please select a story first.'); return; }
+  _seoShowSpinner('Generating SEO metadata…');
+  fetch('/api/seo-optimize/' + sid, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      _seoHideSpinner();
+      if (!d.ok) { alert('Error: ' + d.error); return; }
+      const seo = d.seo;
+      // Titles
+      const titlesList = document.getElementById('seoTitlesList');
+      titlesList.innerHTML = (seo.titles || []).map((t, i) =>
+        '<button class="btn btn-outline-secondary text-start" onclick="navigator.clipboard.writeText(this.dataset.title);this.classList.add(\'btn-success\');this.classList.remove(\'btn-outline-secondary\');setTimeout(()=>{this.classList.remove(\'btn-success\');this.classList.add(\'btn-outline-secondary\')},1200)" data-title="' + escHtml(t) + '">'
+        + '<span class="badge bg-secondary me-2">' + (i+1) + '</span>' + escHtml(t)
+        + '</button>'
+      ).join('');
+      // Description
+      document.getElementById('seoDescription').value = seo.description || '';
+      // Tags
+      const tagsList = document.getElementById('seoTagsList');
+      tagsList.innerHTML = (seo.tags || []).map(t =>
+        '<span class="badge bg-secondary fs-6 fw-normal px-2 py-1" style="cursor:pointer;" onclick="navigator.clipboard.writeText(this.textContent)">' + escHtml(t) + '</span>'
+      ).join('');
+      document.getElementById('seoResults').style.display = '';
+    })
+    .catch(e => { _seoHideSpinner(); alert('Failed: ' + e.message); });
+}
+
+function generateThumbnailText() {
+  const sid = document.getElementById('seoStorySelect').value;
+  if (!sid) { alert('Please select a story first.'); return; }
+  _seoShowSpinner('Generating thumbnail text options…');
+  fetch('/api/thumbnail-text/' + sid, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      _seoHideSpinner();
+      if (!d.ok) { alert('Error: ' + d.error); return; }
+      const opts = d.options || [];
+      const styleColors = { dramatic:'danger', mysterious:'secondary', emotional:'warning', shocking:'dark', inspiring:'success' };
+      document.getElementById('thumbOptionsList').innerHTML = opts.map((o, i) =>
+        '<div class="col-md-4">'
+        + '<div class="card p-3 text-center h-100" style="background:#111;cursor:pointer;border:2px solid transparent;" '
+        + 'onclick="this.parentElement.parentElement.querySelectorAll(\'.card\').forEach(c=>c.style.borderColor=\'transparent\');this.style.borderColor=\'#a78bfa\';navigator.clipboard.writeText(\'' + (o.headline||'').replace(/'/g,"\\'") + ' | ' + (o.subtext||'').replace(/'/g,"\\'") + '\')">'
+        + '<div style="font-size:1.5rem;font-weight:900;letter-spacing:.03em;line-height:1;">' + escHtml(o.headline || '') + '</div>'
+        + '<div class="text-muted small mt-2">' + escHtml(o.subtext || '') + '</div>'
+        + (o.style ? '<span class="badge mt-2 bg-' + (styleColors[o.style]||'secondary') + '">' + escHtml(o.style) + '</span>' : '')
+        + '</div></div>'
+      ).join('');
+      document.getElementById('thumbResults').style.display = '';
+    })
+    .catch(e => { _seoHideSpinner(); alert('Failed: ' + e.message); });
+}
+
+// Load archive stories into SEO picker on section show
+const _origShowSection = typeof showSection === 'function' ? showSection : null;
+document.addEventListener('DOMContentLoaded', function() {
+  // Populate seo story picker when section opens
+  document.getElementById('nav-seo')?.addEventListener('click', function() {
+    fetch('/api/archive').then(r => r.json()).then(d => {
+      if (d.stories) _populateSeoStorySelect(d.stories);
+    }).catch(() => {});
+  });
+});
 
 function runAllTests() {
   testsInit();
