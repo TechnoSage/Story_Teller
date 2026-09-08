@@ -1543,4 +1543,10 @@ Rules:
 
         return jsonify({"ok": True, "options": parsed.get("options", []), "story_id": sid})
 
+    @app.route("/docs")
+    def docs():
+        return render_template("docs.html",
+                               app_name="Story Teller",
+                               app_version=_read_version())
+
     return app
